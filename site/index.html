@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="AlgoScale evaluates language models and coding agents on complexity-scaled competitive programming problems."
+    />
+    <meta name="theme-color" content="#f3f0e8" />
+    <meta property="og:title" content="AlgoScale" />
+    <meta
+      property="og:description"
+      content="Benchmarking LLM coding agents on complexity-scaled competitive programming."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi0712.github.io/AlgoScale/" />
+    <title>AlgoScale — Complexity-Scaled Competitive Programming</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="AlgoScale home">
+        <span class="brand-mark" aria-hidden="true">A²</span>
+        <span>AlgoScale</span>
+      </a>
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="#benchmark">Benchmark</a>
+        <a href="#leaderboard">Leaderboard</a>
+        <a href="#catalog">Problems</a>
+        <a href="#protocol">Protocol</a>
+        <a
+          class="nav-github"
+          href="https://github.com/shi0712/AlgoScale"
+          target="_blank"
+          rel="noreferrer"
+          >GitHub <span aria-hidden="true">↗</span></a
+        >
+      </nav>
+      <button class="menu-button" type="button" aria-expanded="false" aria-label="Open menu">
+        <span></span><span></span>
+      </button>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> Competitive programming benchmark</p>
+          <h1>Same problem.<br /><em>A higher bar.</em></h1>
+          <p class="hero-lede">
+            AlgoScale evaluates whether language models can move beyond a known solution
+            pattern and derive the faster algorithm demanded by a larger input scale.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#leaderboard">View leaderboard</a>
+            <a class="button button-secondary" href="#catalog">Explore 88 problems</a>
+          </div>
+          <div class="hero-links" aria-label="Project resources">
+            <span>Paper <small>coming soon</small></span>
+            <a href="https://github.com/shi0712/AlgoScale" target="_blank" rel="noreferrer"
+              >Repository ↗</a
+            >
+            <a href="#protocol">Evaluation protocol ↓</a>
+          </div>
+        </div>
+
+        <div class="frontier-card" aria-label="Complexity scaling illustration">
+          <div class="frontier-card-head">
+            <span>complexity frontier</span>
+            <span class="live-dot">benchmark design</span>
+          </div>
+          <div class="frontier-plot">
+            <div class="plot-label plot-label-y">runtime</div>
+            <div class="plot-grid" aria-hidden="true"></div>
+            <svg viewBox="0 0 560 300" role="img" aria-label="Original and scaled input regimes">
+              <path class="curve curve-slow" d="M46 269 C180 263 270 227 332 163 C388 105 414 48 432 18" />
+              <path class="curve curve-fast" d="M46 270 C184 260 311 235 427 190 C475 171 512 151 540 129" />
+              <line class="limit original-limit" x1="260" y1="22" x2="260" y2="270" />
+              <line class="limit scaled-limit" x1="454" y1="22" x2="454" y2="270" />
+              <circle class="point original-point" cx="260" cy="220" r="6" />
+              <circle class="point scaled-point" cx="454" cy="180" r="7" />
+            </svg>
+            <div class="curve-label slow-label">original solution</div>
+            <div class="curve-label fast-label">required solution</div>
+            <div class="limit-label original-limit-label">original scale</div>
+            <div class="limit-label scaled-limit-label">AlgoScale</div>
+            <div class="plot-label plot-label-x">input size</div>
+          </div>
+          <div class="frontier-terminal">
+            <p><span>$</span> evaluate --track agent --suite algoscale</p>
+            <p class="terminal-muted">loading 88 UOJ judge packages...</p>
+            <p><b>original</b> O(n²) <i>→</i> <b>target</b> O(n log n)</p>
+            <p class="terminal-pass">✓ judged with native validators and checkers</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="stat-strip" aria-label="Benchmark summary">
+        <div><strong>88</strong><span>curated problems</span></div>
+        <div><strong>2</strong><span>evaluation modes</span></div>
+        <div><strong>7</strong><span>interactive tasks</span></div>
+        <div><strong>UOJ</strong><span>native judging</span></div>
+      </section>
+
+      <section class="section intro-section" id="benchmark">
+        <div class="section-kicker">01 / Benchmark</div>
+        <div class="intro-grid">
+          <div>
+            <h2>Performance reasoning,<br />not pattern recall.</h2>
+          </div>
+          <div class="intro-copy">
+            <p>
+              Competitive programming benchmarks usually ask whether a model can recover
+              any accepted solution. AlgoScale asks a sharper question: can it recognize
+              when the familiar complexity no longer fits and construct a genuinely faster
+              algorithm?
+            </p>
+            <p>
+              Each task preserves the original problem semantics while revising the scale.
+              The release records the source problem, original complexity, new target
+              complexity, and an executable UOJ judging package.
+            </p>
+          </div>
+        </div>
+
+        <div class="track-grid">
+          <article class="track-card track-direct">
+            <div class="track-number">Track A</div>
+            <div class="track-icon" aria-hidden="true">01</div>
+            <h3>Direct generation</h3>
+            <p>
+              The model receives the problem statement once and returns a complete C++20
+              program. No tools, compilation feedback, or iterative repair.
+            </p>
+            <dl>
+              <div><dt>Measures</dt><dd>algorithm synthesis</dd></div>
+              <div><dt>Primary metric</dt><dd>Pass@1</dd></div>
+              <div><dt>Feedback</dt><dd>none</dd></div>
+            </dl>
+          </article>
+
+          <article class="track-card track-agent">
+            <div class="track-number">Track B</div>
+            <div class="track-icon" aria-hidden="true">∞</div>
+            <h3>Agent mode</h3>
+            <p>
+              A coding agent can inspect files, write programs, compile, generate tests,
+              and iterate within a fixed budget before its final submission is judged.
+            </p>
+            <dl>
+              <div><dt>Measures</dt><dd>long-horizon problem solving</dd></div>
+              <div><dt>Runtime</dt><dd>Harbor sandbox</dd></div>
+              <div><dt>Artifacts</dt><dd>full trajectories</dd></div>
+            </dl>
+          </article>
+        </div>
+      </section>
+
+      <section class="section leaderboard-section" id="leaderboard">
+        <div class="section-heading-row">
+          <div>
+            <div class="section-kicker">02 / Results</div>
+            <h2>Leaderboard</h2>
+          </div>
+          <div class="result-meta">
+            <span class="status-pill">Preliminary</span>
+            <span id="leaderboard-date">Updated —</span>
+          </div>
+        </div>
+
+        <div class="leaderboard-shell">
+          <div class="tabs" role="tablist" aria-label="Evaluation tracks">
+            <button class="tab is-active" type="button" role="tab" data-track="direct" aria-selected="true">
+              Direct generation
+            </button>
+            <button class="tab" type="button" role="tab" data-track="agent" aria-selected="false">
+              Agent mode
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Model</th>
+                  <th>Framework</th>
+                  <th>Solved</th>
+                  <th>Pass@1</th>
+                  <th>Protocol note</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-body"></tbody>
+            </table>
+          </div>
+          <p class="table-note">
+            Pilot results are shown for site development and will be replaced by the
+            paper's frozen evaluation matrix. Infrastructure failures are separated from
+            model failures in the final protocol.
+          </p>
+        </div>
+      </section>
+
+      <section class="section catalog-section" id="catalog">
+        <div class="section-heading-row catalog-heading">
+          <div>
+            <div class="section-kicker">03 / Dataset</div>
+            <h2>Problem catalog</h2>
+            <p class="section-description">
+              The catalog follows the maintained 88-row metadata table. Missing source or
+              complexity fields are visibly marked pending rather than inferred.
+            </p>
+          </div>
+          <div class="catalog-count"><strong id="visible-count">88</strong><span>shown</span></div>
+        </div>
+
+        <div class="catalog-toolbar">
+          <label class="search-box">
+            <span class="sr-only">Search problems</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+            <input id="problem-search" type="search" placeholder="Search title, platform, or complexity" />
+          </label>
+          <div class="filter-group" aria-label="Problem type filters">
+            <button class="filter is-active" type="button" data-filter="All">All</button>
+            <button class="filter" type="button" data-filter="Standard">Standard</button>
+            <button class="filter" type="button" data-filter="Interactive">Interactive</button>
+            <button class="filter" type="button" data-filter="Pending">Needs review</button>
+          </div>
+        </div>
+
+        <div class="catalog-table-wrap">
+          <table class="catalog-table">
+            <thead>
+              <tr>
+                <th class="problem-id">ID</th>
+                <th>AlgoScale problem</th>
+                <th>Original problem</th>
+                <th>Original complexity</th>
+                <th>New complexity</th>
+                <th>Mode</th>
+              </tr>
+            </thead>
+            <tbody id="problem-body"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state" hidden>No problems match this filter.</div>
+        </div>
+        <button class="show-all" id="show-all" type="button">Show all 88 problems <span>↓</span></button>
+      </section>
+
+      <section class="section protocol-section" id="protocol">
+        <div class="section-kicker">04 / Protocol</div>
+        <div class="protocol-layout">
+          <div class="protocol-title">
+            <h2>From source problem<br />to executable evidence.</h2>
+            <p>
+              Every result ends at the judge. Generated explanations are never used as
+              correctness evidence.
+            </p>
+          </div>
+          <ol class="pipeline">
+            <li>
+              <span>01</span>
+              <div><h3>Trace the source</h3><p>Record the original statement, platform, constraints, reference implementation, and expected complexity.</p></div>
+            </li>
+            <li>
+              <span>02</span>
+              <div><h3>Raise the scale</h3><p>Change the data regime so that the original asymptotic solution no longer passes while problem semantics remain intact.</p></div>
+            </li>
+            <li>
+              <span>03</span>
+              <div><h3>Rebuild the judge package</h3><p>Ship tests, validators, checkers, limits, and the new reference solution as a versioned UOJ package.</p></div>
+            </li>
+            <li>
+              <span>04</span>
+              <div><h3>Evaluate both modes</h3><p>Run direct generation and Harbor-based agents under frozen prompts, budgets, tool policies, and fail-first judging.</p></div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="repro-grid">
+          <article><span>Judge</span><h3>UOJ-native</h3><p>Compilation, sandboxing, interactive protocols, validators, and checkers run in the same executable environment.</p></article>
+          <article><span>Execution</span><h3>Harbor-ready</h3><p>Agent tasks expose only the statement and workspace instructions. Reference solutions and hidden tests stay outside the agent container.</p></article>
+          <article><span>Reporting</span><h3>Trace-first</h3><p>Scores, verdicts, token usage, tool calls, failures, and infrastructure retries are retained for analysis.</p></article>
+        </div>
+      </section>
+
+      <section class="cta-section">
+        <p class="eyebrow"><span></span> AlgoScale</p>
+        <h2>Measure the algorithmic step<br />between knowing and solving.</h2>
+        <div class="hero-actions">
+          <a class="button button-primary" href="https://github.com/shi0712/AlgoScale" target="_blank" rel="noreferrer">View on GitHub ↗</a>
+          <a class="button button-secondary" href="#catalog">Browse problems</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand" href="#top"><span class="brand-mark">A²</span><span>AlgoScale</span></a>
+      <p>Benchmarking LLM coding agents on complexity-scaled competitive programming.</p>
+      <div><span>Paper coming soon</span><a href="https://github.com/shi0712/AlgoScale">GitHub ↗</a></div>
+    </footer>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
