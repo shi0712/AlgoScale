@@ -41,7 +41,23 @@ python scripts/build_problem_catalog.py `
   --output site\data\problems.json
 ```
 
-The generator requires problem IDs `1..88` in order and joins complexity metadata by the maintained local title, preventing stale IDs in older workbooks from silently misaligning rows.
+The generator requires positive, unique problem IDs and sorts the catalog by ID. It
+joins complexity metadata by the maintained local title, preventing stale IDs in
+older workbooks from silently misaligning rows.
+
+## Local metadata admin
+
+Run the local-only management UI from the repository root:
+
+```powershell
+python scripts/admin_server.py --open
+```
+
+The server listens only on `http://127.0.0.1:8787/`. It supports creating,
+editing, searching, and deleting problem metadata, and writes changes atomically
+to `site/data/problems.json`. Accepted-code mappings are read-only in the form
+and are preserved when a row is edited. Use Git to review, commit, and push the
+result before it appears on the public site.
 
 ## Publish generated C++ from another model
 

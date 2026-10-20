@@ -18,6 +18,9 @@ const els = {
   empty: document.querySelector("#empty-state"),
   nav: document.querySelector(".nav"),
   menu: document.querySelector(".menu-button"),
+  heroProblemCount: document.querySelector("#hero-problem-count"),
+  statProblemCount: document.querySelector("#stat-problem-count"),
+  statInteractiveCount: document.querySelector("#stat-interactive-count"),
 };
 
 function element(tag, className, text) {
@@ -35,9 +38,65 @@ function pendingNode() {
   return element("span", "pending", "Pending");
 }
 
+function complexityLatex(value) {
+  let source = String(value || "").trim().replace(/^\$+|\$+$/g, "");
+  if (!source || source.toLowerCase() === "null") return "";
+
+  // The admin accepts explicit LaTeX. Preserve deliberately formatted values,
+  // while still normalizing the compact notation imported from the workbook.
+  if (/\\(?:mathcal|mathrm|operatorname|Theta|Omega|tilde|widetilde)\b/.test(source)) {
+    return source;
+  }
+
+  source = source
+    .replace(
+      /5\(n-1\)\/3下取整/g,
+      "\\left\\lfloor\\frac{5(n-1)}{3}\\right\\rfloor",
+    )
+    .replaceAll("≤", "\\le ")
+    .replaceAll("<=", "\\le ")
+    .replaceAll("实际", "\\quad\\text{actual: }")
+    .replaceAll("下取整", "\\;\\text{(floor)}")
+    .replace(/min\{([^{}]*)\}/g, "\\min\\left\\{$1\\right\\}")
+    .replace(/\^22\^/g, "^2 2^")
+    .replace(/\^\(1\+o\(1\)\)/g, "^{1+o(1)}")
+    .replace(/\^([0-9]+(?:\.[0-9]+)?)/g, "^{$1}")
+    .replace(/sqrt\(([^()]*)\)/g, "\\sqrt{$1}")
+    .replace(/sqrt([A-Za-z0-9]+)/g, "\\sqrt{$1}")
+    .replace(/log\^\{([^{}]+)\}/g, "\\log^{$1}")
+    .replace(/log(?=[A-Za-z({])/g, "\\log ")
+    .replace(/,\s*/g, ",\\;")
+    .replace(/\s*=\s*/g, " = ");
+
+  // One legacy cell has a missing closing parenthesis in its source workbook.
+  if (source === "O(n2^w(\\sqrt{V})") source = "O(n2^w\\sqrt{V})";
+
+  const exponential = source.match(/^Oexp\((.*)\)(.*)$/);
+  if (exponential) {
+    return `\\mathcal{O}_{\\mathrm{exp}}\\!\\left(${exponential[1]}\\right)${exponential[2]}`;
+  }
+  const bigO = source.match(/^O\((.*)\)(.*)$/);
+  if (bigO) {
+    return `\\mathcal{O}\\!\\left(${bigO[1]}\\right)${bigO[2]}`;
+  }
+  return source;
+}
+
 function complexityNode(value, isNew = false) {
-  if (!value) return pendingNode();
-  return element("span", `complexity${isNew ? " complexity-new" : ""}`, value);
+  const latex = complexityLatex(value);
+  if (!latex) return pendingNode();
+  const node = element("span", `complexity${isNew ? " complexity-new" : ""}`);
+  if (window.katex && latex) {
+    window.katex.render(latex, node, {
+      throwOnError: false,
+      strict: false,
+      output: "htmlAndMathml",
+    });
+  } else {
+    node.textContent = value;
+  }
+  node.title = value;
+  return node;
 }
 
 function renderLeaderboard(data) {
@@ -98,13 +157,21 @@ function renderProblems() {
     originalCell.append(element("span", "platform-label", problem.platform || "Pending"));
     row.append(originalCell);
 
-    const originalComplexity = document.createElement("td");
-    originalComplexity.append(complexityNode(problem.originalComplexity));
-    row.append(originalComplexity);
-
-    const newComplexity = document.createElement("td");
-    newComplexity.append(complexityNode(problem.algoscaleComplexity, true));
-    row.append(newComplexity);
+    const complexityCell = element("td", "complexity-cell");
+    const shift = element("div", "complexity-shift");
+    const originalComplexity = element("div", "complexity-stage complexity-stage-original");
+    originalComplexity.append(
+      element("span", "complexity-label", "Original"),
+      complexityNode(problem.originalComplexity),
+    );
+    const targetComplexity = element("div", "complexity-stage complexity-stage-target");
+    targetComplexity.append(
+      element("span", "complexity-label", "AlgoScale"),
+      complexityNode(problem.algoscaleComplexity, true),
+    );
+    shift.append(originalComplexity, element("span", "complexity-arrow", "→"), targetComplexity);
+    complexityCell.append(shift);
+    row.append(complexityCell);
 
     const modeCell = document.createElement("td");
     modeCell.append(element("span", `mode-pill ${problem.track.toLowerCase()}`, problem.track));
@@ -163,6 +230,11 @@ async function loadData() {
   }
   state.problems = await problemResponse.json();
   const leaderboard = await leaderboardResponse.json();
+  const interactiveCount = state.problems.filter((problem) => problem.track === "Interactive").length;
+  [els.heroProblemCount, els.statProblemCount].forEach((node) => {
+    node.textContent = String(state.problems.length);
+  });
+  els.statInteractiveCount.textContent = String(interactiveCount);
 
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => {

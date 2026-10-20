@@ -22,6 +22,10 @@
       href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -61,7 +65,7 @@
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#leaderboard">View leaderboard</a>
-            <a class="button button-secondary" href="#catalog">Explore 88 problems</a>
+            <a class="button button-secondary" href="#catalog">Explore <span id="hero-problem-count">88</span> problems</a>
           </div>
           <div class="hero-links" aria-label="Project resources">
             <span>Paper <small>coming soon</small></span>
@@ -104,9 +108,9 @@
       </section>
 
       <section class="stat-strip" aria-label="Benchmark summary">
-        <div><strong>88</strong><span>curated problems</span></div>
+        <div><strong id="stat-problem-count">88</strong><span>curated problems</span></div>
         <div><strong>2</strong><span>evaluation modes</span></div>
-        <div><strong>7</strong><span>interactive tasks</span></div>
+        <div><strong id="stat-interactive-count">7</strong><span>interactive tasks</span></div>
         <div><strong>UOJ</strong><span>native judging</span></div>
       </section>
 
@@ -214,7 +218,7 @@
             <div class="section-kicker">03 / Dataset</div>
             <h2>Problem catalog</h2>
             <p class="section-description">
-              The catalog follows the maintained 88-row metadata table. Missing source or
+              The catalog follows the maintained benchmark metadata. Missing source or
               complexity fields are visibly marked pending rather than inferred.
             </p>
           </div>
@@ -242,17 +246,16 @@
                 <th class="problem-id">ID</th>
                 <th>AlgoScale problem</th>
                 <th>Original problem</th>
-                <th>Original complexity</th>
-                <th>New complexity</th>
+                <th>Complexity shift</th>
                 <th>Mode</th>
-                <th>Generated C++</th>
+                <th>Accepted C++</th>
               </tr>
             </thead>
             <tbody id="problem-body"></tbody>
           </table>
           <div class="empty-state" id="empty-state" hidden>No problems match this filter.</div>
         </div>
-        <button class="show-all" id="show-all" type="button">Show all 88 problems <span>↓</span></button>
+        <button class="show-all" id="show-all" type="button">Show all problems <span>↓</span></button>
       </section>
 
       <section class="section protocol-section" id="protocol">
@@ -308,6 +311,7 @@
       <div><span>Paper coming soon</span><a href="https://github.com/shi0712/AlgoScale">GitHub ↗</a></div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" defer></script>
     <script src="./app.js" defer></script>
   </body>
 </html>

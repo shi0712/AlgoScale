@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AlgoScale Admin</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand"><span>A²</span><div><strong>AlgoScale</strong><small>Local metadata admin</small></div></div>
+      <div class="local-badge">127.0.0.1 only</div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Benchmark control room</p>
+          <h1>Problem metadata,<br /><em>under control.</em></h1>
+          <p>Changes are written to <code>site/data/problems.json</code>. Commit and push the repository when you are ready to publish.</p>
+        </div>
+        <button class="primary" id="add-problem" type="button">＋ Add problem</button>
+      </section>
+
+      <section class="stats" aria-label="Catalog summary">
+        <article><strong id="total-count">—</strong><span>Total problems</span></article>
+        <article><strong id="standard-count">—</strong><span>Standard</span></article>
+        <article><strong id="interactive-count">—</strong><span>Interactive</span></article>
+        <article><strong id="pending-count">—</strong><span>Needs review</span></article>
+      </section>
+
+      <section class="workspace">
+        <div class="workspace-head">
+          <div><p class="eyebrow">Catalog</p><h2>Problems</h2></div>
+          <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search ID, title, platform…" /></label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Problem</th><th>Source</th><th>Complexity shift</th><th>Type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="problem-body"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="empty" hidden>No matching problems.</div>
+      </section>
+    </main>
+
+    <dialog id="editor">
+      <form id="problem-form">
+        <div class="dialog-head">
+          <div><p class="eyebrow" id="editor-mode">Edit record</p><h2 id="editor-title">Problem</h2></div>
+          <button class="icon-button" id="close-editor" type="button" aria-label="Close">×</button>
+        </div>
+        <input id="problem-id" type="hidden" />
+        <div class="form-grid">
+          <label class="wide"><span>AlgoScale title *</span><input id="title" required maxlength="500" /></label>
+          <label><span>Original title</span><input id="original-title" maxlength="500" /></label>
+          <label><span>Platform</span><input id="platform" maxlength="500" placeholder="QOJ, Luogu…" /></label>
+          <label class="wide"><span>Original URL</span><input id="original-url" type="url" maxlength="1000" placeholder="https://…" /></label>
+          <label><span>Original complexity / LaTeX</span><input id="original-complexity" maxlength="500" placeholder="O(n^2) or \mathcal{O}(n^2)" /></label>
+          <label><span>AlgoScale complexity / LaTeX</span><input id="target-complexity" maxlength="500" placeholder="O(n\log n)" /></label>
+          <label><span>Problem type</span><select id="track"><option>Standard</option><option>Interactive</option></select></label>
+          <label><span>Metadata status</span><select id="metadata-status"><option value="verified">Verified</option><option value="pending">Pending</option></select></label>
+        </div>
+        <p class="preserve-note">Accepted-code mappings are managed by the evaluation exporter and remain unchanged when editing metadata.</p>
+        <div class="dialog-actions">
+          <button class="danger" id="delete-problem" type="button">Delete</button>
+          <div><button class="secondary" id="cancel-editor" type="button">Cancel</button><button class="primary" type="submit">Save changes</button></div>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>

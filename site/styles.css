@@ -270,7 +270,7 @@ table { width: 100%; border-collapse: collapse; }
 .filter:hover { border-color: var(--line); }
 .filter.is-active { border-color: var(--ink); background: var(--ink); color: white; }
 .catalog-table-wrap { overflow-x: auto; }
-.catalog-table { min-width: 1080px; }
+.catalog-table { min-width: 1050px; }
 .catalog-table th { padding: 15px 12px; border-bottom: 1px solid var(--ink); color: #6d7069; font-family: var(--mono); font-size: 8px; font-weight: 500; text-align: left; text-transform: uppercase; letter-spacing: .07em; }
 .catalog-table td { padding: 18px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 12px; }
 .catalog-table tbody tr { transition: background .15s; }
@@ -279,8 +279,48 @@ table { width: 100%; border-collapse: collapse; }
 .problem-name { font-weight: 800; }
 .original-link { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; text-underline-offset: 3px; }
 .platform-label { display: block; margin-top: 4px; color: #7a7d75; font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
-.complexity { font-family: var(--mono); font-size: 10px; white-space: nowrap; }
-.complexity-new { display: inline-block; padding: 3px 6px; background: #ddff9f; color: #345300; }
+.complexity-cell { width: 340px; }
+.complexity-shift {
+  display: grid;
+  grid-template-columns: minmax(105px, 1fr) 24px minmax(105px, 1fr);
+  align-items: stretch;
+  min-width: 315px;
+  border: 1px solid #cbc6ba;
+  background: rgba(255,255,255,.38);
+}
+.complexity-stage { min-width: 0; padding: 9px 11px; }
+.complexity-stage-target { background: #e4ffb6; }
+.complexity-label {
+  display: block;
+  margin-bottom: 4px;
+  color: #7c8077;
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.complexity-stage-target .complexity-label { color: #557b0d; }
+.complexity {
+  display: block;
+  min-height: 23px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  color: #474a44;
+  font-size: 10px;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+.complexity-new { color: #294600; }
+.complexity .katex { font-size: 1.05em; }
+.complexity-arrow {
+  display: grid;
+  place-items: center;
+  border-left: 1px solid #cbc6ba;
+  border-right: 1px solid #cbc6ba;
+  color: #6c7068;
+  font-family: var(--mono);
+  font-size: 12px;
+}
 .mode-pill { display: inline-block; padding: 3px 7px; border: 1px solid #aaa; font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
 .mode-pill.interactive { border-color: #6b930f; color: #4b7000; }
 .code-menu { min-width: 105px; }

@@ -92,10 +92,12 @@ def main() -> None:
             }
         )
 
-    expected_ids = list(range(1, 89))
     actual_ids = [item["id"] for item in catalog]
-    if actual_ids != expected_ids:
-        raise ValueError(f"expected problem IDs 1..88, got {actual_ids}")
+    if any(problem_id <= 0 for problem_id in actual_ids):
+        raise ValueError("problem IDs must be positive integers")
+    if len(actual_ids) != len(set(actual_ids)):
+        raise ValueError(f"duplicate problem IDs: {actual_ids}")
+    catalog.sort(key=lambda item: item["id"])
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
