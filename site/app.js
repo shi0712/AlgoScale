@@ -111,16 +111,33 @@ function renderProblems() {
     row.append(modeCell);
 
     const codeCell = document.createElement("td");
-    const codeLinks = problem.generatedCode || {};
-    [["Direct", codeLinks.direct], ["Agent", codeLinks.agent]].forEach(([label, href]) => {
-      if (!href) return;
-      const link = element("a", "code-link", `${label} ↗`);
-      link.href = href;
-      link.target = "_blank";
-      link.rel = "noreferrer";
-      codeCell.append(link);
-    });
-    if (!codeCell.childElementCount) codeCell.append(element("span", "code-unavailable", "—"));
+    const codeTracks = problem.generatedCode || {};
+    const codeCount = ["direct", "agent"].reduce((count, track) => {
+      const models = codeTracks[track];
+      return count + (models && typeof models === "object" ? Object.keys(models).length : 0);
+    }, 0);
+    if (codeCount) {
+      const details = element("details", "code-menu");
+      details.append(element("summary", "code-summary", `View code (${codeCount})`));
+      const panel = element("div", "code-panel");
+      [["Direct", codeTracks.direct], ["Agent", codeTracks.agent]].forEach(([trackLabel, models]) => {
+        if (!models || typeof models !== "object" || !Object.keys(models).length) return;
+        const group = element("div", "code-group");
+        group.append(element("span", "code-track-label", trackLabel));
+        Object.entries(models).forEach(([model, href]) => {
+          const link = element("a", "code-link", `${model} ↗`);
+          link.href = href;
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          group.append(link);
+        });
+        panel.append(group);
+      });
+      details.append(panel);
+      codeCell.append(details);
+    } else {
+      codeCell.append(element("span", "code-unavailable", "—"));
+    }
     row.append(codeCell);
     els.problemBody.append(row);
   });

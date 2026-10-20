@@ -42,6 +42,24 @@ python scripts/build_problem_catalog.py `
 
 The generator requires problem IDs `1..88` in order and joins complexity metadata by the maintained local title, preventing stale IDs in older workbooks from silently misaligning rows.
 
+## Publish generated C++ from another model
+
+Each model gets its own directory. Exporting a new run adds that model to the
+existing catalog without replacing previously published sources:
+
+```powershell
+python scripts/export_generated_cpp.py `
+  --model-slug "model-name" `
+  --direct-summary "path\to\summary.json" `
+  --catalog site\data\problems.json `
+  --output-root site\generated
+```
+
+For an agent run, replace `--direct-summary` with one or more `--agent-job`
+arguments pointing to Harbor job directories. Direct and agent inputs may also
+be supplied together. Only the exact `.cpp` source stored with the corresponding
+UOJ submission is copied into the public site.
+
 ## Repository layout
 
 ```text

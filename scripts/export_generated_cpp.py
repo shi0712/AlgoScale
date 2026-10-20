@@ -15,7 +15,7 @@ TRIAL_NAME = re.compile(r"^uoj-local-(\d+)__")
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--direct-summary", type=Path, required=True)
+    parser.add_argument("--direct-summary", type=Path)
     parser.add_argument(
         "--agent-job",
         type=Path,
@@ -26,8 +26,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--catalog", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--wsl-distribution", default="Ubuntu")
-    parser.add_argument("--model-slug", default="deepseek-flash")
-    return parser.parse_args()
+    parser.add_argument("--model-slug", required=True)
+    args = parser.parse_args()
+    if args.direct_summary is None and not args.agent_job:
+        parser.error("at least one of --direct-summary or --agent-job is required")
+    if re.fullmatch(r"[a-z0-9][a-z0-9._-]*", args.model_slug) is None:
+        parser.error("--model-slug must contain only lowercase letters, numbers, ., _ or -")
+    return args
 
 
 def load_json(path: Path):
@@ -143,16 +148,31 @@ def export_track(
 
 
 def update_catalog(
-    path: Path, direct_paths: dict[int, str], agent_paths: dict[int, str]
+    path: Path,
+    model_slug: str,
+    direct_paths: dict[int, str] | None,
+    agent_paths: dict[int, str] | None,
 ) -> None:
     catalog = load_json(path)
     for problem in catalog:
         problem_id = int(problem["id"])
-        code = {}
-        if problem_id in direct_paths:
-            code["direct"] = direct_paths[problem_id]
-        if problem_id in agent_paths:
-            code["agent"] = agent_paths[problem_id]
+        code = problem.get("generatedCode")
+        if not isinstance(code, dict):
+            code = {}
+        for track, new_paths in (("direct", direct_paths), ("agent", agent_paths)):
+            existing = code.get(track)
+            if isinstance(existing, str):
+                existing = {"deepseek-flash": existing}
+            elif not isinstance(existing, dict):
+                existing = {}
+            if new_paths is not None:
+                existing.pop(model_slug, None)
+                if problem_id in new_paths:
+                    existing[model_slug] = new_paths[problem_id]
+            if existing:
+                code[track] = dict(sorted(existing.items()))
+            else:
+                code.pop(track, None)
         problem["generatedCode"] = code
     path.write_text(
         json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -161,29 +181,41 @@ def update_catalog(
 
 def main() -> None:
     args = parse_args()
-    direct = direct_submissions(args.direct_summary)
-    agent = agent_submissions(args.agent_job)
+    direct = direct_submissions(args.direct_summary) if args.direct_summary else None
+    agent = agent_submissions(args.agent_job) if args.agent_job else None
     storage_paths = submission_storage_paths(
-        args.wsl_distribution, set(direct.values()) | set(agent.values())
+        args.wsl_distribution,
+        set((direct or {}).values()) | set((agent or {}).values()),
     )
-    direct_paths = export_track(
-        track="direct",
-        model_slug=args.model_slug,
-        submissions=direct,
-        storage_paths=storage_paths,
-        distribution=args.wsl_distribution,
-        output_root=args.output_root,
+    direct_paths = (
+        export_track(
+            track="direct",
+            model_slug=args.model_slug,
+            submissions=direct,
+            storage_paths=storage_paths,
+            distribution=args.wsl_distribution,
+            output_root=args.output_root,
+        )
+        if direct is not None
+        else None
     )
-    agent_paths = export_track(
-        track="agent",
-        model_slug=args.model_slug,
-        submissions=agent,
-        storage_paths=storage_paths,
-        distribution=args.wsl_distribution,
-        output_root=args.output_root,
+    agent_paths = (
+        export_track(
+            track="agent",
+            model_slug=args.model_slug,
+            submissions=agent,
+            storage_paths=storage_paths,
+            distribution=args.wsl_distribution,
+            output_root=args.output_root,
+        )
+        if agent is not None
+        else None
     )
-    update_catalog(args.catalog, direct_paths, agent_paths)
-    print(f"exported {len(direct_paths)} direct and {len(agent_paths)} agent C++ files")
+    update_catalog(args.catalog, args.model_slug, direct_paths, agent_paths)
+    print(
+        f"exported {len(direct_paths or {})} direct and "
+        f"{len(agent_paths or {})} agent C++ files for {args.model_slug}"
+    )
 
 
 if __name__ == "__main__":

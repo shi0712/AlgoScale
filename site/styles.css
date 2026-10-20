@@ -283,9 +283,38 @@ table { width: 100%; border-collapse: collapse; }
 .complexity-new { display: inline-block; padding: 3px 6px; background: #ddff9f; color: #345300; }
 .mode-pill { display: inline-block; padding: 3px 7px; border: 1px solid #aaa; font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
 .mode-pill.interactive { border-color: #6b930f; color: #4b7000; }
+.code-menu { min-width: 105px; }
+.code-summary {
+  width: max-content;
+  cursor: pointer;
+  color: #426800;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.code-panel {
+  margin-top: 8px;
+  width: 230px;
+  padding: 12px;
+  border: 1px solid var(--ink);
+  background: var(--card);
+  box-shadow: 5px 5px 0 rgba(23, 24, 22, .15);
+}
+.code-group + .code-group { margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--line); }
+.code-track-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #74786f;
+  font-family: var(--mono);
+  font-size: 8px;
+  text-transform: uppercase;
+}
 .code-link {
-  display: inline-block;
-  margin: 0 9px 4px 0;
+  display: block;
+  margin: 4px 0;
   color: #426800;
   font-family: var(--mono);
   font-size: 9px;
