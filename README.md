@@ -9,9 +9,10 @@ The current release contains **88 UOJ-judged problems** and two evaluation track
 
 The project page publishes each problem's source link, source title, original expected complexity, and AlgoScale target complexity. Unknown metadata is explicitly marked `pending`.
 
-For completed benchmark submissions, the catalog links directly to the exact
-`.cpp` source received by the UOJ judge. No model response text, reasoning
-trace, logs, hidden judge material, or reference solution is published.
+For accepted benchmark submissions, the catalog links directly to the exact
+`.cpp` source received by the UOJ judge. Failed, partial-score, and unjudged
+submissions are not published. No model response text, reasoning trace, logs,
+hidden judge material, or reference solution is published.
 
 ## Project page
 
@@ -57,8 +58,9 @@ python scripts/export_generated_cpp.py `
 
 For an agent run, replace `--direct-summary` with one or more `--agent-job`
 arguments pointing to Harbor job directories. Direct and agent inputs may also
-be supplied together. Only the exact `.cpp` source stored with the corresponding
-UOJ submission is copied into the public site.
+be supplied together. Only the exact `.cpp` source from a 100-point UOJ
+submission is copied into the public site; stale non-accepted files for that
+model and track are removed.
 
 ## Repository layout
 

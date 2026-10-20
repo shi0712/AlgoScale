@@ -45,6 +45,7 @@ def direct_submissions(path: Path) -> dict[int, int]:
         int(row["problem_id"]): int(row["submission_id"])
         for row in rows
         if row.get("submission_id") is not None
+        and float(row.get("score") or 0) == 100.0
     }
 
 
@@ -60,7 +61,11 @@ def agent_submissions(job_paths: list[Path]) -> dict[int, int]:
                 continue
             result = load_json(result_path)
             submission_id = result.get("submission_id")
-            if submission_id is not None:
+            accepted = (
+                float(result.get("uoj_score") or 0) == 100.0
+                or float(result.get("reward") or 0) == 1.0
+            )
+            if submission_id is not None and accepted:
                 submissions[int(match.group(1))] = int(submission_id)
     return submissions
 
@@ -139,6 +144,10 @@ def export_track(
     destination = output_root / track / model_slug
     destination.mkdir(parents=True, exist_ok=True)
     public_paths: dict[int, str] = {}
+    expected_filenames = {f"{problem_id:03d}.cpp" for problem_id in submissions}
+    for existing in destination.glob("*.cpp"):
+        if existing.name not in expected_filenames:
+            existing.unlink()
     for problem_id, submission_id in sorted(submissions.items()):
         source = read_submitted_cpp(distribution, storage_paths[submission_id])
         filename = f"{problem_id:03d}.cpp"
@@ -213,8 +222,8 @@ def main() -> None:
     )
     update_catalog(args.catalog, args.model_slug, direct_paths, agent_paths)
     print(
-        f"exported {len(direct_paths or {})} direct and "
-        f"{len(agent_paths or {})} agent C++ files for {args.model_slug}"
+        f"exported {len(direct_paths or {})} accepted direct and "
+        f"{len(agent_paths or {})} accepted agent C++ files for {args.model_slug}"
     )
 
 
