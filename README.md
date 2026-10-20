@@ -9,6 +9,10 @@ The current release contains **88 UOJ-judged problems** and two evaluation track
 
 The project page publishes each problem's source link, source title, original expected complexity, and AlgoScale target complexity. Unknown metadata is explicitly marked `pending`.
 
+For completed benchmark submissions, the catalog links directly to the exact
+`.cpp` source received by the UOJ judge. No model response text, reasoning
+trace, logs, hidden judge material, or reference solution is published.
+
 ## Project page
 
 After GitHub Pages is enabled, the site is available at:
@@ -45,6 +49,7 @@ site/                         Static GitHub Pages site
   data/problems.json          Public 88-problem catalog
   data/leaderboard.json       Preliminary evaluation results
 scripts/build_problem_catalog.py
+scripts/export_generated_cpp.py  Export exact UOJ-submitted model sources
 .github/workflows/pages.yml   GitHub Pages deployment
 ```
 

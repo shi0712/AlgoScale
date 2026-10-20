@@ -50,6 +50,14 @@ def read_complexities(path: Path) -> dict[str, dict[str, str | None]]:
 def main() -> None:
     args = parse_args()
     complexities = read_complexities(args.complexity_xlsx)
+    existing_code: dict[int, dict[str, str]] = {}
+    if args.output.is_file():
+        existing_catalog = json.loads(args.output.read_text(encoding="utf-8"))
+        existing_code = {
+            int(item["id"]): item.get("generatedCode", {})
+            for item in existing_catalog
+            if isinstance(item, dict) and "id" in item
+        }
 
     with args.origins_csv.open(encoding="utf-8-sig", newline="") as handle:
         origins = list(csv.DictReader(handle))
@@ -73,6 +81,7 @@ def main() -> None:
                 "originalComplexity": complexity.get("originalComplexity") or None,
                 "algoscaleComplexity": complexity.get("algoscaleComplexity") or None,
                 "track": "Interactive" if problem_id >= 82 else "Standard",
+                "generatedCode": existing_code.get(problem_id, {}),
                 "metadataStatus": (
                     "verified"
                     if original_url

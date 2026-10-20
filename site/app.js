@@ -109,6 +109,19 @@ function renderProblems() {
     const modeCell = document.createElement("td");
     modeCell.append(element("span", `mode-pill ${problem.track.toLowerCase()}`, problem.track));
     row.append(modeCell);
+
+    const codeCell = document.createElement("td");
+    const codeLinks = problem.generatedCode || {};
+    [["Direct", codeLinks.direct], ["Agent", codeLinks.agent]].forEach(([label, href]) => {
+      if (!href) return;
+      const link = element("a", "code-link", `${label} ↗`);
+      link.href = href;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      codeCell.append(link);
+    });
+    if (!codeCell.childElementCount) codeCell.append(element("span", "code-unavailable", "—"));
+    row.append(codeCell);
     els.problemBody.append(row);
   });
 
