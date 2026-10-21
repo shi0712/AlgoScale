@@ -28,6 +28,10 @@ class AdminServerTest(unittest.TestCase):
                         "track": "Standard",
                         "metadataStatus": "verified",
                         "generatedCode": {"direct": {"model": "./accepted.cpp"}},
+                        "referenceAssets": {
+                            "solution": "./references/001/solution.md",
+                            "standardSolution": "./references/001/std.cpp",
+                        },
                     }
                 ]
             ),
@@ -90,6 +94,13 @@ class AdminServerTest(unittest.TestCase):
         self.assertEqual(updated["title"], "Updated")
         self.assertEqual(
             updated["generatedCode"], {"direct": {"model": "./accepted.cpp"}}
+        )
+        self.assertEqual(
+            updated["referenceAssets"],
+            {
+                "solution": "./references/001/solution.md",
+                "standardSolution": "./references/001/std.cpp",
+            },
         )
 
         status, deleted = self.request("DELETE", "/api/problems/2")

@@ -75,6 +75,7 @@ def validate_problem(payload: dict, *, existing: dict | None, problem_id: int) -
         "track": track,
         "metadataStatus": status,
         "generatedCode": (existing or {}).get("generatedCode", {}),
+        "referenceAssets": (existing or {}).get("referenceAssets", {}),
     }
 
 

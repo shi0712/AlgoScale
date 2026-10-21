@@ -59,6 +59,22 @@ to `site/data/problems.json`. Accepted-code mappings are read-only in the form
 and are preserved when a row is edited. Use Git to review, commit, and push the
 result before it appears on the public site.
 
+## Publish official solutions and reference programs
+
+The author packages use several internal names (`solution.md`, `editorial.md`,
+`std.cpp`, `std17.cpp`, and others). Normalize all 88 packages into the public
+reference layout with:
+
+```powershell
+python scripts/publish_reference_assets.py
+```
+
+The script discovers the locally retained author ZIPs, extracts each editorial
+and reference implementation as UTF-8, writes them under
+`site/references/NNN/`, and updates `referenceAssets` in the public catalog. It
+fails instead of silently publishing a mismatched package. The site renders
+Markdown and LaTeX in a dedicated solution viewer and syntax-highlights C++.
+
 ## Publish generated C++ from another model
 
 Each model gets its own directory. Exporting a new run adds that model to the

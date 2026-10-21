@@ -177,6 +177,23 @@ function renderProblems() {
     modeCell.append(element("span", `mode-pill ${problem.track.toLowerCase()}`, problem.track));
     row.append(modeCell);
 
+    const referenceCell = element("td", "reference-cell");
+    const referenceAssets = problem.referenceAssets || {};
+    if (referenceAssets.solution) {
+      const solution = element("a", "reference-link reference-link-solution", "Solution");
+      solution.href = `./reference.html?id=${problem.id}&asset=solution`;
+      referenceCell.append(solution);
+    }
+    if (referenceAssets.standardSolution) {
+      const standard = element("a", "reference-link", "std.cpp");
+      standard.href = `./reference.html?id=${problem.id}&asset=standardSolution`;
+      referenceCell.append(standard);
+    }
+    if (!referenceCell.childElementCount) {
+      referenceCell.append(element("span", "code-unavailable", "—"));
+    }
+    row.append(referenceCell);
+
     const codeCell = document.createElement("td");
     const codeTracks = problem.generatedCode || {};
     const codeCount = ["direct", "agent"].reduce((count, track) => {

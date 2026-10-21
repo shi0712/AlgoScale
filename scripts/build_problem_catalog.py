@@ -51,10 +51,16 @@ def main() -> None:
     args = parse_args()
     complexities = read_complexities(args.complexity_xlsx)
     existing_code: dict[int, dict[str, str]] = {}
+    existing_references: dict[int, dict[str, str]] = {}
     if args.output.is_file():
         existing_catalog = json.loads(args.output.read_text(encoding="utf-8"))
         existing_code = {
             int(item["id"]): item.get("generatedCode", {})
+            for item in existing_catalog
+            if isinstance(item, dict) and "id" in item
+        }
+        existing_references = {
+            int(item["id"]): item.get("referenceAssets", {})
             for item in existing_catalog
             if isinstance(item, dict) and "id" in item
         }
@@ -82,6 +88,7 @@ def main() -> None:
                 "algoscaleComplexity": complexity.get("algoscaleComplexity") or None,
                 "track": "Interactive" if problem_id >= 82 else "Standard",
                 "generatedCode": existing_code.get(problem_id, {}),
+                "referenceAssets": existing_references.get(problem_id, {}),
                 "metadataStatus": (
                     "verified"
                     if original_url
