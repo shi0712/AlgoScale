@@ -34,16 +34,20 @@ function renderMarkdown(markdown) {
   content.innerHTML = DOMPurify.sanitize(marked.parse(markdown), {
     USE_PROFILES: { html: true },
   });
-  content.querySelectorAll("pre code").forEach((block) => hljs.highlightElement(block));
-  renderMathInElement(content, {
-    delimiters: [
-      { left: "$$", right: "$$", display: true },
-      { left: "\\[", right: "\\]", display: true },
-      { left: "$", right: "$", display: false },
-      { left: "\\(", right: "\\)", display: false },
-    ],
-    throwOnError: false,
-  });
+  if (window.hljs) {
+    content.querySelectorAll("pre code").forEach((block) => window.hljs.highlightElement(block));
+  }
+  if (window.renderMathInElement) {
+    window.renderMathInElement(content, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "\\[", right: "\\]", display: true },
+        { left: "$", right: "$", display: false },
+        { left: "\\(", right: "\\)", display: false },
+      ],
+      throwOnError: false,
+    });
+  }
 }
 
 function renderProgram(program) {
@@ -53,7 +57,7 @@ function renderProgram(program) {
   code.textContent = program;
   pre.append(code);
   content.replaceChildren(pre);
-  hljs.highlightElement(code);
+  if (window.hljs) window.hljs.highlightElement(code);
 }
 
 async function loadReference() {
