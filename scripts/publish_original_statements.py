@@ -70,13 +70,13 @@ def main() -> None:
                 raise ValueError(f"duplicate statement for problem #{problem_id}")
             entries[problem_id] = info.filename
 
-        if len(entries) != 79:
-            raise ValueError(f"expected 79 statements, found {len(entries)}")
-        unknown = sorted(set(entries) - set(problems))
-        if unknown:
-            raise ValueError(f"statement IDs are missing from the catalog: {unknown}")
+        selected_entries = {
+            problem_id: entry
+            for problem_id, entry in entries.items()
+            if problem_id in problems
+        }
 
-        for problem_id, entry in sorted(entries.items()):
+        for problem_id, entry in sorted(selected_entries.items()):
             destination = args.output / f"{problem_id:03d}" / "original-statement.md"
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(
@@ -99,7 +99,11 @@ def main() -> None:
 
     write_json(args.catalog, catalog)
     write_json(args.reference_report, report)
-    print(f"published {len(entries)} original statements from {args.archive.name}")
+    ignored = len(entries) - len(selected_entries)
+    print(
+        f"published {len(selected_entries)} original statements from {args.archive.name} "
+        f"({ignored} excluded problems ignored)"
+    )
 
 
 if __name__ == "__main__":

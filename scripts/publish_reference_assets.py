@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract public editorials and reference programs from the 88 author packages."""
+"""Extract public editorials and reference programs for retained benchmark problems."""
 
 from __future__ import annotations
 
@@ -233,8 +233,11 @@ def main() -> None:
         for problem in catalog
         if problem.get("referenceAssets", {}).get("originalStatement")
     }
-    if set(titles) != {source.problem_id for source in SOURCES}:
-        raise ValueError("catalog IDs and reference-source IDs do not match")
+    sources_by_id = {source.problem_id: source for source in SOURCES}
+    missing_sources = sorted(set(titles) - set(sources_by_id))
+    if missing_sources:
+        raise ValueError(f"catalog problems are missing reference sources: {missing_sources}")
+    selected_sources = [sources_by_id[problem_id] for problem_id in sorted(titles)]
 
     index = archive_index(args.search_root)
     staging = args.output.with_name(f".{args.output.name}.staging")
@@ -244,7 +247,7 @@ def main() -> None:
     report: list[dict] = []
 
     try:
-        for source in SOURCES:
+        for source in selected_sources:
             archive_path = select_archive(index, source.archive)
             problem_dir = staging / f"{source.problem_id:03d}"
             problem_dir.mkdir()
@@ -294,9 +297,10 @@ def main() -> None:
     solutions = sum("solution" in item["assets"] for item in report)
     programs = sum("standardSolution" in item["assets"] for item in report)
     statements = sum("originalStatement" in item["assets"] for item in report)
+    total = len(selected_sources)
     print(
-        f"published {statements}/88 original statements, "
-        f"{solutions}/88 editorials and {programs}/88 reference programs"
+        f"published {statements}/{total} original statements, "
+        f"{solutions}/{total} editorials and {programs}/{total} reference programs"
     )
 
 

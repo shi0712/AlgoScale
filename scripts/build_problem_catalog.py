@@ -18,6 +18,8 @@ PLATFORM_NAMES = {
     "Codeforces": "Codeforces",
 }
 
+EXCLUDED_PROBLEM_IDS = {1, 39, 80}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -70,9 +72,11 @@ def main() -> None:
 
     catalog = []
     for origin in origins:
+        problem_id = int(origin["local_problem_id"])
+        if problem_id in EXCLUDED_PROBLEM_IDS:
+            continue
         title = origin["local_title"].strip()
         complexity = complexities.get(title, {})
-        problem_id = int(origin["local_problem_id"])
         original_url = origin["original_url"].strip()
         platform = PLATFORM_NAMES.get(
             origin["source_platform"].strip(), origin["source_platform"].strip()
