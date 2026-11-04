@@ -156,23 +156,19 @@ vector<int64> solve(int n, int d, vector<int> limit, vector<Player> input) {
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int T;
-    cin >> T;
-    while (T--) {
-        int n, m, d;
-        cin >> n >> m >> d;
-        vector<int> limit(n);
-        for (int &x : limit) cin >> x;
-        vector<Player> a(m);
-        for (auto &p : a) {
-            int type;
-            cin >> p.e >> type;
-            p.junior = (type == 1);
-        }
-        auto ans = solve(n, d, std::move(limit), std::move(a));
-        for (int t = 0; t <= 2 * n; ++t)
-            cout << ans[t] << (t == 2 * n ? '\n' : ' ');
+    int n, m, d;
+    cin >> n >> m >> d;
+    vector<int> limit(n);
+    for (int &x : limit) cin >> x;
+    vector<Player> a(m);
+    for (auto &p : a) {
+        int type;
+        cin >> p.e >> type;
+        p.junior = (type == 1);
     }
+    auto ans = solve(n, d, std::move(limit), std::move(a));
+    for (int t = 0; t <= 2 * n; ++t)
+        cout << ans[t] << (t == 2 * n ? '\n' : ' ');
     return 0;
 }
 #endif
