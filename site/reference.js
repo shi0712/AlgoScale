@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261104-parity85";
+const SITE_RELEASE = "20261104-interactive88";
 
 const params = new URLSearchParams(window.location.search);
 const problemId = Number(params.get("id"));
