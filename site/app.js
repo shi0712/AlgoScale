@@ -244,8 +244,8 @@ function renderProblems() {
 
 async function loadData() {
   const [problemResponse, leaderboardResponse] = await Promise.all([
-    fetch("./data/problems.json"),
-    fetch("./data/leaderboard.json"),
+    fetch("./data/problems.json?v=20261104-statements"),
+    fetch("./data/leaderboard.json?v=20261104-statements"),
   ]);
   if (!problemResponse.ok || !leaderboardResponse.ok) {
     throw new Error("Unable to load benchmark data.");
