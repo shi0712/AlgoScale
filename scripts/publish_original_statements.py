@@ -76,12 +76,6 @@ def main() -> None:
         if unknown:
             raise ValueError(f"statement IDs are missing from the catalog: {unknown}")
 
-        published_ids = set(entries)
-        for problem_id, problem in problems.items():
-            assets = problem.setdefault("referenceAssets", {})
-            if problem_id not in published_ids:
-                assets.pop("originalStatement", None)
-
         for problem_id, entry in sorted(entries.items()):
             destination = args.output / f"{problem_id:03d}" / "original-statement.md"
             destination.parent.mkdir(parents=True, exist_ok=True)
