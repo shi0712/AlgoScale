@@ -1,5 +1,3 @@
-#include "ballmachine.h"
-
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -11,6 +9,25 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <iostream>
+
+bool insert(int U, int X) {
+    std::cout << "? 1 " << U << ' ' << X << std::endl;
+    int result;
+    if (!(std::cin >> result) || result == -1) std::exit(0);
+    return result != 0;
+}
+
+std::vector<int> collect() {
+    std::cout << "? 2" << std::endl;
+    int size;
+    if (!(std::cin >> size) || size == -1) std::exit(0);
+    std::vector<int> result(size);
+    for (int& value : result) {
+        if (!(std::cin >> value)) std::exit(0);
+    }
+    return result;
+}
 
 namespace ballmachine_c27 {
 using std::vector;
@@ -551,4 +568,17 @@ struct Solver {
 
 std::vector<int> find_structure(int M) {
     return ballmachine_c27::Solver(M).run();
+}
+
+int main() {
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+
+    int M;
+    if (!(std::cin >> M) || M == -1) return 0;
+    std::vector<int> parent = find_structure(M);
+    std::cout << "! " << parent.size() + 1;
+    for (int value : parent) std::cout << ' ' << value;
+    std::cout << std::endl;
+    return 0;
 }
