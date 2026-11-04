@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261104-walk79";
+const SITE_RELEASE = "20261104-doubles81";
 
 const state = {
   problems: [],
