@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261104-interval78";
+const SITE_RELEASE = "20261104-interval83";
 
 const state = {
   problems: [],
@@ -246,8 +246,8 @@ function renderProblems() {
 
 async function loadData() {
   const [problemResponse, leaderboardResponse] = await Promise.all([
-    fetch(`./data/problems.json?v=${SITE_RELEASE}`),
-    fetch(`./data/leaderboard.json?v=${SITE_RELEASE}`),
+    fetch(`./data/problems.json?v=${SITE_RELEASE}`, { cache: "no-store" }),
+    fetch(`./data/leaderboard.json?v=${SITE_RELEASE}`, { cache: "no-store" }),
   ]);
   if (!problemResponse.ok || !leaderboardResponse.ok) {
     throw new Error("Unable to load benchmark data.");

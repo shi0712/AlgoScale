@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261104-interval78";
+const SITE_RELEASE = "20261104-interval83";
 
 const params = new URLSearchParams(window.location.search);
 const problemId = Number(params.get("id"));
@@ -66,7 +66,9 @@ async function loadReference() {
   if (!Number.isInteger(problemId) || problemId <= 0 || !allowedAssets.has(asset)) {
     throw new Error("The reference URL is invalid.");
   }
-  const catalogResponse = await fetch(`./data/problems.json?v=${SITE_RELEASE}`);
+  const catalogResponse = await fetch(`./data/problems.json?v=${SITE_RELEASE}`, {
+    cache: "no-store",
+  });
   if (!catalogResponse.ok) throw new Error("The problem catalog could not be loaded.");
   const problems = await catalogResponse.json();
   const problem = problems.find((item) => Number(item.id) === problemId);
