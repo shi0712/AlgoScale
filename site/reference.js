@@ -3,7 +3,7 @@
 const params = new URLSearchParams(window.location.search);
 const problemId = Number(params.get("id"));
 const asset = params.get("asset");
-const allowedAssets = new Set(["solution", "standardSolution"]);
+const allowedAssets = new Set(["originalStatement", "solution", "standardSolution"]);
 const content = document.querySelector("#content");
 const copyButton = document.querySelector("#copy");
 const rawLink = document.querySelector("#raw");
@@ -74,15 +74,21 @@ async function loadReference() {
 
   document.querySelector("#problem-number").textContent = `Problem #${String(problem.id).padStart(3, "0")}`;
   document.querySelector("#problem-title").textContent = problem.title;
-  document.querySelector("#asset-label").textContent = asset === "solution" ? "Official solution" : "Reference implementation · C++";
-  document.title = `${problem.title} · ${asset === "solution" ? "Solution" : "std.cpp"} · AlgoScale`;
+  const assetMetadata = {
+    originalStatement: { label: "Original problem statement · English", title: "Statement" },
+    solution: { label: "Official solution", title: "Solution" },
+    standardSolution: { label: "Reference implementation · C++", title: "std.cpp" },
+  }[asset];
+  document.querySelector("#asset-label").textContent = assetMetadata.label;
+  document.title = `${problem.title} · ${assetMetadata.title} · AlgoScale`;
   rawLink.href = href;
 
   const assetResponse = await fetch(href);
   if (!assetResponse.ok) throw new Error("The reference file could not be loaded.");
   rawText = await assetResponse.text();
-  content.className = `document ${asset === "solution" ? "markdown-body" : "code-document"}`;
-  if (asset === "solution") renderMarkdown(rawText);
+  const isMarkdown = asset !== "standardSolution";
+  content.className = `document ${isMarkdown ? "markdown-body" : "code-document"}`;
+  if (isMarkdown) renderMarkdown(rawText);
   else renderProgram(rawText);
 }
 

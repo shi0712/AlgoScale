@@ -228,6 +228,11 @@ def main() -> None:
     args = parse_args()
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
     titles = {int(problem["id"]): problem["title"] for problem in catalog}
+    original_statements = {
+        int(problem["id"]): problem.get("referenceAssets", {}).get("originalStatement")
+        for problem in catalog
+        if problem.get("referenceAssets", {}).get("originalStatement")
+    }
     if set(titles) != {source.problem_id for source in SOURCES}:
         raise ValueError("catalog IDs and reference-source IDs do not match")
 
@@ -250,6 +255,15 @@ def main() -> None:
                 if program:
                     extract_text(archive, program, problem_dir / "std.cpp")
             assets = {}
+            original_statement = original_statements.get(source.problem_id)
+            if original_statement:
+                existing_statement = args.output / f"{source.problem_id:03d}" / "original-statement.md"
+                if not existing_statement.is_file():
+                    raise FileNotFoundError(
+                        f"published original statement is missing: {existing_statement}"
+                    )
+                shutil.copy2(existing_statement, problem_dir / "original-statement.md")
+                assets["originalStatement"] = original_statement
             if editorial:
                 assets["solution"] = f"./references/{source.problem_id:03d}/solution.md"
             if program:
@@ -279,7 +293,11 @@ def main() -> None:
 
     solutions = sum("solution" in item["assets"] for item in report)
     programs = sum("standardSolution" in item["assets"] for item in report)
-    print(f"published {solutions}/88 editorials and {programs}/88 reference programs")
+    statements = sum("originalStatement" in item["assets"] for item in report)
+    print(
+        f"published {statements}/88 original statements, "
+        f"{solutions}/88 editorials and {programs}/88 reference programs"
+    )
 
 
 if __name__ == "__main__":

@@ -179,6 +179,11 @@ function renderProblems() {
 
     const referenceCell = element("td", "reference-cell");
     const referenceAssets = problem.referenceAssets || {};
+    if (referenceAssets.originalStatement) {
+      const statement = element("a", "reference-link reference-link-statement", "Statement");
+      statement.href = `./reference.html?id=${problem.id}&asset=originalStatement`;
+      referenceCell.append(statement);
+    }
     if (referenceAssets.solution) {
       const solution = element("a", "reference-link reference-link-solution", "Solution");
       solution.href = `./reference.html?id=${problem.id}&asset=solution`;
