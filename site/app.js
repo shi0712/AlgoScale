@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261104-interval83";
+const SITE_RELEASE = "20261104-parity85";
 
 const state = {
   problems: [],
