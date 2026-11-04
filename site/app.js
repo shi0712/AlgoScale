@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261104-doubles81";
+const SITE_RELEASE = "20261104-complexity-audit";
 
 const state = {
   problems: [],
