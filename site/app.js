@@ -1,5 +1,7 @@
 "use strict";
 
+const SITE_RELEASE = "20261104-interval78";
+
 const state = {
   problems: [],
   query: "",
@@ -181,17 +183,17 @@ function renderProblems() {
     const referenceAssets = problem.referenceAssets || {};
     if (referenceAssets.originalStatement) {
       const statement = element("a", "reference-link reference-link-statement", "Statement");
-      statement.href = `./reference.html?id=${problem.id}&asset=originalStatement`;
+      statement.href = `./reference.html?id=${problem.id}&asset=originalStatement&v=${SITE_RELEASE}`;
       referenceCell.append(statement);
     }
     if (referenceAssets.solution) {
       const solution = element("a", "reference-link reference-link-solution", "Solution");
-      solution.href = `./reference.html?id=${problem.id}&asset=solution`;
+      solution.href = `./reference.html?id=${problem.id}&asset=solution&v=${SITE_RELEASE}`;
       referenceCell.append(solution);
     }
     if (referenceAssets.standardSolution) {
       const standard = element("a", "reference-link", "std.cpp");
-      standard.href = `./reference.html?id=${problem.id}&asset=standardSolution`;
+      standard.href = `./reference.html?id=${problem.id}&asset=standardSolution&v=${SITE_RELEASE}`;
       referenceCell.append(standard);
     }
     if (!referenceCell.childElementCount) {
@@ -244,8 +246,8 @@ function renderProblems() {
 
 async function loadData() {
   const [problemResponse, leaderboardResponse] = await Promise.all([
-    fetch("./data/problems.json?v=20261104-statements2"),
-    fetch("./data/leaderboard.json?v=20261104-statements2"),
+    fetch(`./data/problems.json?v=${SITE_RELEASE}`),
+    fetch(`./data/leaderboard.json?v=${SITE_RELEASE}`),
   ]);
   if (!problemResponse.ok || !leaderboardResponse.ok) {
     throw new Error("Unable to load benchmark data.");
