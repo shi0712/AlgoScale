@@ -12,12 +12,15 @@ class ReferenceAssetsTest(unittest.TestCase):
             (cls.site / "data/problems.json").read_text(encoding="utf-8")
         )
 
-    def test_every_problem_has_two_nonempty_reference_assets(self) -> None:
-        self.assertEqual(len(self.catalog), 88)
+    def test_every_problem_has_nonempty_reference_assets(self) -> None:
+        self.assertEqual(len(self.catalog), 85)
         for problem in self.catalog:
             with self.subTest(problem_id=problem["id"]):
                 assets = problem.get("referenceAssets", {})
-                self.assertEqual(set(assets), {"solution", "standardSolution"})
+                self.assertEqual(
+                    set(assets),
+                    {"solution", "standardSolution", "originalStatement"},
+                )
                 for relative in assets.values():
                     self.assertTrue(relative.startswith("./references/"))
                     path = self.site / relative.removeprefix("./")
@@ -32,8 +35,8 @@ class ReferenceAssetsTest(unittest.TestCase):
         )
         expected = sorted(
             f"{problem_id:03d}/{filename}"
-            for problem_id in range(1, 89)
-            for filename in ("solution.md", "std.cpp")
+            for problem_id in (problem["id"] for problem in self.catalog)
+            for filename in ("solution.md", "std.cpp", "original-statement.md")
         )
         self.assertEqual(files, expected)
 
