@@ -1,26 +1,20 @@
-# 17. Coloring
-
 ## Problem Description
 
-There are $n$ elements. Element $i$ has value $w_i$, operation cost $p_i$, and a pointer to element $a_i$. Each element has a binary color $c_i$.
+A lake occupies the interior of a simple polygon in the Cartesian plane. A runner starts at $(0,0)$, travels outward along a land-only path of length $k$, and then returns. The origin is not strictly inside the lake.
 
-Initially, $c_s=1$ and every other color is 0. An operation on index $i$ replaces its color by the current color of the pointed-to element:
-
-$$c_i\leftarrow c_{a_i},$$
-
-and costs $p_i$. Perform any finite number of operations, possibly zero. Your final score is the sum of $w_i$ over elements whose final color is 1, minus the total cost of all operations. Find the maximum possible score.
+Find the minimum area of a region that contains every possible such route, regardless of how the runner chooses the path. Travel through the lake's interior is forbidden. Equivalently, the region must contain the land locations reachable from the origin with a path length of at most $k$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n,s$, then three lines containing $w_1,\ldots,w_n$, $p_1,\ldots,p_n$, and $a_1,\ldots,a_n$, respectively.
+Read $n,k$. Then read $n$ pairs $(x_i,y_i)$, the polygon's vertices in clockwise order.
 
 ## Output Format
 
 Write to standard output.
 
-Print the maximum score as one integer.
+Print the minimum area as a real number. The absolute error or relative error must be less than $10^{-6}$.
 
 ## Examples
 
@@ -29,29 +23,33 @@ Print the maximum score as one integer.
 Input:
 
 ```text
-3 1
--1 -1 2
-1 0 0
-3 1 2
+4 2
+0 0
+0 1
+1 1
+1 0
 ```
 
 Output:
 
 ```text
-1
+10.995574287564
 ```
 
 ## Explanation / Notes
 
-In the example, operate on elements $2,1,3,2$ in that order. The color arrays become $[1,1,0]$, $[0,1,0]$, $[0,1,1]$, and $[0,0,1]$. The only final contribution is $w_3=2$, and the total cost is 1, giving the optimal score 1.
+The minimum area in the example is $7\pi/2$.
+
+The origin may lie on the lake boundary. In this example, it is a polygon vertex.
 
 ## Constraints
 
 - One test case.
-- $1\le s\le n\le5000$.
-- $-10^9\le w_i\le10^9$; values may be negative.
-- $0\le p_i\le10^9$; zero-cost operations are allowed.
-- $1\le a_i\le n$ and $a_i\ne i$ for every index.
-- Initially only element $s$ has color 1.
-- The same index may be operated on repeatedly; each operation incurs its cost.
-- Time limit: 2 seconds; memory limit: 1024 MB.
+- $3\le n\le50$.
+- $1\le k\le3000$.
+- All coordinates are integers, with $|x_i|,|y_i|\le200$.
+- The polygon is simple and its vertices are given clockwise.
+- No three consecutive polygon vertices are collinear.
+- $(0,0)$ is not strictly inside the polygon; it may be on the boundary.
+- Required absolute or relative error: strictly less than $10^{-6}$.
+- Time limit: 4 seconds; memory limit: 512 MB.

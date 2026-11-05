@@ -1,24 +1,22 @@
-# 71. Staple Stable
-
 ## Problem Description
 
-A rectangular sheet has integer height $h$ and width $w$, subdivided into unit cells. A cut is made along an entire horizontal or vertical grid line and cuts every existing piece intersected by that line.
+Two connected simple undirected graphs, $A$ and $B$, each have $n$ vertices and $m$ edges. Their edges are indexed $1$ through $m$; equal indices do not necessarily have equal endpoints in the two graphs.
 
-A horizontal cut may use an integer coordinate from $1$ to $h-1$, and a vertical cut may use one from $1$ to $w-1$. Thus $c_h$ distinct horizontal cuts and $c_w$ distinct vertical cuts produce $(c_h+1)(c_w+1)$ rectangles.
-
-Find the minimum total number of cuts needed so that every resulting rectangle has area at most $s$.
+Determine whether there is a set of edge indices that forms a spanning tree in $A$ but does not form a spanning tree in $B$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $t$, the number of test cases. Each of the next $t$ lines contains $h,w,s$.
+The first line contains the number of test cases $t$.
+
+Each case begins with $n,m$. Each of the next $m$ lines contains $u_A,v_A,u_B,v_B$. The $i$-th line gives the endpoints of edge $i$ in $A$ and edge $i$ in $B$ respectively.
 
 ## Output Format
 
 Write to standard output.
 
-Print one integer per test case: the minimum number of cuts.
+For each case, print `YES` if such an index set exists, and `NO` otherwise. You do not need to construct or print the set.
 
 ## Examples
 
@@ -26,28 +24,30 @@ Input:
 
 ```text
 1
-2 2 1
+2 1
+1 2 2 1
 ```
 
 Output:
 
 ```text
-2
+NO
 ```
 
 ## Explanation / Notes
 
-One horizontal cut and one vertical cut divide the $2\times 2$ sheet into four unit squares, so two cuts suffice. One cut would leave rectangles of area 2, which exceeds the permitted area 1.
+Both graphs consist of the same undirected edge between vertices 1 and 2. Their only spanning tree uses edge 1, so it cannot be a spanning tree in $A$ and fail in $B$.
 
-A cut is counted once even when its line passes through several pieces created earlier. Cuts use global horizontal or vertical grid lines, rather than independent cuts on individual rectangles.
+The condition is directional: it specifically requires a spanning tree of the first graph that fails in the second.
 
 ## Constraints
 
-- $1\le t\le1000$.
-- $1\le h,w,s\le10^9$ in every test case.
-- All input values are integers.
-- Horizontal coordinates must be integers in $[1,h-1]$; when $h=1$, there is no horizontal cut position.
-- Vertical coordinates must be integers in $[1,w-1]$; when $w=1$, there is no vertical cut position.
-- Every final rectangle must individually have area at most $s$.
-- Zero cuts are allowed.
-- Time limit: **3 seconds**. Memory limit: **256 MB**.
+- $1\le t\le2500$.
+- $2\le n\le5000$ per case.
+- $n-1\le m\le\min\left(5000,\frac{n(n-1)}2\right)$.
+- Every endpoint lies in $[1,n]$.
+- $u_A\ne v_A$ and $u_B\ne v_B$ for every edge.
+- Both graphs are undirected, connected, and simple: no self-loops or parallel edges.
+- Across all cases, $\sum n\le5000$ and, independently, $\sum m\le5000$.
+- A spanning tree includes every vertex and exactly $n-1$ of the indexed edges.
+- Time limit: **1 second**. Memory limit: **1024 MiB**.

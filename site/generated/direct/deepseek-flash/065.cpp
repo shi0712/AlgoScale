@@ -1,155 +1,222 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-struct Node {
-    int score;
-    int ops;
+static constexpr int MOD = 998244353;
+static constexpr int MAXN = 1000000;
+
+int fact[MAXN + 1], invfact[MAXN + 1];
+
+int mod_pow(long long a, long long e) {
+    long long r = 1;
+    while (e) {
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
+        e >>= 1;
+    }
+    return (int)r;
+}
+
+void precompute() {
+    fact[0] = 1;
+    for (int i = 1; i <= MAXN; ++i) {
+        fact[i] = (long long)fact[i - 1] * i % MOD;
+    }
+
+    invfact[MAXN] = mod_pow(fact[MAXN], MOD - 2);
+    for (int i = MAXN; i >= 1; --i) {
+        invfact[i - 1] = (long long)invfact[i] * i % MOD;
+    }
+}
+
+struct FastScanner {
+    static constexpr int BUFSIZE = 1 << 20;
+    int idx = 0, size = 0;
+    char buf[BUFSIZE];
+
+    inline char readChar() {
+        if (idx >= size) {
+            size = (int)fread(buf, 1, BUFSIZE, stdin);
+            idx = 0;
+            if (size == 0) return 0;
+        }
+        return buf[idx++];
+    }
+
+    template <class T>
+    bool nextInt(T &out) {
+        char c = readChar();
+        if (!c) return false;
+
+        while (c != '-' && (c < '0' || c > '9')) {
+            c = readChar();
+            if (!c) return false;
+        }
+
+        T sign = 1;
+        if (c == '-') {
+            sign = -1;
+            c = readChar();
+        }
+
+        T num = 0;
+        while (c >= '0' && c <= '9') {
+            num = num * 10 + (c - '0');
+            c = readChar();
+        }
+
+        out = num * sign;
+        return true;
+    }
 };
 
-const int NEG = -1000000000;
-
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+    precompute();
 
+    FastScanner fs;
     int T;
-    cin >> T;
+    fs.nextInt(T);
+
+    vector<int> answers;
+    answers.reserve(T);
 
     while (T--) {
-        string S;
-        int K;
-        cin >> S >> K;
+        int n, k;
+        fs.nextInt(n);
+        fs.nextInt(k);
 
-        int n = (int)S.size();
+        vector<int> parent(n + 1);
+        for (int i = 2; i <= n; ++i) {
+            fs.nextInt(parent[i]);
+        }
 
-        // blocks[i] contains all valid operation blocks starting at position i (1-indexed).
-        // Each is {length, dominant_letter}.
-        vector<array<pair<int, int>, 3>> blocks(n + 2);
-        vector<unsigned char> blockCnt(n + 2, 0);
+        if (k == 1) {
+            answers.push_back(n % MOD);
+            continue;
+        }
 
+        if (k == 2) {
+            int ans = (long long)n * (n - 1) % MOD;
+            answers.push_back(ans);
+            continue;
+        }
+
+        int r = k - 1;
+
+        // height[v] = maximum distance from v to a node in its subtree
+        vector<int> height(n + 1, 0);
+        for (int i = n; i >= 2; --i) {
+            int p = parent[i];
+            int val = height[i] + 1;
+            if (val > height[p]) height[p] = val;
+        }
+
+        // F[v][d] = number of nodes in subtree(v) at distance d from v
+        vector<int> offF(n + 1);
+        int totalF = 0;
         for (int i = 1; i <= n; ++i) {
-            for (int len = 3; len <= 5; ++len) {
-                int j = i + len - 1;
-                if (j > n) break;
+            offF[i] = totalF;
+            totalF += height[i] + 1;
+        }
 
-                int cnt[26] = {};
-                for (int p = i - 1; p < j; ++p) {
-                    ++cnt[S[p] - 'a'];
-                }
+        vector<int> F(totalF, 0);
+        for (int i = 1; i <= n; ++i) {
+            F[offF[i]] = 1;
+        }
 
-                int dominant = -1;
-                for (int c = 0; c < 26; ++c) {
-                    if (cnt[c] == len - 1) {
-                        dominant = c;
-                        break;
-                    }
-                }
+        for (int i = n; i >= 2; --i) {
+            int p = parent[i];
+            int oi = offF[i];
+            int op = offF[p];
+            int hi = height[i];
 
-                if (dominant != -1) {
-                    blocks[i][blockCnt[i]++] = {len, dominant};
-                }
+            for (int d = 0; d <= hi; ++d) {
+                F[op + d + 1] += F[oi + d];
             }
         }
 
-        // C[lambda] = maximum number of operations among all optimal solutions
-        // for maximizing (stars - lambda * operations).
-        vector<int> C(6, 0);
-
-        const int STATES = 27;
-        // state 0: previous position is not covered by an adjacent block
-        // state d+1: previous position is covered and its block's final letter is d
-        vector<Node> dp((n + 2) * STATES);
-
-        for (int lambda = 1; lambda <= 5; ++lambda) {
-            fill(dp.begin(), dp.end(), Node{NEG, NEG});
-
-            auto relax = [&](int pos, int state, const Node &val) {
-                Node &to = dp[pos * STATES + state];
-                if (val.score > to.score ||
-                    (val.score == to.score && val.ops > to.ops)) {
-                    to = val;
-                }
-            };
-
-            dp[1 * STATES + 0] = {0, 0};
-
-            for (int i = 1; i <= n; ++i) {
-                for (int state = 0; state < STATES; ++state) {
-                    Node cur = dp[i * STATES + state];
-                    if (cur.score == NEG) continue;
-
-                    // Option 1: leave position i unstarred.
-                    bool canSkip = true;
-                    if (state > 0) {
-                        int prevTarget = state - 1;
-                        if (prevTarget == (S[i - 1] - 'a')) {
-                            canSkip = false;
-                        }
-                    }
-
-                    if (canSkip) {
-                        relax(i + 1, 0, cur);
-                    }
-
-                    // Option 2: start an operation block at i.
-                    for (int bi = 0; bi < blockCnt[i]; ++bi) {
-                        int len = blocks[i][bi].first;
-                        int target = blocks[i][bi].second;
-
-                        bool valid = true;
-
-                        if (i > 1) {
-                            int firstOfNew = S[i - 1] - 'a';
-                            int lastOfPrev = S[i - 2] - 'a';
-
-                            bool newDepends = (target == lastOfPrev);
-
-                            if (state == 0) {
-                                // The new block would extend into an unstarred gap.
-                                if (newDepends) valid = false;
-                            } else {
-                                int prevTarget = state - 1;
-                                bool prevDepends = (prevTarget == firstOfNew);
-
-                                // Both blocks need the other removed first -> impossible.
-                                if (prevDepends && newDepends) {
-                                    valid = false;
-                                }
-                            }
-                        }
-
-                        if (!valid) continue;
-
-                        Node nxt;
-                        nxt.score = cur.score + len - lambda;
-                        nxt.ops = cur.ops + 1;
-
-                        int nxtPos = i + len;
-                        int nxtState = target + 1;
-
-                        relax(nxtPos, nxtState, nxt);
-                    }
-                }
-            }
-
-            Node best{NEG, NEG};
-            for (int state = 0; state < STATES; ++state) {
-                Node cur = dp[(n + 1) * STATES + state];
-                if (cur.score > best.score ||
-                    (cur.score == best.score && cur.ops > best.ops)) {
-                    best = cur;
-                }
-            }
-
-            C[lambda] = best.ops;
+        // comb[x] = C(x, r)
+        vector<int> comb(n + 1, 0);
+        int invR = invfact[r];
+        for (int x = r; x <= n; ++x) {
+            comb[x] = (long long)fact[x] * invR % MOD * invfact[x - r] % MOD;
         }
 
-        long long answer = 0;
-        for (int lambda = 1; lambda <= 5; ++lambda) {
-            answer += min(K, C[lambda]);
+        // A[v][d] is the number of nodes at distance d from v,
+        // stored only for d = 0 .. height[v] + 2.
+        vector<int> offA(n + 1);
+        int totalA = 0;
+        for (int i = 1; i <= n; ++i) {
+            offA[i] = totalA;
+            totalA += height[i] + 3;
         }
 
-        cout << answer << '\n';
+        vector<int> A(totalA, 0);
+        vector<int> score(n + 1, 0);
+
+        int hRoot = height[1];
+        int offRootF = offF[1];
+
+        long long rootScore = 0;
+        for (int d = 1; d <= hRoot; ++d) {
+            rootScore += comb[F[offRootF + d]];
+            if (rootScore >= MOD) rootScore -= MOD;
+        }
+
+        score[1] = (int)rootScore;
+
+        int offRootA = offA[1];
+        int Lroot = hRoot + 2;
+        for (int d = 0; d <= Lroot; ++d) {
+            A[offRootA + d] = (d <= hRoot ? F[offRootF + d] : 0);
+        }
+
+        long long totalAnswer = score[1];
+
+        for (int v = 2; v <= n; ++v) {
+            int u = parent[v];
+            int hv = height[v];
+            int Lv = hv + 2;
+
+            int offV = offA[v];
+            int offU = offA[u];
+            int offFv = offF[v];
+
+            long long delta = 0;
+
+            for (int d = 0; d <= Lv; ++d) {
+                int base = (d >= 1 ? A[offU + d - 1] : 0);
+
+                int add = 0;
+                if (d <= hv) add = F[offFv + d];
+
+                int sub = 0;
+                if (d >= 2) {
+                    int idx = d - 2;
+                    if (idx <= hv) sub = F[offFv + idx];
+                }
+
+                int cur = base + add - sub;
+                A[offV + d] = cur;
+
+                delta += comb[cur] - comb[base];
+            }
+
+            delta %= MOD;
+            if (delta < 0) delta += MOD;
+
+            int sv = score[u] + (int)delta;
+            if (sv >= MOD) sv -= MOD;
+            score[v] = sv;
+
+            totalAnswer += sv;
+            if (totalAnswer >= MOD) totalAnswer -= MOD;
+        }
+
+        answers.push_back((int)totalAnswer);
+    }
+
+    for (int ans : answers) {
+        printf("%d\n", ans);
     }
 
     return 0;

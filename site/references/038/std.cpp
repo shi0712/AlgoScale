@@ -1,171 +1,236 @@
-// Single-point spectral rebalancing. C++17, online Bluestein FFT + upper hull.
-// No answer table; fixed bounds: n<=100000, abs(f_i)<=2000.
+// 时间复杂度 O(n log^2 n)，额外空间 O(n log n)。
 #include <bits/stdc++.h>
 using namespace std;
 
-using ld = long double;
-using cd = complex<ld>;
-const ld PI = acosl(-1.0L);
+using i64 = long long;
+using i128 = __int128_t;
+const i64 INF = numeric_limits<i64>::max() / 4;
 
-// 长度为 2 的幂的 FFT：正变换用负号，逆变换用正号并除以长度。
-void fft(vector<cd>& a, bool inverse) {
-    int n = (int)a.size();
-    for (int i = 1, j = 0; i < n; ++i) {
-        int bit = n >> 1;
-        for (; j & bit; bit >>= 1) j ^= bit;
-        j ^= bit;
-        if (i < j) swap(a[i], a[j]);
-    }
-    for (int len = 2; len <= n; len <<= 1) {
-        ld angle = (inverse ? 2.0L : -2.0L) * PI / len;
-        cd step(cosl(angle), sinl(angle));
-        for (int i = 0; i < n; i += len) {
-            cd w(1, 0);
-            for (int j = 0; j < len / 2; ++j) {
-                cd u = a[i + j];
-                cd v = a[i + j + len / 2] * w;
-                a[i + j] = u + v;
-                a[i + j + len / 2] = u - v;
-                // Bound recurrence drift: recompute one unit root every 256 steps.
-                if ((j & 255) == 255 && j + 1 < len / 2) {
-                    ld theta = angle * (j + 1);
-                    w = cd(cosl(theta), sinl(theta));
-                } else {
-                    w *= step;
-                }
-            }
-        }
-    }
-    if (inverse) {
-        for (cd& z : a) z /= (ld)n;
-    }
+static i64 isqrt(i64 v) {
+    i64 s = static_cast<i64>(sqrtl(static_cast<long double>(v)));
+    while ((s + 1) * (s + 1) <= v) ++s;
+    while (s * s > v) --s;
+    return s;
 }
 
-// Bluestein 算法：计算任意长度 n 的 DFT。
-vector<cd> dft(const vector<ld>& g) {
-    int n = (int)g.size();
-    if ((n & (n - 1)) == 0) {
-        vector<cd> a(n);
-        for (int i = 0; i < n; ++i) a[i] = cd(g[i], 0);
-        fft(a, false);
-        return a;
-    }
-
-    int m = 1;
-    while (m < 2 * n - 1) m <<= 1;
-    vector<cd> a(m), b(m), chirp(n);
-    for (int j = 0; j < n; ++j) {
-        // 先对 2*pi 取模，避免用过大的角度计算三角函数。
-        long long r = 1LL * j * j % (2LL * n);
-        ld angle = PI * (ld)r / n;
-        chirp[j] = cd(cosl(angle), -sinl(angle));
-        a[j] = g[j] * chirp[j];
-        b[j] = conj(chirp[j]);
-        if (j > 0) b[m - j] = b[j];
-    }
-    fft(a, false);
-    fft(b, false);
-    for (int i = 0; i < m; ++i) a[i] *= b[i];
-    fft(a, true);
-
-    vector<cd> res(n);
-    for (int t = 0; t < n; ++t) res[t] = a[t] * chirp[t];
-    return res;
-}
-
-struct Line {
-    ld m, c; // y = m*x + c
+struct Radical {
+    i64 a, b; // 表示 a + sqrt(b)，其中 b >= 0
 };
 
-ld solve(const vector<int>& f, int k) {
-    int n = (int)f.size();
-    vector<ld> g(n);
-    for (int j = 1; j < n; ++j) g[j] = f[(k + j) % n];
-    // g[0] = 0，修改后的值 x 单独考虑。
-    vector<cd> A = dft(g);
-
-    // 这两个频率是实数，可直接用整数加减精确计算。
-    ld sum = 0, alternating = 0;
-    for (int j = 0; j < n; ++j) {
-        sum += g[j];
-        alternating += (j & 1) ? -g[j] : g[j];
-    }
-    A[0] = cd(sum, 0);
-    if (n % 2 == 0) A[n / 2] = cd(alternating, 0);
-
-    // 实序列满足 A[n-t] = conj(A[t])，只需考虑前半部分频率。
-    vector<Line> lines;
-    lines.reserve(n / 2 + 1);
-    for (int t = 0; t <= n / 2; ++t) {
-        ld a = A[t].real(), b = A[t].imag();
-        lines.push_back({2 * a, a * a + b * b});
-    }
-    sort(lines.begin(), lines.end(), [](const Line& a, const Line& b) {
-        if (a.m != b.m) return a.m < b.m;
-        return a.c > b.c; // 相同斜率时，截距大的排在前面。
-    });
-
-    vector<Line> hull;
-    vector<ld> left;
-    hull.reserve(lines.size());
-    left.reserve(lines.size());
-    const ld INF = numeric_limits<ld>::infinity();
-    for (const Line& ln : lines) {
-        if (!hull.empty() && ln.m == hull.back().m) continue;
-        ld start = -INF;
-        while (!hull.empty()) {
-            start = (hull.back().c - ln.c) / (ln.m - hull.back().m);
-            if (start > left.back()) break;
-            hull.pop_back();
-            left.pop_back();
-        }
-        if (hull.empty()) start = -INF;
-        hull.push_back(ln);
-        left.push_back(start);
-    }
-
-    // 第 i 段上 H(x) = x*x + m_i*x + c_i。
-    ld x0 = 0;
-    for (int i = 0; i < (int)hull.size(); ++i) {
-        ld right = (i + 1 < (int)hull.size()) ? left[i + 1] : INF;
-        ld vertex = -hull[i].m / 2;
-        if (vertex <= right) {
-            x0 = max(vertex, left[i]);
-            break;
-        }
-    }
-
-    auto evaluate = [&](long long x) -> ld {
-        ld ans = 0;
-        for (int t = 0; t <= n / 2; ++t) {
-            ld real = (ld)x + A[t].real();
-            ld imag = A[t].imag();
-            ans = max(ans, real * real + imag * imag);
-        }
-        return ans;
-    };
-
-    // 理论上只需检查 floor(x0)、ceil(x0)。
-    // 多检查左右各一个整数，减小整数边界处舍入误差的影响。
-    long long base = (long long)floorl(x0);
-    ld ans = INF;
-    for (long long x = base - 1; x <= base + 2; ++x) {
-        ans = min(ans, evaluate(x));
-    }
-    return sqrtl(ans);
+// 精确比较两个带根式的数，返回 -1 / 0 / 1。
+static int compareRadical(Radical u, Radical v) {
+    if (u.a < v.a) return -compareRadical(v, u);
+    i128 d = static_cast<i128>(u.a) - v.a;
+    if (d == 0) return (u.b > v.b) - (u.b < v.b);
+    i128 q = static_cast<i128>(v.b) - u.b - d * d;
+    if (q < 0) return 1;
+    i128 lhs = 4 * d * d * u.b;
+    i128 rhs = q * q;
+    return (lhs > rhs) - (lhs < rhs);
 }
 
-#ifndef SPECTRAL_NO_MAIN
+// 维护几何限制函数最小值的广义李超树。
+class GeometryHull {
+    const vector<i64>& x;
+    const vector<i64>& t;
+    int n;
+    vector<int> tree;
+
+    Radical value(int k, int p) const {
+        i64 a = x[k] - x[p];
+        // 辅助延拓：保证整个定义域上任意两函数至多交叉一次。
+        // 真实查询不会用到这一段。
+        if (a < 0) return {a, 0};
+        return {2 * (a + t[k]), 8LL * a * t[k]};
+    }
+
+    bool better(int a, int b, int p) const {
+        if (a == -1) return false;
+        if (b == -1) return true;
+        return compareRadical(value(a, p), value(b, p)) < 0;
+    }
+
+    void add(int v, int l, int r, int f) {
+        if (tree[v] == -1) {
+            tree[v] = f;
+            return;
+        }
+        int m = (l + r) / 2;
+        bool left = better(f, tree[v], l);
+        bool middle = better(f, tree[v], m);
+        if (middle) swap(f, tree[v]);
+        if (l == r) return;
+        if (left != middle) add(v * 2, l, m, f);
+        else add(v * 2 + 1, m + 1, r, f);
+    }
+
+    int query(int v, int l, int r, int p) const {
+        int ans = tree[v];
+        if (l == r) return ans;
+        int m = (l + r) / 2;
+        int other = p <= m ? query(v * 2, l, m, p)
+                           : query(v * 2 + 1, m + 1, r, p);
+        return better(other, ans, p) ? other : ans;
+    }
+
+public:
+    GeometryHull(const vector<i64>& xs, const vector<i64>& ts)
+        : x(xs), t(ts), n(static_cast<int>(xs.size())), tree(4 * n, -1) {}
+
+    void add(int k) { add(1, 0, n - 1, k); }
+    int query(int p) const { return query(1, 0, n - 1, p); }
+};
+
+static vector<i64> rightLimits(const vector<i64>& x, const vector<i64>& t) {
+    int n = static_cast<int>(x.size());
+    vector<i64> limit(n);
+    GeometryHull hull(x, t);
+    for (int i = n - 1; i >= 0; --i) {
+        hull.add(i);
+        int k = hull.query(i);
+        i64 a = x[k] - x[i];
+        limit[i] = 2 * (a + t[k]) + isqrt(8LL * a * t[k]);
+    }
+    return limit;
+}
+
+class BridgeDP {
+    int n;
+    i64 alpha, beta;
+    const vector<i64>& x;
+    const vector<i64>& t;
+    vector<int> L, R;
+    vector<i64> dp, best, slope, intercept;
+    vector<vector<int>> pending;
+
+    i64 value(int k, i64 at) const {
+        return slope[k] * at + intercept[k];
+    }
+
+    // a、b、c 的斜率严格递增，判断中间直线 b 是否冗余。
+    bool redundant(int a, int b, int c) const {
+        return (static_cast<i128>(intercept[a]) - intercept[b]) *
+                   (slope[c] - slope[b]) <=
+               (static_cast<i128>(intercept[b]) - intercept[c]) *
+                   (slope[b] - slope[a]);
+    }
+
+    void addRange(int v, int l, int r, int ql, int qr, int id) {
+        if (ql <= l && r <= qr) {
+            pending[v].push_back(id);
+            return;
+        }
+        int m = (l + r) / 2;
+        if (ql <= m) addRange(v * 2, l, m, ql, qr, id);
+        if (qr > m) addRange(v * 2 + 1, m + 1, r, ql, qr, id);
+    }
+
+    // 进入节点时，属于该节点的所有直线都已经加入。
+    void apply(int v, int l, int r) {
+        auto& ids = pending[v];
+        if (ids.empty()) return;
+
+        vector<int> order(r - l + 1);
+        iota(order.begin(), order.end(), l);
+        sort(order.begin(), order.end(), [&](int a, int b) {
+            return L[a] > L[b];
+        });
+
+        vector<int> hull;
+        hull.reserve(ids.size());
+        int p = static_cast<int>(ids.size()) - 1;
+        for (int j : order) {
+            while (p >= 0 && ids[p] >= L[j]) {
+                int k = ids[p--];
+                while (hull.size() >= 2 &&
+                       redundant(hull[hull.size() - 2], hull.back(), k)) {
+                    hull.pop_back();
+                }
+                hull.push_back(k);
+            }
+            if (hull.empty()) continue;
+
+            int a = 0, b = static_cast<int>(hull.size()) - 1;
+            while (a < b) {
+                int m = (a + b) / 2;
+                if (value(hull[m], x[j]) <= value(hull[m + 1], x[j])) b = m;
+                else a = m + 1;
+            }
+            best[j] = min(best[j], value(hull[a], x[j]));
+        }
+        vector<int>().swap(ids);
+    }
+
+    void solve(int v, int l, int r) {
+        apply(v, l, r);
+        if (l == r) {
+            if (l == 0) dp[l] = alpha * t[l];
+            else if (best[l] != INF) {
+                dp[l] = best[l] + beta * x[l] * x[l] + alpha * t[l];
+            }
+            if (dp[l] != INF && l < R[l]) {
+                intercept[l] = dp[l] + beta * x[l] * x[l];
+                addRange(1, 0, n - 1, l + 1, R[l], l);
+            }
+            return;
+        }
+        int m = (l + r) / 2;
+        solve(v * 2, l, m);
+        solve(v * 2 + 1, m + 1, r);
+    }
+
+public:
+    BridgeDP(const vector<i64>& xs, const vector<i64>& ts, i64 a, i64 b,
+             vector<int> left, vector<int> right)
+        : n(static_cast<int>(xs.size())), alpha(a), beta(b), x(xs), t(ts),
+          L(move(left)), R(move(right)), dp(n, INF), best(n, INF),
+          slope(n), intercept(n), pending(4 * n) {
+        for (int i = 0; i < n; ++i) slope[i] = -2 * beta * x[i];
+    }
+
+    i64 run() {
+        solve(1, 0, n - 1);
+        return dp[n - 1];
+    }
+};
+
+static i64 minimumBridge(const vector<i64>& x, const vector<i64>& t,
+                         i64 alpha, i64 beta) {
+    int n = static_cast<int>(x.size());
+    auto right = rightLimits(x, t);
+    vector<i64> rx(n), rt(n);
+    for (int i = 0; i < n; ++i) {
+        rx[i] = -x[n - 1 - i];
+        rt[i] = t[n - 1 - i];
+    }
+    auto left = rightLimits(rx, rt);
+    vector<int> L(n), R(n);
+    for (int i = 0; i < n; ++i) {
+        L[i] = static_cast<int>(lower_bound(x.begin(), x.end(),
+                         x[i] - left[n - 1 - i]) - x.begin());
+        R[i] = static_cast<int>(upper_bound(x.begin(), x.end(),
+                         x[i] + right[i]) - x.begin()) - 1;
+    }
+    BridgeDP solver(x, t, alpha, beta, move(L), move(R));
+    return solver.run();
+}
+
+#ifndef BRIDGE_SOLVER_NO_MAIN
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
-    int n, k;
-    if (!(cin >> n >> k)) return 0;
-    vector<int> f(n);
-    for (int& x : f) cin >> x;
-    cout << fixed << setprecision(15) << solve(f, k) << '\n';
+    int n;
+    i64 h, alpha, beta;
+    if (!(cin >> n >> h >> alpha >> beta)) return 0;
+    vector<i64> x(n), t(n);
+    for (int i = 0; i < n; ++i) {
+        i64 y;
+        cin >> x[i] >> y;
+        t[i] = h - y;
+    }
+    i64 ans = minimumBridge(x, t, alpha, beta);
+    if (ans == INF) cout << "impossible\n";
+    else cout << ans << '\n';
     return 0;
 }
-
 #endif

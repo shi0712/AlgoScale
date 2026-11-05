@@ -1,22 +1,22 @@
-# 25. Old Problems
-
 ## Problem Description
 
-Let $d(x)$ denote the number of positive divisors of $x$. For each triple $A,B,C$, compute
+Player X has $n$ ordinary pieces with strengths $a_1,\ldots,a_n$ and $k$ bombs. Player Y has $m$ ordinary pieces with strengths $b_1,\ldots,b_m$. Each player uniformly shuffles their entire collection into an order.
 
-$$\sum_{i=1}^{A}\sum_{j=1}^{B}\sum_{k=1}^{C}d(ijk)\pmod{10^9+7}.$$
+Both players deploy the first remaining piece. For two ordinary pieces, the weaker one is removed; if their strengths are equal, both are removed. A surviving piece stays deployed while the opposing player deploys their next piece. Whenever X's bomb meets any Y piece, both are removed.
+
+A player wins when the other player has no pieces remaining but they still have at least one. If both run out simultaneously, the outcome is a draw. Compute the probabilities of an X win, a Y win, and a draw, modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-Read the number of cases $T$, followed by $T$ lines containing $A,B,C$.
+Read $n,m,k$, then the $n$ values $a_i$, then the $m$ values $b_j$.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print one line containing the requested value modulo $10^9+7$.
+Print three integers on three separate lines: the probability of X winning, the probability of Y winning, and the probability of a draw, in that order, modulo $998244353$. A rational probability is represented by multiplying its numerator by the modular inverse of its denominator.
 
 ## Examples
 
@@ -25,25 +25,30 @@ For each case, print one line containing the requested value modulo $10^9+7$.
 Input:
 
 ```text
-1
-10 10 10
+5 5 1
+11 4 2 11 9
+20 1 6 20 1
 ```
 
 Output:
 
 ```text
-11536
+0
+1
+0
 ```
 
 ## Explanation / Notes
 
-All three summation indices vary independently and include both endpoints. The divisor count is taken for their product $ijk$.
+Bombs belong only to X and are shuffled together with X's ordinary pieces before play. A bomb causes mutual removal regardless of the opposing strength. A winning ordinary piece is not removed merely because it has fought once.
 
 ## Constraints
 
-- $1\le T\le10$.
-- For every case, $1\le A,B,C\le10^5$.
-- Over the full input, $1\le\sum\max(A,B,C)\le2\times10^5$, where the sum is over test cases.
-
-- Modulus: $1000000007$.
-- Time limit: 5 seconds; memory limit: 512 MB.
+- One test case.
+- $1\le n,m\le1000$.
+- $0\le k\le20$.
+- $1\le a_i,b_j\le10^5$; repeated strengths are allowed.
+- X has $n+k$ pieces in total, and Y has $m$.
+- The shuffled order for each player's collection is uniform.
+- Modulus: $998244353$.
+- Time limit: 2 seconds; memory limit: 1024 MB.

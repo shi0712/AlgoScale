@@ -1,81 +1,229 @@
 #include <bits/stdc++.h>
 using namespace std;
-static const int INF = 1000000000;
+using int64 = long long;
+using u64 = uint64_t;
+using u32 = uint32_t;
 
-struct DownSeg {
-    struct F { int a; bool g; };
-    int n=0; vector<F> tr;
-    static F id(){ return {INF,true}; }
-    static F mergeF(const F& L,const F& R){ return {min(L.a, L.g?R.a:INF), bool(L.g&&R.g)}; }
-    DownSeg(){}
-    DownSeg(int n):n(n),tr(4*n+4,id()){}
-    void build(int p,int l,int r,const vector<F>& a){ if(l==r){tr[p]=a[l];return;} int m=(l+r)/2; build(p*2,l,m,a); build(p*2+1,m+1,r,a); tr[p]=mergeF(tr[p*2],tr[p*2+1]); }
-    void build(const vector<F>& a){ if(n) build(1,0,n-1,a); }
-    void modify(int p,int l,int r,int x,F v){ if(l==r){tr[p]=v;return;} int m=(l+r)/2; if(x<=m)modify(p*2,l,m,x,v);else modify(p*2+1,m+1,r,x,v);tr[p]=mergeF(tr[p*2],tr[p*2+1]); }
-    void modify(int x,F v){modify(1,0,n-1,x,v);}
-    F query(int p,int l,int r,int ql,int qr) const { if(ql<=l&&r<=qr)return tr[p]; int m=(l+r)/2; if(qr<=m)return query(p*2,l,m,ql,qr); if(ql>m)return query(p*2+1,m+1,r,ql,qr); return mergeF(query(p*2,l,m,ql,qr),query(p*2+1,m+1,r,ql,qr)); }
-    F query(int l,int r) const { return query(1,0,n-1,l,r); }
-};
+// Exact hash-consed persistent segment tree.
+// Internal node ID is a hash-table slot + 1 (< 2^31).
+// Leaf ID has the high bit set and stores the frequency in the low 31 bits.
+class CanonicalPST {
+    static constexpr u32 LEAF = 0x80000000u;
+    vector<u64> tab; // packed(left,right)+1, 0 means empty
+    size_t mask_ = 0;
+    int H = 0;
+    u32 zeroRoot_ = 0;
 
-struct UpSeg {
-    int n=0; vector<int> mn; vector<unsigned char> allGo;
-    UpSeg(){} UpSeg(int n):n(n),mn(4*n+4,INF),allGo(4*n+4,0){}
-    void pull(int p){mn[p]=min(mn[p*2],mn[p*2+1]);allGo[p]=allGo[p*2]&allGo[p*2+1];}
-    void build(int p,int l,int r,const vector<int>& b,const vector<unsigned char>& g){if(l==r){mn[p]=b[l];allGo[p]=g[l];return;}int m=(l+r)/2;build(p*2,l,m,b,g);build(p*2+1,m+1,r,b,g);pull(p);}
-    void build(const vector<int>& b,const vector<unsigned char>& g){if(n)build(1,0,n-1,b,g);}
-    void modify(int p,int l,int r,int x,int b,bool g){if(l==r){mn[p]=b;allGo[p]=g;return;}int m=(l+r)/2;if(x<=m)modify(p*2,l,m,x,b,g);else modify(p*2+1,m+1,r,x,b,g);pull(p);}
-    void modify(int x,int b,bool g){modify(1,0,n-1,x,b,g);}
-    int queryMin(int p,int l,int r,int ql,int qr)const{if(ql<=l&&r<=qr)return mn[p];int m=(l+r)/2,ans=INF;if(ql<=m)ans=min(ans,queryMin(p*2,l,m,ql,qr));if(qr>m)ans=min(ans,queryMin(p*2+1,m+1,r,ql,qr));return ans;}
-    int queryMin(int l,int r)const{return l<=r?queryMin(1,0,n-1,l,r):INF;}
-    int rightmostFalse(int p,int l,int r,int ql,int qr)const{if(r<ql||qr<l||allGo[p])return -1;if(l==r)return l;int m=(l+r)/2;int z=rightmostFalse(p*2+1,m+1,r,ql,qr);if(z!=-1)return z;return rightmostFalse(p*2,l,m,ql,qr);}
-    int rightmostFalse(int l,int r)const{return rightmostFalse(1,0,n-1,l,r);}
-};
+    static u64 mix(u64 x) {
+        x += 0x9e3779b97f4a7c15ULL;
+        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+        x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+        return x ^ (x >> 31);
+    }
 
-struct Solver {
-    struct Edge{int u,v,itemU=-1,itemV=-1;};
-    int n,root=0,timer=0; vector<Edge> edges; vector<vector<pair<int,int>>> adj; vector<vector<int>> child;
-    vector<int> fa,dep,siz,heavy,top,dfn,rev,chainEnd;
-    vector<int> selfItem,upPort,parentSidePort,localCnt;
-    vector<int> owner,dsu,compSz,compHead,compTail; vector<unsigned char> inUsed,outUsed;
-    vector<set<pair<int,int>>> S; vector<int> setVal; vector<unsigned char> inSet;
-    DownSeg downSeg; UpSeg upSeg;
-    Solver(int n):n(n),adj(n),child(n),fa(n,-1),dep(n),siz(n),heavy(n,-1),top(n),dfn(n),rev(n),chainEnd(n,-1),selfItem(n),upPort(n,-1),parentSidePort(n,-1),localCnt(n),S(n){}
-    void addEdge(int u,int v){int id=edges.size();edges.push_back({u,v,-1,-1});adj[u].push_back({v,id});adj[v].push_back({u,id});}
-    int newItem(int u){int id=owner.size();owner.push_back(u);dsu.push_back(id);compSz.push_back(1);compHead.push_back(id);compTail.push_back(id);inUsed.push_back(0);outUsed.push_back(0);return id;}
-    int findSet(int x){while(dsu[x]!=x){dsu[x]=dsu[dsu[x]];x=dsu[x];}return x;}
-    int itemOnEdge(int eid,int u)const{auto&e=edges[eid];return e.u==u?e.itemU:e.itemV;}
-    int portBetween(int u,int v)const{if(fa[u]==v)return upPort[u];if(fa[v]==u)return parentSidePort[v];abort();}
-    void buildItems(){owner.reserve(3*n);dsu.reserve(3*n);compSz.reserve(3*n);compHead.reserve(3*n);compTail.reserve(3*n);inUsed.reserve(3*n);outUsed.reserve(3*n);for(int u=0;u<n;++u)selfItem[u]=newItem(u);for(auto&e:edges){e.itemU=newItem(e.u);e.itemV=newItem(e.v);}int M=owner.size();setVal.assign(M,INF);inSet.assign(M,0);for(int u=0;u<n;++u)localCnt[u]=1+(int)adj[u].size();}
-    void buildTreeIterative(){
-        vector<int> order; order.reserve(n); fa[root]=-1; dep[root]=0; order.push_back(root);
-        for(size_t qi=0;qi<order.size();++qi){int u=order[qi];for(auto [v,eid]:adj[u])if(v!=fa[u]){fa[v]=u;dep[v]=dep[u]+1;upPort[v]=itemOnEdge(eid,v);parentSidePort[v]=itemOnEdge(eid,u);child[u].push_back(v);order.push_back(v);}}
-        for(int ii=n-1;ii>=0;--ii){int u=order[ii];siz[u]=1;int best=0;for(int v:child[u]){siz[u]+=siz[v];if(siz[v]>best){best=siz[v];heavy[u]=v;}}}
-        timer=0; vector<pair<int,int>> st; st.reserve(n); st.push_back({root,root});
-        while(!st.empty()){
-            auto [start,tp]=st.back(); st.pop_back();
-            int u=start;
-            while(u!=-1){top[u]=tp;dfn[u]=timer;rev[timer++]=u;for(int i=(int)child[u].size()-1;i>=0;--i){int v=child[u][i];if(v!=heavy[u])st.push_back({v,v});}if(heavy[u]==-1){chainEnd[tp]=dfn[u];break;}u=heavy[u];}
+    static u64 pack(u32 l, u32 r) {
+        return (u64(l) << 32) | u64(r);
+    }
+
+    u32 intern(u32 l, u32 r) {
+        const u64 raw = pack(l, r);
+        const u64 stored = raw + 1; // raw can never be UINT64_MAX here
+        size_t p = size_t(mix(raw)) & mask_;
+        while (true) {
+            if (tab[p] == 0) {
+                tab[p] = stored;
+                return u32(p + 1);
+            }
+            if (tab[p] == stored) return u32(p + 1);
+            p = (p + 1) & mask_;
         }
     }
-    bool legal(int a,int b){if(a<0||b<0||outUsed[a]||inUsed[b])return false;int ra=findSet(a),rb=findSet(b);if(ra!=rb)return true;return compSz[ra]==localCnt[owner[a]];}
-    int getDown(int u)const{return downSeg.query(dfn[u],chainEnd[top[u]]).a;}
-    int bestLight(int u,int x){if(outUsed[x]||S[u].empty())return INF;int r=findSet(x),forbid=-1;if(compSz[r]!=localCnt[u])forbid=compHead[r];auto it=S[u].begin();if(it->second!=forbid)return it->first;++it;return it==S[u].end()?INF:it->first;}
-    DownSeg::F calcDownPoint(int u){if(u==root)return {INF,false};int p=upPort[u];int a=bestLight(u,p);bool g=heavy[u]!=-1&&legal(p,parentSidePort[heavy[u]]);return {a,g};}
-    pair<int,bool> calcUpPoint(int u){if(heavy[u]==-1)return {INF,false};int x=parentSidePort[heavy[u]];int branch=bestLight(u,x);bool go=fa[u]!=-1&&legal(x,upPort[u]);return {branch,go};}
-    void changeLightKey(int p,int t,int newVal){int item=parentSidePort[t];if(!inSet[item])return;S[p].erase({setVal[item],item});setVal[item]=newVal;S[p].insert({setVal[item],item});}
-    void touch(int u){while(u!=-1){int t=top[u];int oldTop=getDown(t);downSeg.modify(dfn[u],calcDownPoint(u));auto [b,go]=calcUpPoint(u);upSeg.modify(dfn[u],b,go);int newTop=getDown(t);if(oldTop==newTop)break;int p=fa[t];if(p==-1)break;changeLightKey(p,t,newTop);u=p;}}
-    int genericBranch(int u,int x){int ans=bestLight(u,x);int h=heavy[u];if(h!=-1){int y=parentSidePort[h];if(legal(x,y))ans=min(ans,getDown(h));}return ans;}
-    int querySource(int s){int ans=genericBranch(s,selfItem[s]);if(fa[s]==-1||!legal(selfItem[s],upPort[s]))return ans;int c=s,u=fa[s];while(true){if(heavy[u]==c){int l=dfn[top[u]],r=dfn[u];int stop=upSeg.rightmostFalse(l,r);int ql=stop==-1?l:stop;ans=min(ans,upSeg.queryMin(ql,r));if(stop!=-1)break;int t=top[u];if(fa[t]==-1)break;c=t;u=fa[t];}else{int x=parentSidePort[c];ans=min(ans,genericBranch(u,x));if(fa[u]==-1||!legal(x,upPort[u]))break;c=u;u=fa[u];}}return ans;}
-    void eraseDestinationItem(int item){if(!inSet[item])return;int u=owner[item];S[u].erase({setVal[item],item});inSet[item]=0;}
-    void addLocalArc(int u,int a,int b){if(!legal(a,b)){cerr<<"illegal arc at u="<<u+1<<" a="<<a<<" b="<<b<<"\n";abort();}eraseDestinationItem(b);int ra=findSet(a),rb=findSet(b);int newHead=compHead[ra],newTail=compTail[rb];outUsed[a]=1;inUsed[b]=1;if(ra!=rb){dsu[rb]=ra;compSz[ra]+=compSz[rb];compHead[ra]=newHead;compTail[ra]=newTail;}touch(u);}
-    vector<int> getPath(int s,int t)const{vector<int>A,B;int u=s,v=t;while(dep[u]>dep[v]){A.push_back(u);u=fa[u];}while(dep[v]>dep[u]){B.push_back(v);v=fa[v];}while(u!=v){A.push_back(u);B.push_back(v);u=fa[u];v=fa[v];}A.push_back(u);reverse(B.begin(),B.end());A.insert(A.end(),B.begin(),B.end());return A;}
-    void commitPath(int s,int t){auto path=getPath(s,t);if(path.size()==1){addLocalArc(s,selfItem[s],selfItem[s]);return;}for(int i=0;i<(int)path.size();++i){int u=path[i],a,b;if(i==0){a=selfItem[u];b=portBetween(u,path[i+1]);}else if(i+1==(int)path.size()){a=portBetween(u,path[i-1]);b=selfItem[u];}else{a=portBetween(u,path[i-1]);b=portBetween(u,path[i+1]);}addLocalArc(u,a,b);}}
-    void init(){buildItems();buildTreeIterative();vector<int> initialDown(n,INF);for(int i=n-1;i>=0;--i){int u=rev[i];int val=u;for(int c:child[u])val=min(val,initialDown[c]);initialDown[u]=val;}
-        for(int u=0;u<n;++u){int x=selfItem[u];inSet[x]=1;setVal[x]=u;S[u].insert({u,x});for(int c:child[u])if(c!=heavy[u]){int item=parentSidePort[c];inSet[item]=1;setVal[item]=initialDown[c];S[u].insert({setVal[item],item});}}
-        vector<DownSeg::F> f(n);vector<int>b(n,INF);vector<unsigned char>go(n,0);
-        for(int u=0;u<n;++u){f[dfn[u]]=calcDownPoint(u);auto q=calcUpPoint(u);b[dfn[u]]=q.first;go[dfn[u]]=q.second;}
-        downSeg=DownSeg(n);upSeg=UpSeg(n);downSeg.build(f);upSeg.build(b,go);
+
+    pair<u32,u32> children(u32 id) const {
+        const u64 raw = tab[size_t(id - 1)] - 1;
+        return {u32(raw >> 32), u32(raw)};
     }
-    vector<int> solve(const vector<int>&pos){if(n==1)return{0};init();vector<int>ans;ans.reserve(n);for(int s:pos){int t=querySource(s);if(t>=INF){cerr<<"no target for source "<<s+1<<"\n";abort();}ans.push_back(t);commitPath(s,t);}return ans;}
+
+    static u32 leaf(int cnt) {
+        return LEAF | u32(cnt);
+    }
+    static int leafCnt(u32 id) {
+        return int(id & ~LEAF);
+    }
+
+    u32 addRec(u32 root, int pos, int level) {
+        if (level == 0) return leaf(leafCnt(root) + 1);
+        auto [l, r] = children(root);
+        const int bit = (pos >> (level - 1)) & 1;
+        if (bit == 0) l = addRec(l, pos, level - 1);
+        else r = addRec(r, pos, level - 1);
+        return intern(l, r);
+    }
+
+    // Compare (A + [pa]) and (B + [pb]) lexicographically by frequency,
+    // scanning larger coordinates first. pa/pb == -1 means no insertion.
+    int cmpVirtualRec(u32 A, int pa, u32 B, int pb, int level) const {
+        if (A == B && pa == pb) return 0;
+        if (level == 0) {
+            int ca = leafCnt(A) + (pa != -1);
+            int cb = leafCnt(B) + (pb != -1);
+            return (ca > cb) - (ca < cb);
+        }
+        auto [al, ar] = children(A);
+        auto [bl, br] = children(B);
+        const int bitpos = level - 1;
+        int par = (pa != -1 && ((pa >> bitpos) & 1)) ? pa : -1;
+        int pbr = (pb != -1 && ((pb >> bitpos) & 1)) ? pb : -1;
+        if (!(ar == br && par == pbr)) {
+            int t = cmpVirtualRec(ar, par, br, pbr, level - 1);
+            if (t) return t;
+        }
+        int pal = (pa != -1 && !((pa >> bitpos) & 1)) ? pa : -1;
+        int pbl = (pb != -1 && !((pb >> bitpos) & 1)) ? pb : -1;
+        if (al == bl && pal == pbl) return 0;
+        return cmpVirtualRec(al, pal, bl, pbl, level - 1);
+    }
+
+    void collectRec(u32 root, int level, int base, const vector<int64>& vals,
+                    vector<int64>& out) const {
+        if (level == 0) {
+            if (base >= (int)vals.size()) return;
+            int c = leafCnt(root);
+            while (c--) out.push_back(vals[base]);
+            return;
+        }
+        auto [l, r] = children(root);
+        int half = 1 << (level - 1);
+        // Larger coordinates first.
+        collectRec(r, level - 1, base + half, vals, out);
+        collectRec(l, level - 1, base, vals, out);
+    }
+
+public:
+    CanonicalPST() = default;
+
+    void init(int coordCount, int K) {
+        H = 0;
+        int P = 1;
+        while (P < coordCount) P <<= 1, ++H;
+        // If coordCount == 1, H = 0 and the root itself is a leaf.
+        long long maxNew = 2LL * K * max(1, H) + H + 32;
+        // Keep the open-addressing table below ~70% load.
+        size_t cap = 1;
+        while ((long double)cap * 0.70L < (long double)maxNew) cap <<= 1;
+        if (cap >= (1ULL << 31)) throw runtime_error("canonical table too large");
+        tab.assign(cap, 0);
+        mask_ = cap - 1;
+
+        u32 z = leaf(0);
+        for (int lv = 1; lv <= H; ++lv) z = intern(z, z);
+        zeroRoot_ = z;
+    }
+
+    u32 zeroRoot() const { return zeroRoot_; }
+
+    u32 add(u32 root, int pos) {
+        if (pos < 0) return root;
+        return addRec(root, pos, H);
+    }
+
+    int cmp(u32 A, u32 B) const {
+        return cmpVirtualRec(A, -1, B, -1, H);
+    }
+
+    int cmpCandidate(u32 A, int pa, u32 B, int pb) const {
+        return cmpVirtualRec(A, pa, B, pb, H);
+    }
+
+    void collect(u32 root, const vector<int64>& vals, vector<int64>& out) const {
+        collectRec(root, H, 0, vals, out);
+    }
 };
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int T;if(!(cin>>T))return 0;while(T--){int n;cin>>n;vector<int>pos(n);for(int&i:pos){cin>>i;--i;}Solver solver(n);for(int i=1;i<n;++i){int u,v;cin>>u>>v;--u;--v;solver.addEdge(u,v);}auto ans=solver.solve(pos);for(int i=0;i<n;++i){if(i)cout<<' ';cout<<ans[i]+1;}cout<<'\n';} }
+
+static vector<int64> solveCase(vector<pair<int64,int64>> seg) {
+    sort(seg.begin(), seg.end(), [](auto a, auto b) {
+        if (a.first != b.first) return a.first < b.first;
+        return a.second > b.second;
+    });
+
+    vector<int64> len;
+    vector<int64> dl(1, 0); // dl[i] for kept interval i, dl[0]=0
+    int64 lastR = -1;
+    for (auto [l, r] : seg) {
+        if (r <= lastR) continue; // contained in a previously kept interval
+        int64 ov = len.empty() ? 0 : max<int64>(0, lastR - l + 1);
+        len.push_back(r - l + 1);
+        if (len.size() >= 2) dl.push_back(ov);
+        lastR = r;
+    }
+    const int K = (int)len.size();
+    dl.push_back(0); // right overlap of the final interval
+
+    vector<int64> vals;
+    vals.reserve(4LL * K);
+    for (int i = 0; i < K; ++i) {
+        int64 L = len[i], a = dl[i], b = dl[i + 1];
+        int64 cand[4] = {L - a, L - a - b, L, L - b};
+        for (int z = 0; z < 4; ++z) if (cand[z] > 0) vals.push_back(cand[z]);
+    }
+    sort(vals.begin(), vals.end());
+    vals.erase(unique(vals.begin(), vals.end()), vals.end());
+
+    CanonicalPST pst;
+    pst.init((int)vals.size(), K);
+    auto pos = [&](int64 x) -> int {
+        if (x <= 0) return -1;
+        return int(lower_bound(vals.begin(), vals.end(), x) - vals.begin());
+    };
+
+    u32 dp0 = pst.zeroRoot(), dp1 = pst.zeroRoot();
+    for (int i = 0; i < K; ++i) {
+        const int64 L = len[i], left = dl[i], right = dl[i + 1];
+
+        // ndp0 = max(dp0 + (L-left), dp1 + L)
+        int p00 = pos(L - left), p10 = pos(L);
+        bool take00 = pst.cmpCandidate(dp0, p00, dp1, p10) >= 0;
+        u32 ndp0 = take00 ? pst.add(dp0, p00) : pst.add(dp1, p10);
+
+        // ndp1 = max(dp0 + (L-left-right), dp1 + (L-right))
+        int p01 = pos(L - left - right), p11 = pos(L - right);
+        bool take01 = pst.cmpCandidate(dp0, p01, dp1, p11) >= 0;
+        u32 ndp1 = take01 ? pst.add(dp0, p01) : pst.add(dp1, p11);
+
+        dp0 = ndp0;
+        dp1 = ndp1;
+    }
+
+    u32 root = pst.cmp(dp0, dp1) >= 0 ? dp0 : dp1;
+    vector<int64> ans;
+    ans.reserve(K);
+    pst.collect(root, vals, ans);
+    return ans;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    if (!(cin >> T)) return 0;
+    while (T--) {
+        int n, m;
+        cin >> n >> m;
+        vector<pair<int64,int64>> seg;
+        seg.reserve(n + m);
+        for (int i = 0; i < n + m; ++i) {
+            int64 l, r;
+            cin >> l >> r;
+            seg.push_back({l, r});
+        }
+        auto ans = solveCase(move(seg));
+        cout << ans.size() << '\n';
+        for (size_t i = 0; i < ans.size(); ++i) {
+            if (i) cout << ' ';
+            cout << ans[i];
+        }
+        cout << '\n';
+    }
+    return 0;
+}

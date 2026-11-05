@@ -1,62 +1,51 @@
-# 69. Spaceship
-
 ## Problem Description
 
-A directed graph has $N$ rooms and doors between some ordered pairs of rooms. A remote has buttons numbered $1$ through $K$.
+A rectangular sheet has integer height $h$ and width $w$, subdivided into unit cells. A cut is made along an entire horizontal or vertical grid line and cuts every existing piece intersected by that line.
 
-In each visit to a room, exactly one button must be pressed. After that press, either follow one outgoing door, possibly back to the same room, or stop. Pressing button $x$ makes it unavailable and restores the availability of every button numbered below $x$. Equivalently, using $x$ twice is legal only if a larger button was pressed between those uses.
+A horizontal cut may use an integer coordinate from $1$ to $h-1$, and a vertical cut may use one from $1$ to $w-1$. Thus $c_h$ distinct horizontal cuts and $c_w$ distinct vertical cuts produce $(c_h+1)(c_w+1)$ rectangles.
 
-For each query $(b_s,s,b_t,t)$, start afresh with all buttons available, in room $s$, and press $b_s$. Pressing an unavailable button invalidates a sequence. Count all valid sequences of room visits and button presses that stop in room $t$ immediately after pressing $b_t$. Return the count modulo $10^9+7$.
+Find the minimum total number of cuts needed so that every resulting rectangle has area at most $s$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $N,K,Q$.
-
-The next $N$ lines are strings of $N$ bits. Bit $j$ in row $i$ is `1` exactly when there is a door from room $i$ to room $j$.
-
-Each of the next $Q$ lines contains **$b_s,s,b_t,t$**, in that order: starting button, starting room, final button, final room.
+The first line contains $t$, the number of test cases. Each of the next $t$ lines contains $h,w,s$.
 
 ## Output Format
 
 Write to standard output.
 
-Print one answer per query on its own line, modulo $1000000007$.
+Print one integer per test case: the minimum number of cuts.
 
 ## Examples
 
 Input:
 
 ```text
-6 3 1
-010000
-001000
-000100
-000010
-000000
-000001
-1 1 1 1
+1
+2 2 1
 ```
 
 Output:
 
 ```text
-1
+2
 ```
 
 ## Explanation / Notes
 
-The doors form the chain $1\to 2\to 3\to 4\to 5$ and the self-loop $6\to 6$. The query starts and ends in room 1 with button 1. Stopping immediately is valid. Leaving room 1 makes returning impossible, so there is exactly one valid sequence.
+One horizontal cut and one vertical cut divide the $2\times 2$ sheet into four unit squares, so two cuts suffice. One cut would leave rectangles of area 2, which exceeds the permitted area 1.
+
+A cut is counted once even when its line passes through several pieces created earlier. Cuts use global horizontal or vertical grid lines, rather than independent cuts on individual rectangles.
 
 ## Constraints
 
-- $1\le N,K,Q\le60$.
-- $1\le s,t\le N$ in each query.
-- $1\le b_s,b_t\le K$ in each query.
-- The adjacency matrix has exactly $N$ rows of $N$ bits each.
-- Doors are directed, self-loops are allowed, and no ordered pair of rooms has more than one door.
-- Exactly one button is pressed per room visit, including the initial and final visits.
-- The same button may recur only after a strictly larger button has occurred in between.
-- Answer modulus: $10^9+7$.
-- Time limit: **1 second**. Memory limit: **256 MB**.
+- $1\le t\le1000$.
+- $1\le h,w,s\le10^9$ in every test case.
+- All input values are integers.
+- Horizontal coordinates must be integers in $[1,h-1]$; when $h=1$, there is no horizontal cut position.
+- Vertical coordinates must be integers in $[1,w-1]$; when $w=1$, there is no vertical cut position.
+- Every final rectangle must individually have area at most $s$.
+- Zero cuts are allowed.
+- Time limit: **3 seconds**. Memory limit: **256 MB**.

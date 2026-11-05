@@ -1,224 +1,394 @@
+// Grid Toll
+//
+// Objective (as evidenced by the samples): increase edge weights (only up) so that
+// the shortest path from column 1 to column m becomes exactly D+k, minimising the
+// TOTAL AMOUNT of increase (sum over edges of newWeight - oldWeight).  Print that
+// minimum total plus the resulting weights.
+//
+// Solution outline
+// ----------------
+// Let target = D + k.  We need w' >= w with dist_{w'}(source set -> sink set) == target
+// and sum(w'-w) minimal.
+//
+// LP duality (path packing): the minimum total increase equals
+//      max over families of edge-disjoint source-sink paths of  sum_P (target - len(P))
+// which is a min-cost flow: send flow from a super source to each column-1 cell,
+// from each column-m cell to a super sink (arc into the sink costs -target), grid
+// arcs have capacity 1 and cost = weight.  Augment while the shortest path is negative.
+//
+// Reconstruction of the weights uses the primal (potential) formulation
+//      min sum_e max(0, |p(u)-p(v)| - w_e)   s.t.  p = 0 on used sources,
+//                                                 p = target on used sinks,
+//                                                 p <= 0 on unused sources,
+//                                                 p >= target on unused sinks.
+// This is a system of difference constraints on the residual graph of the optimal
+// flow; any feasible solution costs exactly the optimum:
+//   * unused edge  -> both residual directions -> |dp| <= w      (no increase)
+//   * used edge u->v -> residual arc v->u of cost -w -> p(v) >= p(u)+w, and the
+//     cost telescopes along each packed path to (target - len(P)).
+// Then w'_e = max(w_e, |p(u)-p(v)|) satisfies every path length >= p(t)-p(s) >= target,
+// and the total increase is exactly the optimum, hence the new shortest path is target.
+
 #include <bits/stdc++.h>
 using namespace std;
-static const long long MOD = 1000000007LL;
 
-// items l..r of an ordered sequence.
-// x[p] = weight when item p is used as a leaf block.
-// w[p] = weight when item p is the root of an internal block covering a
-//        non-empty consecutive range starting at p.
-// Returns the total weight of all "plane forests" over items l..r.
-static long long segDP(const vector<long long>& x, const vector<long long>& w, int l, int r) {
-    int L = r - l + 1;
-    if (L <= 0) return 1;
-    vector<long long> cur(L + 2, 0), nxt(L + 2, 0);
-    cur[0] = 1;
-    for (int p = l; p <= r; p++) {
-        fill(nxt.begin(), nxt.end(), 0);
-        long long xp = x[p], wp = w[p];
-        // leaf: after finishing this block we may close any number of open nodes
-        long long run = 0;
-        for (int d = L; d >= 0; d--) {
-            run += cur[d] * xp % MOD;
-            if (run >= MOD) run -= MOD;
-            nxt[d] += run;
-            if (nxt[d] >= MOD) nxt[d] -= MOD;
-        }
-        // internal: push a new open node
-        for (int d = 0; d <= L; d++) {
-            if (cur[d]) {
-                nxt[d + 1] += cur[d] * wp % MOD;
-                if (nxt[d + 1] >= MOD) nxt[d + 1] -= MOD;
-            }
-        }
-        cur.swap(nxt);
+typedef long long ll;
+static const ll INF = (ll)4e18;
+
+/* ------------------------------------------------------------------ */
+/* fast input / output                                                 */
+/* ------------------------------------------------------------------ */
+static char *ibuf;
+static size_t ipos = 0, ilen = 0;
+static inline int gc() {
+    if (ipos == ilen) {
+        ilen = fread(ibuf, 1, 1 << 16, stdin);
+        ipos = 0;
+        if (ilen == 0) return -1;
     }
-    return cur[0];
+    return ibuf[ipos++];
+}
+static inline ll readInt() {
+    int c = gc();
+    while (c != -1 && (c < '0' || c > '9') && c != '-') c = gc();
+    int sgn = 1;
+    if (c == '-') { sgn = -1; c = gc(); }
+    ll x = 0;
+    while (c >= '0' && c <= '9') { x = x * 10 + (c - '0'); c = gc(); }
+    return x * sgn;
+}
+static char *obuf;
+static size_t opos = 0;
+static inline void flushOut() { fwrite(obuf, 1, opos, stdout); opos = 0; }
+static inline void wc(char c) {
+    if (opos == (1 << 16)) flushOut();
+    obuf[opos++] = c;
+}
+static inline void writeInt(ll x) {
+    if (x < 0) { wc('-'); x = -x; }
+    char tmp[24];
+    int n = 0;
+    do { tmp[n++] = char('0' + x % 10); x /= 10; } while (x);
+    while (n) wc(tmp[--n]);
 }
 
+/* ------------------------------------------------------------------ */
+/* min cost flow                                                       */
+/* ------------------------------------------------------------------ */
+/* radix heap: monotone integer priority queue, keys must be non-negative
+   and extracted in non-decreasing order (Dijkstra). */
+struct RadixHeap {
+    vector<pair<ll, int>> b[65];
+    ll last = 0;
+    int sz = 0;
+    void clear() {
+        for (int i = 0; i < 65; i++) b[i].clear();
+        last = 0; sz = 0;
+    }
+    static int bucket(ll key, ll last) {
+        if (key == last) return 0;
+        return 64 - __builtin_clzll((unsigned long long)(key ^ last));
+    }
+    void push(ll key, int val) {
+        b[bucket(key, last)].push_back({key, val});
+        sz++;
+    }
+    pair<ll, int> pop() {
+        if (b[0].empty()) {
+            int i = 1;
+            while (b[i].empty()) i++;
+            ll mn = b[i][0].first;
+            for (auto &p : b[i]) if (p.first < mn) mn = p.first;
+            last = mn;
+            for (auto &p : b[i]) b[bucket(p.first, last)].push_back(p);
+            b[i].clear();
+        }
+        auto p = b[0].back();
+        b[0].pop_back();
+        sz--;
+        return p;
+    }
+};
+
+struct Arc { int to, rev; ll cap, cost; };
+struct MCF {
+    int N;
+    vector<vector<Arc>> g;
+    MCF(int n) : N(n), g(n) {}
+    void add(int u, int v, ll cap, ll cost) {
+        g[u].push_back({v, (int)g[v].size(), cap, cost});
+        g[v].push_back({u, (int)g[u].size() - 1, 0, -cost});
+    }
+};
+
 int main() {
-    int n, m;
-    if (scanf("%d %d", &n, &m) != 2) return 0;
-    vector<vector<int>> perms(m, vector<int>(n));
-    for (int k = 0; k < m; k++)
-        for (int i = 0; i < n; i++) scanf("%d", &perms[k][i]);
+    ibuf = (char *)malloc(1 << 16);
+    obuf = (char *)malloc(1 << 16);
 
-    if (n == 1) { printf("1\n"); return 0; }
+    int Tc = (int)readInt();
+    while (Tc-- > 0) {
+        int n = (int)readInt(), m = (int)readInt();
+        ll K = readInt();
+        vector<vector<ll>> H(n, vector<ll>(m - 1)), V(n - 1, vector<ll>(m));
+        for (int r = 0; r < n; r++)
+            for (int j = 0; j < m - 1; j++) H[r][j] = readInt();
+        for (int r = 0; r + 1 < n; r++)
+            for (int j = 0; j < m; j++) V[r][j] = readInt();
 
-    vector<int> pos1(n + 1);
-    for (int i = 0; i < n; i++) pos1[perms[0][i]] = i;
+        const int N = n * m;
+        const int S = N, T = N + 1;
 
-    // cnt[x][y] (x<y): times positions x,y are consecutive in some permutation
-    vector<int> cnt((size_t)n * n, 0);
-    for (int k = 0; k < m; k++)
-        for (int s = 0; s + 1 < n; s++) {
-            int x = pos1[perms[k][s]], y = pos1[perms[k][s + 1]];
-            if (x > y) swap(x, y);
-            cnt[(size_t)x * n + y]++;
-        }
-
-    // L[i]: largest j such that element at position i is first of [i..j]
-    // in every permutation
-    vector<int> L(n, n - 1);
-    {
-        vector<int> a(n), posk(n + 1), st;
-        st.reserve(n);
-        for (int k = 0; k < m; k++) {
-            for (int i = 0; i < n; i++) posk[perms[k][i]] = i;
-            for (int i = 0; i < n; i++) a[i] = posk[perms[0][i]];
-            st.clear();
-            for (int i = n - 1; i >= 0; i--) {
-                while (!st.empty() && a[st.back()] > a[i]) st.pop_back();
-                int nsr = st.empty() ? n : st.back();
-                if (nsr - 1 < L[i]) L[i] = nsr - 1;
-                st.push_back(i);
+        /* ---- shortest distances from column 1 (Dijkstra) ---- */
+        vector<ll> d(N, INF);
+        {
+            RadixHeap pq;
+            auto relax = [&](int u, int v, ll w) {
+                if (d[v] > d[u] + w) { d[v] = d[u] + w; pq.push(d[v], v); }
+            };
+            for (int r = 0; r < n; r++) { d[r * m] = 0; pq.push(0, r * m); }
+            while (pq.sz) {
+                auto [du, u] = pq.pop();
+                if (du != d[u]) continue;
+                int r = u / m, c = u % m;
+                if (c + 1 < m) relax(u, u + 1, H[r][c]);
+                if (c > 0) relax(u, u - 1, H[r][c - 1]);
+                if (r + 1 < n) relax(u, u + m, V[r][c]);
+                if (r > 0) relax(u, u - m, V[r - 1][c]);
             }
         }
-    }
+        ll D = INF;
+        for (int r = 0; r < n; r++) D = min(D, d[r * m + m - 1]);
+        const ll target = D + K;
 
-    // common[i][j] : {positions i..j} is an interval in every permutation
-    // good[i][j]   : ... and element at position i is the first one in every permutation
-    vector<char> common((size_t)n * n, 0);
-    vector<char> good((size_t)n * n, 0);
-    {
-        vector<int> W(n, 0);
-        for (int j = 0; j < n; j++) {
-            if (j > 0) {
-                long long suff = 0;
-                for (int i = j - 1; i >= 0; i--) {
-                    suff += cnt[(size_t)i * n + j];
-                    W[i] += (int)suff - m;
+        /* ---- build flow network ---- */
+        MCF mcf(N + 2);
+        for (int r = 0; r < n; r++) mcf.add(S, r * m, (ll)1e9, 0);
+        for (int r = 0; r < n; r++) mcf.add(r * m + m - 1, T, (ll)1e9, -target);
+
+        const int EH = n * (m - 1), EV = (n - 1) * m;
+        vector<int> hA(EH), hB(EH), hIAB(EH), hIBA(EH);
+        vector<int> vA(EV), vB(EV), vIAB(EV), vIBA(EV);
+        auto addEdge = [&](int a, int b, ll w, int &iAB, int &iBA) {
+            iAB = (int)mcf.g[a].size();
+            mcf.add(a, b, 1, w);
+            iBA = (int)mcf.g[b].size();
+            mcf.add(b, a, 1, w);
+        };
+        for (int r = 0; r < n; r++)
+            for (int j = 0; j < m - 1; j++) {
+                int id = r * (m - 1) + j;
+                hA[id] = r * m + j; hB[id] = r * m + j + 1;
+                addEdge(hA[id], hB[id], H[r][j], hIAB[id], hIBA[id]);
+            }
+        for (int r = 0; r + 1 < n; r++)
+            for (int j = 0; j < m; j++) {
+                int id = r * m + j;
+                vA[id] = r * m + j; vB[id] = (r + 1) * m + j;
+                addEdge(vA[id], vB[id], V[r][j], vIAB[id], vIBA[id]);
+            }
+
+        /* ---- live-arc masks ----
+           Every cap is either 0 or positive, and only the arcs on augmented paths
+           ever change it, so a 64-bit mask per vertex lets Dijkstra touch exactly
+           the arcs with positive residual capacity.  A grid vertex has at most four
+           incident grid edges (two entries each) plus one source/sink arc. */
+        vector<unsigned long long> live(N + 2, 0);
+        vector<char> masked(N + 2, 0);
+        for (int v = 0; v <= T; v++) {
+            if ((int)mcf.g[v].size() > 64) continue;   // S and T: plain scan
+            masked[v] = 1;
+            for (int i = 0; i < (int)mcf.g[v].size(); i++)
+                if (mcf.g[v][i].cap > 0) live[v] |= 1ULL << i;
+        }
+
+        /* ---- successive shortest paths (Johnson potentials) ---- */
+        vector<ll> pot(N + 2, INF);
+        for (int v = 0; v < N; v++) pot[v] = d[v];
+        pot[S] = 0;
+        pot[T] = D - target;                 // shortest distance to T initially
+
+        ll totalCost = 0;
+        vector<ll> dist(N + 2);
+        vector<int> cur(N + 2);
+        vector<char> onStk(N + 2);
+        // blocking flow on the zero-reduced-cost subgraph (primal-dual phases)
+        function<ll(int)> dfs = [&](int u) -> ll {
+            auto &gu = mcf.g[u];
+            while (cur[u] < (int)gu.size()) {
+                int i = cur[u];
+                Arc &e = gu[i];
+                if (e.cap <= 0 || e.cost + pot[u] - pot[e.to] != 0) { cur[u]++; continue; }
+                if (e.to == T) {
+                    e.cap -= 1;
+                    if (e.cap <= 0 && masked[u]) live[u] &= ~(1ULL << i);
+                    mcf.g[T][e.rev].cap += 1;
+                    if (masked[T]) live[T] |= 1ULL << e.rev;
+                    return 1;
                 }
-                W[j] = 0;
+                if (onStk[e.to]) { cur[u]++; continue; }
+                onStk[e.to] = 1;
+                ll got = dfs(e.to);
+                onStk[e.to] = 0;
+                if (got > 0) {
+                    e.cap -= got;
+                    if (e.cap <= 0 && masked[u]) live[u] &= ~(1ULL << i);
+                    mcf.g[e.to][e.rev].cap += got;
+                    if (masked[e.to]) live[e.to] |= 1ULL << e.rev;
+                    return got;
+                }
+                cur[u]++;
             }
-            for (int i = 0; i <= j; i++) {
-                bool c = (W[i] == 0);
-                common[(size_t)i * n + j] = c;
-                good[(size_t)i * n + j] = c && (j <= L[i]);
+            return 0;
+        };
+        RadixHeap pq;
+        vector<char> settled(N + 2, 0);
+        vector<int> ord;                     // vertices settled in this phase
+        while (true) {
+            fill(dist.begin(), dist.end(), INF);
+            ord.clear();
+            pq.clear();
+            dist[S] = 0; pq.push(0, S);
+            while (pq.sz) {
+                auto [du, u] = pq.pop();
+                if (settled[u] || du != dist[u]) continue;
+                settled[u] = 1;
+                ord.push_back(u);
+                if (u == T) break;           // only what is closer than T matters
+                const ll pu = pot[u] + du;
+                auto &gu = mcf.g[u];
+                if (masked[u]) {
+                    unsigned long long msk = live[u];
+                    while (msk) {
+                        int i = __builtin_ctzll(msk);
+                        msk &= msk - 1;
+                        const Arc &e = gu[i];
+                        ll nd = pu + e.cost - pot[e.to];
+                        if (dist[e.to] > nd) {
+                            dist[e.to] = nd;
+                            pq.push(nd, e.to);
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < (int)gu.size(); i++) {
+                        const Arc &e = gu[i];
+                        if (e.cap <= 0) continue;
+                        ll nd = pu + e.cost - pot[e.to];
+                        if (dist[e.to] > nd) {
+                            dist[e.to] = nd;
+                            pq.push(nd, e.to);
+                        }
+                    }
+                }
             }
+            if (!settled[T]) break;          // T not reachable
+            ll dT = dist[T];
+            ll actual = dT + pot[T] - pot[S];
+            if (actual >= 0) break;          // no profitable augmenting path left
+            // Johnson update.  Vertices that were not settled would all receive the
+            // same shift dT, which cancels in every reduced cost, so it is skipped.
+            for (int v : ord) { pot[v] += dist[v] - dT; settled[v] = 0; }
+            ll unitCost = pot[T] - pot[S];
+            // push a blocking flow through zero reduced cost arcs
+            fill(cur.begin(), cur.end(), 0);
+            fill(onStk.begin(), onStk.end(), 0);
+            onStk[S] = 1;
+            ll pushed = 0;
+            while (ll got = dfs(S)) pushed += got;
+            onStk[S] = 0;
+            totalCost += unitCost * pushed;
+        }
+        ll answer = -totalCost;
+
+        /* ---- which cells are endpoints of the packing? ---- */
+        vector<char> srcUsed(n, 0), snkUsed(n, 0);
+        for (int r = 0; r < n; r++) {
+            // arcs S->s were added first, in row order
+            if (mcf.g[S][r].cap < (ll)1e9) srcUsed[r] = 1;
+            int t = r * m + m - 1;
+            for (const Arc &e : mcf.g[t])
+                if (e.to == T && e.cap < (ll)1e9) { snkUsed[r] = 1; break; }
+        }
+
+        /* ---- difference constraint system on the residual graph ---- */
+        const int R = N;                     // virtual root, p(R) = 0
+        vector<vector<pair<int, ll>>> cg(N + 1);
+        auto addArc = [&](int u, int v, ll c) { cg[u].push_back({v, c}); };
+
+        for (int r = 0; r < n; r++)
+            for (int j = 0; j < m - 1; j++) {
+                int id = r * (m - 1) + j, a = hA[id], b = hB[id];
+                ll w = H[r][j];
+                int f = (mcf.g[a][hIAB[id]].cap == 0) ? 1
+                      : (mcf.g[b][hIBA[id]].cap == 0) ? 2 : 0;
+                if (f == 1) addArc(b, a, -w);          // used a->b : p(a) <= p(b) - w
+                else if (f == 2) addArc(a, b, -w);     // used b->a
+                else { addArc(a, b, w); addArc(b, a, w); }
+            }
+        for (int r = 0; r + 1 < n; r++)
+            for (int j = 0; j < m; j++) {
+                int id = r * m + j, a = vA[id], b = vB[id];
+                ll w = V[r][j];
+                int f = (mcf.g[a][vIAB[id]].cap == 0) ? 1
+                      : (mcf.g[b][vIBA[id]].cap == 0) ? 2 : 0;
+                if (f == 1) addArc(b, a, -w);
+                else if (f == 2) addArc(a, b, -w);
+                else { addArc(a, b, w); addArc(b, a, w); }
+            }
+        for (int r = 0; r < n; r++) {
+            int s = r * m, t = r * m + m - 1;
+            if (srcUsed[r]) { addArc(R, s, 0); addArc(s, R, 0); }
+            else addArc(R, s, 0);                          // p(s) <= 0
+            if (snkUsed[r]) { addArc(R, t, target); addArc(t, R, -target); }
+            else addArc(t, R, -target);                    // p(t) >= target
+        }
+
+        /* ---- shortest paths from R (SPFA) ---- */
+        vector<ll> p(N + 1, INF);
+        vector<char> inq(N + 1, 0);
+        {
+            deque<int> q;
+            p[R] = 0; q.push_back(R); inq[R] = 1;
+            while (!q.empty()) {
+                int u = q.front(); q.pop_front(); inq[u] = 0;
+                for (auto [v, c] : cg[u]) {
+                    if (p[u] + c < p[v]) {
+                        p[v] = p[u] + c;
+                        if (!inq[v]) {
+                            inq[v] = 1;
+                            // SLF heuristic
+                            if (!q.empty() && p[v] < p[q.front()]) q.push_front(v);
+                            else q.push_back(v);
+                        }
+                    }
+                }
+            }
+        }
+
+        /* ---- produce new weights ---- */
+        for (int r = 0; r < n; r++)
+            for (int j = 0; j < m - 1; j++) {
+                int id = r * (m - 1) + j;
+                ll diff = p[hA[id]] - p[hB[id]];
+                if (diff < 0) diff = -diff;
+                if (diff > H[r][j]) H[r][j] = diff;
+            }
+        for (int r = 0; r + 1 < n; r++)
+            for (int j = 0; j < m; j++) {
+                int id = r * m + j;
+                ll diff = p[vA[id]] - p[vB[id]];
+                if (diff < 0) diff = -diff;
+                if (diff > V[r][j]) V[r][j] = diff;
+            }
+
+        /* ---- output ---- */
+        writeInt(answer); wc('\n');
+        for (int r = 0; r < n; r++) {
+            for (int j = 0; j < m - 1; j++) { writeInt(H[r][j]); wc(j + 1 == m - 1 ? '\n' : ' '); }
+        }
+        for (int r = 0; r + 1 < n; r++) {
+            for (int j = 0; j < m; j++) { writeInt(V[r][j]); wc(j + 1 == m ? '\n' : ' '); }
         }
     }
-
-    // ---- strong intervals of the common-interval family ----
-    vector<int> R(n, 0), Lb(n, n);
-    for (int i = 0; i < n; i++)
-        for (int j = i; j < n; j++)
-            if (common[(size_t)i * n + j]) {
-                if (j > R[i]) R[i] = j;
-                if (i < Lb[j]) Lb[j] = i;
-            }
-
-    vector<char> isStrong((size_t)n * n, 0);
-    for (int i = 0; i < n; i++) {
-        int mr = -1, ml = n + 1;
-        for (int j = i; j < n; j++) {
-            if (j > i) {
-                if (R[j] > mr) mr = R[j];
-                if (Lb[j - 1] < ml) ml = Lb[j - 1];
-            }
-            if (common[(size_t)i * n + j] && !(mr > j) && !(ml < i))
-                isStrong[(size_t)i * n + j] = 1;
-        }
-    }
-
-    struct Block { int l, r; };
-    vector<Block> blocks;
-    for (int i = 0; i < n; i++)
-        for (int j = i; j < n; j++)
-            if (isStrong[(size_t)i * n + j]) blocks.push_back({i, j});
-    int B = (int)blocks.size();
-
-    vector<int> par(B, -1);
-    vector<vector<int>> children(B);
-    for (int i = 0; i < B; i++) {
-        int best = -1, bestLen = INT_MAX;
-        for (int j = 0; j < B; j++) {
-            if (i == j) continue;
-            if (blocks[j].l <= blocks[i].l && blocks[i].r <= blocks[j].r &&
-                (blocks[j].l < blocks[i].l || blocks[j].r > blocks[i].r)) {
-                int len = blocks[j].r - blocks[j].l;
-                if (len < bestLen) { bestLen = len; best = j; }
-            }
-        }
-        par[i] = best;
-        if (best != -1) children[best].push_back(i);
-    }
-    for (int i = 0; i < B; i++)
-        sort(children[i].begin(), children[i].end(),
-             [&](int a, int b) { return blocks[a].l < blocks[b].l; });
-
-    // orientation of complete nodes: 0 unknown, 1 all canonical, 2 all reverse, 3 mixed
-    vector<int> orient(B, 0);   // 0 unknown, 1 canonical, 2 reversed, 3 mixed
-    {
-        vector<int> posk(n + 1);
-        for (int k = 0; k < m; k++) {
-            for (int i = 0; i < n; i++) posk[perms[k][i]] = i;
-            for (int i = 0; i < B; i++) {
-                auto& ch = children[i];
-                if (ch.size() < 2) continue;
-                int e0 = perms[0][blocks[ch.front()].l];
-                int e1 = perms[0][blocks[ch.back()].l];
-                int st = (posk[e0] < posk[e1]) ? 1 : 2;
-                if (orient[i] == 0) orient[i] = st;
-                else if (orient[i] != st) orient[i] = 3;
-            }
-        }
-    }
-
-    vector<int> order(B);
-    iota(order.begin(), order.end(), 0);
-    sort(order.begin(), order.end(), [&](int a, int b) {
-        return blocks[a].r - blocks[a].l < blocks[b].r - blocks[b].l;
-    });
-
-    vector<long long> Forest(B, 0), Tree(B, 0);
-    for (int idx : order) {
-        auto& ch = children[idx];
-        int k = (int)ch.size();
-        if (k == 0) { Forest[idx] = 1; Tree[idx] = 1; continue; }
-
-        // Node type: "complete" iff every adjacent union of children is a common
-        // interval and the children keep one orientation (canonical or reversed) in
-        // every permutation.  Then every union of >=2 children that is common is a
-        // good block iff the first child of the union is good, and segDP applies.
-        // Otherwise no union of >=2 children is a good block at all.
-        bool complete = (orient[idx] != 3);
-        for (int p = 0; complete && p + 1 < k; p++) {
-            if (!common[(size_t)blocks[ch[p]].l * n + blocks[ch[p + 1]].r]) complete = false;
-        }
-
-        bool isGood = good[(size_t)blocks[idx].l * n + blocks[idx].r];
-
-        vector<long long> x(k), w(k);
-        for (int t = 0; t < k; t++) {
-            x[t] = Forest[ch[t]];
-            w[t] = good[(size_t)blocks[ch[t]].l * n + blocks[ch[t]].r] ? Tree[ch[t]] : 0;
-        }
-
-        if (!complete) {
-            // prime node: every allowed block is contained in a single child
-            long long restProd = 1;
-            for (int t = 1; t < k; t++) restProd = restProd * x[t] % MOD;
-            long long tr = isGood ? w[0] * restProd % MOD : 0;
-            long long all = x[0] * restProd % MOD;
-            Tree[idx] = tr;
-            Forest[idx] = (all + tr) % MOD;
-        } else {
-            // complete node with a uniform orientation: the root may take any
-            // consecutive run of children as its own block
-            if (orient[idx] == 2) {
-                reverse(x.begin(), x.end());   // the leftmost child in the
-                reverse(w.begin(), w.end());   // permutations comes last here
-            }
-            Forest[idx] = segDP(x, w, 0, k - 1);
-            long long tr = 0;
-            if (isGood) tr = w[0] * segDP(x, w, 1, k - 1) % MOD;
-            Tree[idx] = tr;
-        }
-    }
-
-    int rootIdx = -1;
-    for (int i = 0; i < B; i++)
-        if (blocks[i].l == 0 && blocks[i].r == n - 1) { rootIdx = i; break; }
-    printf("%lld\n", Tree[rootIdx] % MOD);
+    flushOut();
     return 0;
 }

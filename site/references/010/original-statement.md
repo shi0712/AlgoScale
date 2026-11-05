@@ -1,55 +1,62 @@
-# 10. Mountain Climbing
-
 ## Problem Description
 
-Given $n$ nonnegative mountain heights $h_1,\ldots,h_n$, minimize their sum after applying two kinds of height-reduction operation:
+There are $n$ stations in a fixed order. Station $j$ has level $a_j$. Each of $m$ train services has parameters $(p_i,x_i,y_i)$ and stops at precisely the stations satisfying either of these conditions:
 
-- Use at most $P$ operations of type 1, replacing a height $H$ by $\lfloor\sqrt H\rfloor$.
-- Use at most $Q$ operations of type 2, replacing a height $H$ by $\lfloor H/2\rfloor$.
+- $j\le p_i$ and $a_j\ge x_i$;
+- $j>p_i$ and $a_j\ge y_i$.
 
-Both operation types may be applied repeatedly to the same mountain, in any order. Compute the smallest achievable total height.
+Two different stations are directly connected if some service stops at both. A network is efficient when every pair of different stations of equal level is directly connected.
+
+The levels $a$, switching points $p$, and thresholds $x$ are given. Count the arrays $(y_1,\ldots,y_m)$, with every $y_i$ an integer in $[1,k]$, that make the network efficient. Return the count modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n,P,Q$. The second line contains the $n$ heights $h_1,\ldots,h_n$.
+The first line contains $n,m,k$. The second line contains $a_1,\ldots,a_n$. Each of the next $m$ lines contains $p_i,x_i$ for one service.
 
 ## Output Format
 
 Write to standard output.
 
-Print one integer: the minimum possible sum of heights.
+Print the number of valid arrays modulo $998244353$.
 
 ## Examples
+
+### Example
 
 Input:
 
 ```text
-4 1 1
-4 5 6 49
+4 2 10
+3 7 2 5
+1 4
+3 3
 ```
 
 Output:
 
 ```text
-18
+100
 ```
 
 ## Explanation / Notes
 
-For the sample, applying both operations to height 49 gives $49\to7\to3$, leaving heights $4,5,6,3$ with total $18$.
+All four station levels in the example are distinct, so there is no pair of different stations with equal level to constrain the choices. Both thresholds may take any value in $[1,10]$, giving $10^2=100$ arrays.
 
-Each operation uses the mountain's **current** height, and both transformations round downward. The budgets count operations over all mountains, not separately for each mountain. Since reductions never increase a height, allowing unused operations does not change the optimum.
+A service with $x_i=y_i=1$ visits every station. With $x_i=y_i=k$, it visits only level-$k$ stations. With $x_i=1,y_i=k$, it visits every station up to $p_i$ and only level-$k$ stations afterwards.
+
+A level need not occur in the station sequence. The condition concerns direct service, not connectivity through transfers.
 
 ## Constraints
 
-- One test case is provided.
-- $1\le n\le10^5$.
-- $0\le P,Q\le n$.
-- $0\le h_i\le10^5$ for every $i$.
-- All quantities are integers; zero heights and zero operation budgets are allowed.
-- The initial sum can be as large as $10^{10}$, so 32-bit signed arithmetic is not sufficient for all possible sums.
-
-- Time limit: 1 second.
-- Memory limit: 524288 KiB (512 MiB).
+- One test case.
+- $2\le n\le 10^3$.
+- $1\le m\le 10^3$.
+- $1\le k\le500$.
+- $1\le a_j\le k$ for every station.
+- $1\le p_i<n$ and $1\le x_i\le k$ for every service.
+- Each unknown $y_i$ must lie in $[1,k]$.
+- No requirement says that all $k$ levels appear.
+- Modulus: $998244353$.
+- Time limit: 3 seconds; memory limit: 2048 MB.

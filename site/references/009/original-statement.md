@@ -1,72 +1,53 @@
-# 9. Arc Path
-
 ## Problem Description
 
-There are $n$ circles in the plane. Circle $i$ has center $(x_i,y_i)$, radius $r_i$, and travel cost $v_i$ per unit of arc length. Circle boundaries do not cross, but internal or external tangency is allowed. No two circles coincide.
+Given $n$ nonnegative mountain heights $h_1,\ldots,h_n$, minimize their sum after applying two kinds of height-reduction operation:
 
-Points $S$ and $T$ lie on the circles' circumferences, possibly on the same circle. Movement is allowed only along these circumferences; changing circles is possible at a shared tangent point.
+- Use at most $P$ operations of type 1, replacing a height $H$ by $\lfloor\sqrt H\rfloor$.
+- Use at most $Q$ operations of type 2, replacing a height $H$ by $\lfloor H/2\rfloor$.
 
-Find the least total travel cost from $S$ to $T$, or determine that no route exists.
+Both operation types may be applied repeatedly to the same mountain, in any order. Compute the smallest achievable total height.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains
-
-```text
-n Sx Sy Tx Ty
-```
-
-The next $n$ lines each contain $x_i,y_i,r_i,v_i$. All input quantities are integers.
+The first line contains $n,P,Q$. The second line contains the $n$ heights $h_1,\ldots,h_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print `-1` if $T$ is unreachable. Otherwise, print the minimum cost as a real number.
-
-Reachability must match the judge's answer exactly. For a reachable instance with exact answer $A$ and reported answer $Y$, your answer is accepted if either
-
-$$\frac{|Y-A|}{A+1}\le10^{-6}\quad\text{or}\quad |Y-A|\le10^{-6}.$$
+Print one integer: the minimum possible sum of heights.
 
 ## Examples
 
 Input:
 
 ```text
-3 0 1 3 0
-1 1 1 1
-3 1 1 2
-4 1 4 3
+4 1 1
+4 5 6 49
 ```
 
 Output:
 
 ```text
-6.283185307179586
+18
 ```
 
 ## Explanation / Notes
 
-A minimum route follows a semicircle on circle 1 to its tangency with circle 2, then a quarter-circle on circle 2 to $T$. Its cost is $\pi+2(\pi/2)=2\pi$.
+For the sample, applying both operations to height 49 gives $49\to7\to3$, leaving heights $4,5,6,3$ with total $18$.
+
+Each operation uses the mountain's **current** height, and both transformations round downward. The budgets count operations over all mountains, not separately for each mountain. Since reductions never increase a height, allowing unused operations does not change the optimum.
 
 ## Constraints
 
-| Parameter | Inclusive range |
-| --- | --- |
-| $n$ | $1\le n\le10^4$ |
-| $S_x,S_y,T_x,T_y$ | Each has absolute value at most $10^9$ |
-| $x_i,y_i$ | Each has absolute value at most $10^9$ |
-| $r_i$ | $1\le r_i\le10^8$ |
-| $v_i$ | $0\le v_i\le10^5$ |
+- One test case is provided.
+- $1\le n\le10^5$.
+- $0\le P,Q\le n$.
+- $0\le h_i\le10^5$ for every $i$.
+- All quantities are integers; zero heights and zero operation budgets are allowed.
+- The initial sum can be as large as $10^{10}$, so 32-bit signed arithmetic is not sufficient for all possible sums.
 
-- Exactly one instance is provided; there is no test-count field.
-- Both endpoints lie on at least one supplied circle.
-- Circles may be nested, disjoint, internally tangent, or externally tangent, but their boundaries may not cross.
-- Coincident circles are forbidden: distinct circles cannot have both the same center and the same radius.
-- Zero travel cost is allowed, and $S$ and $T$ may coincide.
-- The error condition is given in Output Format, with denominator $A+1$.
-
-- Time limit: 2 seconds.
-- Memory limit: 262144 KiB (256 MiB).
+- Time limit: 1 second.
+- Memory limit: 524288 KiB (512 MiB).

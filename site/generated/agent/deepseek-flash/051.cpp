@@ -1,337 +1,371 @@
-// 四点换枝  (four-point branch exchange)
+// 密图调色板 — edge colouring of K_n minus a 2-factor
 //
-// Operation: pick a path a-b-c-d, delete its 3 edges and add any spanning tree
-// of K4 on {a,b,c,d}.  In particular a single edge swap {x,y} -> {x2,y2} can be
-// performed whenever a suitable length-3 path through the four involved
-// vertices exists; swapEdge() below searches for such a path.
+// The complement F = K_n - G of the given graph is 2-regular, i.e. a disjoint
+// union of cycles (length >= 3).  Hence deg_G = n-3.
+//   * n even: chi' = n-3 and the edges split into n-3 perfect matchings.
+//   * n odd : chi' = n-2 (counting bound + Vizing).
+// For odd n we delete an edge {a,b} of F, insert a dummy vertex d joined to a
+// and b, obtaining a graph G' on n+1 (even) vertices that is again K_{n+1}
+// minus a 2-factor.  A 1-factorization of G' with n-2 perfect matchings turns
+// into a colouring of G with n-2 colours once the dummy edges (one per class)
+// and the edge {a,b} are deleted.
 //
-// Answer: NO iff S is a star (a star admits no operation at all) and S != T.
-// Otherwise the construction below always succeeds:
-//
-//   phase 1  flatten S into   hub + leaves   plus the chain   hub - r - f,
-//            where r is a leaf of T, f its T-neighbour, hub another leaf of T.
-//
-//   phase 2  root T at r (thus f is a child of r).  Walk a DFS of T starting at
-//            f.  Invariant: the already placed part equals T restricted to it,
-//            every unplaced vertex is a leaf attached to the hub, and the hub
-//            itself sits on the vertex currently visited.  At vertex p we place
-//            all free T-children of p (one op each), then descend into a child
-//            (one op) and recurse.  The walk is ordered to end on qq=par_T(hub)
-//            so that the hub finishes in its final position.  If qq has no
-//            child other than the hub, the walk ends on par_T(qq) leaving qq
-//            free and one last op puts both qq and the hub into place.
-//
-//   ops <= (n-1) + (n-3) + 2(n-2) + 2 <= 4n-5 <= 395  for n <= 100.
+// The 1-factorization itself is built by repeatedly extracting a perfect
+// matching (randomized greedy + short augmenting paths + Edmonds' blossom as a
+// fallback).  Extraction failures only happen in the last few rounds, so the
+// state right before those rounds is snapshotted and only the tail is retried.
+
 #include <bits/stdc++.h>
 using namespace std;
 
-int n;
-bool Sin[105][105];      // the first tree, as read
-bool Tg[105][105];       // the target tree
-bool cur[105][105];      // current tree
-struct Op { int a,b,c,d,u1,v1,u2,v2,u3,v3; };
-vector<Op> ops;
+static int N;                 // number of vertices of the working graph (even)
+static int WORIG;             // original n
+static bool ODD;              // original n odd?
+static int DUMMY;             // dummy vertex index (= WORIG) when ODD
+static int PAIR_A = -1, PAIR_B = -1; // F-edge removed when ODD
 
-bool verify = (getenv("VERIFY")!=nullptr);   // extra internal consistency checks
+static vector<vector<int>> nb;         // alive neighbours
+static vector<uint16_t> posIn;         // position of v inside nb[u]
+static vector<uint64_t> aliveBits;     // alive adjacency bit matrix
+static int BW;                         // words per row of aliveBits
 
-int hub=-1;
-vector<char> freeNow;
-vector<int> parT;
-vector<vector<int>> chT;
-int qq=-1, endV=-1;
-bool caseB=false;
-int nextOnPath[105];
+static vector<int16_t> colMat;         // answer matrix, flat
 
-// ------------------------------------------------------------------ helpers
-static void applyOp(int a,int b,int c,int d,
-                    int u1,int v1,int u2,int v2,int u3,int v3){
-    if(verify){
-        int vs[4]={a,b,c,d};
-        assert(a>=1&&a<=n&&b>=1&&b<=n&&c>=1&&c<=n&&d>=1&&d<=n);
-        assert(a!=b&&a!=c&&a!=d&&b!=c&&b!=d&&c!=d);
-        assert(cur[a][b]&&cur[b][c]&&cur[c][d]);
-        int e[3][2]={{u1,v1},{u2,v2},{u3,v3}};
-        for(int i=0;i<3;i++){
-            assert(e[i][0]!=e[i][1]);
-            bool f1=false,f2=false;
-            for(int q=0;q<4;q++){ if(vs[q]==e[i][0]) f1=true; if(vs[q]==e[i][1]) f2=true; }
-            assert(f1&&f2);
-        }
-        for(int i=0;i<3;i++)for(int j=i+1;j<3;j++)
-            assert(!((e[i][0]==e[j][0]&&e[i][1]==e[j][1])||(e[i][0]==e[j][1]&&e[i][1]==e[j][0])));
-    }
-    cur[a][b]=cur[b][a]=false; cur[b][c]=cur[c][b]=false; cur[c][d]=cur[d][c]=false;
-    cur[u1][v1]=cur[v1][u1]=true; cur[u2][v2]=cur[v2][u2]=true; cur[u3][v3]=cur[v3][u3]=true;
-    if(verify){
-        vector<pair<int,int>> es;
-        for(int i=1;i<=n;i++)for(int j=i+1;j<=n;j++) if(cur[i][j]) es.push_back({i,j});
-        assert((int)es.size()==n-1);
-        vector<int> p(n+1); for(int i=1;i<=n;i++) p[i]=i;
-        function<int(int)> fnd=[&](int z){ while(p[z]!=z) z=p[z]=p[p[z]]; return z; };
-        for(auto&e:es){ int x=fnd(e.first), y=fnd(e.second); assert(x!=y); p[x]=y; }
-        int rt=fnd(1); for(int i=2;i<=n;i++) assert(fnd(i)==rt);
-    }
-    ops.push_back({a,b,c,d,u1,v1,u2,v2,u3,v3});
+static mt19937_64 rng;
+
+static inline bool aliveQ(int u, int v) {
+    return (aliveBits[(size_t)u * BW + (v >> 6)] >> (v & 63)) & 1ULL;
+}
+static inline void clearBit(int u, int v) {
+    aliveBits[(size_t)u * BW + (v >> 6)] &= ~(1ULL << (v & 63));
+}
+static inline void delEdge(int u, int v) {
+    clearBit(u, v); clearBit(v, u);
+    int pu = posIn[(size_t)u * N + v], pv = posIn[(size_t)v * N + u];
+    int lu = (int)nb[u].size() - 1, lv = (int)nb[v].size() - 1;
+    nb[u][pu] = nb[u][lu]; posIn[(size_t)u * N + nb[u][lu]] = (uint16_t)pu; nb[u].pop_back();
+    nb[v][pv] = nb[v][lv]; posIn[(size_t)v * N + nb[v][lv]] = (uint16_t)pv; nb[v].pop_back();
 }
 
-// replace edge {x,y} by {x2,y2} with a single operation; false if impossible
-static bool swapEdge(int x,int y,int x2,int y2){
-    if(x>y) swap(x,y);
-    if(x2>y2) swap(x2,y2);
-    if(x==x2&&y==y2) return true;         // nothing to do
-    if(cur[x2][y2]) return false;         // target edge already present
-    vector<int> b{x,y,x2,y2};
-    sort(b.begin(),b.end()); b.erase(unique(b.begin(),b.end()),b.end());
-    vector<vector<int>> sets;
-    if((int)b.size()==4) sets.push_back(b);
-    else for(int w=1;w<=n;w++){
-        bool in=false; for(int z:b) if(z==w) in=true;
-        if(!in){ auto s=b; s.push_back(w); sets.push_back(s); }
+// ------------------------------------------------------------------ blossom
+struct Blossom {
+    int n;
+    vector<int> match, p, base;
+    vector<char> used, bl;
+    vector<char> *u2;
+    Blossom(int n_) : n(n_) {
+        match.assign(n, -1); p.assign(n, -1); base.resize(n);
+        used.resize(n); bl.resize(n);
     }
-    for(auto s:sets){
-        vector<pair<int,int>> want;
-        for(int p=0;p<4;p++)for(int q=p+1;q<4;q++){
-            int a=s[p], c=s[q];
-            if(a>c) swap(a,c);
-            if(a==x&&c==y) continue;
-            if(cur[s[p]][s[q]]) want.push_back({a,c});
+    int lca(int a, int b) {
+        static vector<char> u; u.assign(n, 0);
+        for (;;) { a = base[a]; u[a] = 1; if (match[a] == -1) break; a = p[match[a]]; }
+        for (;;) { b = base[b]; if (u[b]) return b; b = p[match[b]]; }
+    }
+    void markPath(int v, int b, int child) {
+        while (base[v] != b) {
+            bl[base[v]] = bl[base[match[v]]] = 1;
+            p[v] = child; child = match[v]; v = p[match[v]];
         }
-        want.push_back({x2,y2});
-        sort(want.begin(),want.end());
-        want.erase(unique(want.begin(),want.end()),want.end());
-        if((int)want.size()!=3) continue;
-        sort(s.begin(),s.end());
-        do{                                  // find a length-3 path of the 4-set
-            int P1=s[0],P2=s[1],P3=s[2],P4=s[3];
-            if(!cur[P1][P2]||!cur[P2][P3]||!cur[P3][P4]) continue;
-            int par[4]={0,1,2,3};
-            function<int(int)> fnd=[&](int z){ while(par[z]!=z) z=par[z]=par[par[z]]; return z; };
-            bool ok=true;
-            for(int i=0;i<3&&ok;i++){
-                int u=-1,v=-1;
-                for(int j=0;j<4;j++){
-                    if(s[j]==want[i].first) u=j;
-                    if(s[j]==want[i].second) v=j;
+    }
+    int findPath(int root) {
+        fill(used.begin(), used.end(), 0);
+        fill(p.begin(), p.end(), -1);
+        for (int i = 0; i < n; i++) base[i] = i;
+        used[root] = 1;
+        queue<int> q; q.push(root);
+        while (!q.empty()) {
+            int v = q.front(); q.pop();
+            for (int to : nb[v]) {
+                if (match[v] == to || base[v] == base[to]) continue;
+                if (to == root || (match[to] != -1 && p[match[to]] != -1)) {
+                    int cb = lca(v, to);
+                    fill(bl.begin(), bl.end(), 0);
+                    markPath(v, cb, to); markPath(to, cb, v);
+                    for (int i = 0; i < n; i++)
+                        if (bl[base[i]]) { base[i] = cb; if (!used[i]) { used[i] = 1; q.push(i); } }
+                } else if (p[to] == -1) {
+                    p[to] = v;
+                    if (match[to] == -1) {
+                        int cur = to;
+                        while (cur != -1) {
+                            int pv = p[cur];
+                            int nx = (pv == -1) ? -1 : match[pv];
+                            if (pv != -1) match[pv] = cur;
+                            match[cur] = pv;
+                            cur = nx;
+                        }
+                        return 1;
+                    }
+                    used[match[to]] = 1;
+                    q.push(match[to]);
                 }
-                if(u<0||v<0||u==v){ ok=false; break; }
-                int ru=fnd(u), rv=fnd(v);
-                if(ru==rv) ok=false;
-                par[ru]=rv;
             }
-            if(!ok) continue;
-            int rt=fnd(0);
-            for(int i=1;i<4&&ok;i++) if(fnd(i)!=rt) ok=false;
-            if(!ok) continue;
-            applyOp(P1,P2,P3,P4,
-                    want[0].first,want[0].second,
-                    want[1].first,want[1].second,
-                    want[2].first,want[2].second);
-            return true;
-        } while(next_permutation(s.begin(),s.end()));
+        }
+        return 0;
     }
-    return false;
+};
+
+// try to complete `match` (restricted to verts) with short augmenting paths
+static int repair(vector<int>& match, const vector<int>& verts, vector<int>& U) {
+    U.clear();
+    for (int v : verts) if (match[v] < 0) U.push_back(v);
+    bool prog = true;
+    while (prog && !U.empty()) {
+        prog = false;
+        for (size_t i = 0; i < U.size(); i++) {
+            if (match[U[i]] >= 0) continue;
+            for (size_t j = i + 1; j < U.size(); j++) {
+                if (match[U[j]] >= 0) continue;
+                if (aliveQ(U[i], U[j])) { match[U[i]] = U[j]; match[U[j]] = U[i]; prog = true; break; }
+            }
+        }
+        if (prog) { U.clear(); for (int v : verts) if (match[v] < 0) U.push_back(v); continue; }
+        for (int u : U) {
+            if (match[u] >= 0) continue;
+            bool done = false;
+            for (int a : nb[u]) {
+                int b = match[a];
+                if (b < 0) continue;
+                for (int w : U) {
+                    if (w == u || match[w] >= 0 || w == b) continue;
+                    if (aliveQ(b, w)) {
+                        match[u] = a; match[a] = u; match[b] = w; match[w] = b;
+                        prog = true; done = true; break;
+                    }
+                }
+                if (done) break;
+            }
+        }
+        if (prog) { U.clear(); for (int v : verts) if (match[v] < 0) U.push_back(v); }
+    }
+    int c = 0;
+    for (int v : verts) if (match[v] < 0) c++;
+    return c;
 }
 
-static int degCur(int v){ int d=0; for(int i=1;i<=n;i++) if(cur[v][i]) d++; return d; }
-static void rootAt(int root, vector<int>& par, vector<int>& dep){
-    par.assign(n+1,-1); dep.assign(n+1,0);
-    vector<char> vis(n+1,0); vis[root]=1; queue<int> q; q.push(root);
-    while(!q.empty()){
-        int u=q.front(); q.pop();
-        for(int v=1;v<=n;v++) if(cur[u][v]&&!vis[v]){ vis[v]=1; par[v]=u; dep[v]=dep[u]+1; q.push(v); }
+// build the working graph (K_N minus 2-factor F')
+static void buildGraph(const vector<vector<char>>& isF) {
+    nb.assign(N, {});
+    posIn.assign((size_t)N * N, 0);
+    BW = (N + 63) / 64;
+    aliveBits.assign((size_t)N * BW, 0);
+    for (int i = 0; i < N; i++) {
+        vector<int>& L = nb[i];
+        L.reserve(N);
+        for (int j = 0; j < N; j++)
+            if (i != j && !isF[i][j]) {
+                posIn[(size_t)i * N + j] = (uint16_t)L.size();
+                L.push_back(j);
+            }
+        for (int j : L) aliveBits[(size_t)i * BW + (j >> 6)] |= 1ULL << (j & 63);
     }
 }
 
-// ---------------------------------------------------------------- phase 1
-// current tree ->  hub attached to every vertex except r,f  plus chain hub-r-f
-static bool phase1(int H,int r,int f){
-    vector<int> par,dep;
-    while(true){
-        rootAt(H,par,dep);
-        int D=0;
-        for(int v=1;v<=n;v++) if(v!=H && dep[v]>=2) D++;
-        if(D<=1) break;
-        if(degCur(H)==1){
-            int b=-1; for(int v=1;v<=n;v++) if(cur[H][v]){ b=v; break; }
-            if(b<0) return false;
-            int x=-1;
-            for(int v=1;v<=n;v++) if(cur[b][v]&&v!=H&&degCur(v)>=2){ x=v; break; }
-            if(x<0) return false;
-            int y=-1; for(int v=1;v<=n;v++) if(cur[x][v]&&v!=b){ y=v; break; }
-            if(y<0) return false;
-            applyOp(H,b,x,y, H,b, H,x, x,y);          // lift x to depth 1
-        } else {
-            int v=-1; for(int q=1;q<=n;q++) if(dep[q]==2){ v=q; break; }
-            if(v<0) return false;
-            int b=par[v];
-            if(b==H||dep[b]!=1) return false;
-            int d=-1; for(int q=1;q<=n;q++) if(cur[H][q]&&q!=b){ d=q; break; }
-            if(d<0) return false;
-            applyOp(v,b,H,d, H,v, H,b, H,d);          // promote v to depth 1
+// restore a snapshot of the graph
+static void restoreGraph(const vector<int>& snapOff, const vector<int>& snapVals) {
+    for (int i = 0; i < N; i++) {
+        nb[i].clear();
+        for (int k = snapOff[i]; k < snapOff[i + 1]; k++) nb[i].push_back(snapVals[k]);
+        for (size_t k = 0; k < nb[i].size(); k++)
+            posIn[(size_t)i * N + nb[i][k]] = (uint16_t)k;
+    }
+    fill(aliveBits.begin(), aliveBits.end(), 0ULL);
+    for (int i = 0; i < N; i++)
+        for (int j : nb[i]) aliveBits[(size_t)i * BW + (j >> 6)] |= 1ULL << (j & 63);
+}
+// compact snapshot: flat copy of the neighbour lists
+static void takeSnapshot(vector<int>& snapOff, vector<int>& snapVals) {
+    snapOff.assign(N + 1, 0);
+    for (int i = 0; i < N; i++) snapOff[i + 1] = snapOff[i] + (int)nb[i].size();
+    snapVals.clear();
+    snapVals.reserve(snapOff[N]);
+    for (int i = 0; i < N; i++) snapVals.insert(snapVals.end(), nb[i].begin(), nb[i].end());
+}
+
+// one extraction round; returns false if no perfect matching could be found
+// colour = the colour index to write (0 = do not write)
+static bool oneRound(vector<int>& match, vector<int>& order, vector<int>& U, int colour,
+                     vector<pair<int,int>>* written) {
+    int m = (int)order.size();
+    for (int i = 0; i < m; i++) match[order[i]] = -1;
+    shuffle(order.begin(), order.end(), rng);
+    for (int u : order) {
+        if (match[u] != -1) continue;
+        vector<int>& L = nb[u];
+        int d = (int)L.size();
+        if (!d) continue;
+        int st = (int)(rng() % (uint64_t)d);
+        for (int t = 0; t < d; t++) {
+            int idx = st + t; if (idx >= d) idx -= d;
+            int v = L[idx];
+            if (match[v] == -1) { match[u] = v; match[v] = u; break; }
         }
     }
-    rootAt(H,par,dep);
-    int y=-1;
-    for(int v=1;v<=n;v++) if(v!=H && dep[v]>=2){ y=v; break; }
-    if(y<0) return false;
-    int x=par[y];
-    if(dep[x]!=1) return false;
-    if(x==r && y==f){
-        /* already hub - r - f */
-    } else if(r==x){
-        applyOp(y,r,H,f, r,f, r,H, H,y);
-    } else if(r==y && f==x){
-        int d=-1; for(int q=1;q<=n;q++) if(cur[H][q]&&q!=f){ d=q; break; }
-        if(d<0) return false;
-        applyOp(r,f,H,d, r,H, r,f, H,d);
-    } else if(r==y){
-        applyOp(r,x,H,f, r,f, r,H, H,x);
-    } else if(f==x){
-        applyOp(y,f,H,r, r,f, H,r, H,y);
-    } else if(f==y){
-        applyOp(f,x,H,r, f,r, r,H, H,x);
-    } else {
-        applyOp(y,x,H,r, r,y, r,H, H,x);          // -> chain hub - r - y
-        applyOp(y,r,H,f, r,f, r,H, H,y);          // -> hub - r - f
+    int left = repair(match, order, U);
+    if (left > 0) {
+        Blossom B(N);
+        B.match = match;
+        for (int v : order) if (B.match[v] == -1) B.findPath(v);
+        match = B.match;
+        int l2 = 0;
+        for (int v : order) if (match[v] < 0) l2++;
+        if (l2) return false;
     }
-    if(!cur[H][r]||!cur[r][f]) return false;
-    int hd=0; for(int v=1;v<=n;v++) if(cur[H][v]) hd++;
-    if(hd!=n-2) return false;
+    for (int v : order) {
+        int w = match[v];
+        if (w >= 0 && v < w) {
+            if (colour > 0 && v < WORIG && w < WORIG &&
+                !(ODD && ((v == PAIR_A && w == PAIR_B) || (v == PAIR_B && w == PAIR_A)))) {
+                colMat[(size_t)v * WORIG + w] = (int16_t)colour;
+                colMat[(size_t)w * WORIG + v] = (int16_t)colour;
+                if (written) written->push_back({v, w});
+            }
+            delEdge(v, w);
+        }
+    }
     return true;
 }
 
-// ---------------------------------------------------------------- phase 2
-static bool refreshAnchor(){
-    int cnt=0;
-    for(int v=1;v<=n;v++) if(cur[hub][v]&&!freeNow[v]) cnt++;
-    return cnt==1;
-}
-static bool placeAt(int g,int c){             // free g becomes a child of c
-    if(!swapEdge(g,hub,g,c)) return false;
-    freeNow[g]=0;
-    return refreshAnchor();
-}
-static bool hopH(int a,int s){                 // the hub moves from a to s
-    if(!swapEdge(hub,a,hub,s)) return false;
-    return refreshAnchor();
-}
-static bool hasPlaceableChild(int c){
-    for(int d: chT[c]) if(d!=hub && !(caseB && d==qq)) return true;
-    return false;
-}
-static bool dfs(int p){
-    int pc = nextOnPath[p];
-    for(int c: chT[p]){
-        if(c==hub || (caseB && c==qq) || c==pc) continue;
-        if(!placeAt(c,p)) return false;
-        if(hasPlaceableChild(c)){
-            if(!hopH(p,c)) return false;
-            if(!dfs(c)) return false;
-            if(!hopH(c,p)) return false;
-        }
-    }
-    if(pc){
-        if(!placeAt(pc,p)) return false;
-        if(!hopH(p,pc)) return false;
-        if(!dfs(pc)) return false;
-    }
-    return true;
-}
-
-// ------------------------------------------------------------------- build
-// try to transform Sin into T using hub=H, r, f
-static bool build(int H,int r,int f){
-    memcpy(cur,Sin,sizeof(cur));
-    ops.clear();
-    hub=H;
-    memset(nextOnPath,0,sizeof(nextOnPath));
-    if(!phase1(H,r,f)) return false;
-
-    parT.assign(n+1,-1); chT.assign(n+1,{});
+int main() {
+    // ---------------------------------------------------------------- input
+    vector<char> buf;
     {
-        vector<char> vis(n+1,0); vector<int> st{r}; vis[r]=1;
-        while(!st.empty()){
-            int u=st.back(); st.pop_back();
-            for(int v=1;v<=n;v++) if(Tg[u][v]&&!vis[v]){ vis[v]=1; parT[v]=u; chT[u].push_back(v); st.push_back(v); }
-        }
+        FILE* f = stdin;
+        fseek(f, 0, SEEK_END);
+        long sz = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        buf.resize(sz + 1);
+        size_t rd = fread(buf.data(), 1, sz, f);
+        buf[rd] = 0;
     }
-    qq=parT[H];
-    if(qq<0||qq==H||qq==r) return false;
-
-    freeNow.assign(n+1,0);
-    for(int v=1;v<=n;v++) if(v!=r&&v!=f&&v!=H) freeNow[v]=1;
-
-    bool qqOtherChild=false;
-    for(int c: chT[qq]) if(c!=H) qqOtherChild=true;
-    if(qq==f){ caseB=false; endV=f; }
-    else if(qqOtherChild){ caseB=false; endV=qq; }
-    else { caseB=true; endV=parT[qq]; }
-    if(endV<0) return false;
-
-    for(int x=endV; x!=f && x>=0; x=parT[x]) nextOnPath[parT[x]]=x;
-
-    if(!hopH(r,f)) return false;
-    if(!dfs(f)) return false;
-    if(caseB){
-        if(!swapEdge(hub,endV,qq,endV)) return false;
-        freeNow[qq]=0;
-        if(!refreshAnchor()) return false;
-    }
-    for(int i=1;i<=n;i++)for(int j=1;j<=n;j++) if(cur[i][j]!=Tg[i][j]) return false;
-    return true;
-}
-
-int main(){
-    if(scanf("%d",&n)!=1) return 0;
-    for(int i=0;i<n-1;i++){ int u,v; if(scanf("%d %d",&u,&v)!=2) return 0; Sin[u][v]=Sin[v][u]=true; }
-    for(int i=0;i<n-1;i++){ int u,v; if(scanf("%d %d",&u,&v)!=2) return 0; Tg[u][v]=Tg[v][u]=true; }
-
+    int pos = 0;
+    int n = 0;
+    while (pos < (int)buf.size() && (buf[pos] < '0' || buf[pos] > '9')) pos++;
+    while (pos < (int)buf.size() && buf[pos] >= '0' && buf[pos] <= '9') n = n * 10 + (buf[pos++] - '0');
+    WORIG = n;
+    vector<vector<char>> isF(n, vector<char>(n, 0));
     {
-        bool same=true;
-        for(int i=1;i<=n&&same;i++)for(int j=1;j<=n;j++) if(Sin[i][j]!=Tg[i][j]){ same=false; break; }
-        if(same){ printf("YES\n0\n"); return 0; }
-    }
-    for(int v=1;v<=n;v++){
-        int d=0; for(int i=1;i<=n;i++) if(Sin[v][i]) d++;
-        if(d==n-1){ printf("NO\n"); return 0; }     // star: no operation exists
-    }
-
-    vector<int> tdeg(n+1,0);
-    for(int i=1;i<=n;i++)for(int j=i+1;j<=n;j++) if(Tg[i][j]){ tdeg[i]++; tdeg[j]++; }
-    vector<int> leaves;
-    for(int v=1;v<=n;v++) if(tdeg[v]==1) leaves.push_back(v);
-
-    struct Cand { int score,r,f,H; };
-    vector<Cand> cand;
-    for(int r: leaves){
-        int f=-1; for(int v=1;v<=n;v++) if(Tg[r][v]){ f=v; break; }
-        if(f<0) continue;
-        for(int H: leaves){
-            if(H==r||H==f) continue;
-            int d=0; for(int i=1;i<=n;i++) if(Sin[H][i]) d++;
-            cand.push_back({d,r,f,H});
+        // read n rows of n characters
+        int i = 0;
+        while (i < n) {
+            while (pos < (int)buf.size() && (buf[pos] != '0' && buf[pos] != '1')) pos++;
+            if (pos + n > (int)buf.size()) break;
+            const char* row = buf.data() + pos;
+            for (int j = 0; j < n; j++) isF[i][j] = (i != j && row[j] == '0');
+            pos += n;
+            i++;
         }
     }
-    sort(cand.begin(),cand.end(),[](const Cand&a,const Cand&b){ return a.score>b.score; });
+    // free input buffer memory
+    vector<char>().swap(buf);
 
-    vector<Op> best;
-    bool have=false;
-    int tried=0;
-    for(auto&cd: cand){
-        if(have && best.size()<=400u && tried>=24) break;   // cheap enough answer
-        if(!have && tried>=40) break;
-        tried++;
-        if(build(cd.H,cd.r,cd.f)){
-            if(!have || ops.size()<best.size()){ best=ops; have=true; }
-            if(best.size()<=3u*(unsigned)n) break;          // good enough
+    int C = (n % 2 == 0) ? n - 3 : n - 2;
+    colMat.assign((size_t)n * n, (int16_t)-1);
+
+    // Build working graph ---------------------------------------------------
+    // For odd n: split an F-edge {a,b} through a dummy vertex d.
+    ODD = (n % 2 == 1);
+    N = ODD ? n + 1 : n;
+    DUMMY = n;
+    static vector<vector<char>> isF2;
+    const vector<vector<char>>* pF = &isF;
+    if (ODD) {
+        isF2 = isF;
+        isF2.resize(N);
+        for (int i = 0; i < N; i++) isF2[i].resize(N, 0);
+        // find an F-edge
+        int a = -1, b = -1;
+        for (int i = 0; i < n && a < 0; i++)
+            for (int j = 0; j < n; j++)
+                if (isF[i][j]) { a = i; b = j; break; }
+        PAIR_A = a; PAIR_B = b;
+        isF2[a][b] = isF2[b][a] = 0;   // {a,b} becomes a G-edge
+        for (int i = 0; i < n; i++) isF2[DUMMY][i] = isF2[i][DUMMY] = 0;
+        isF2[DUMMY][a] = isF2[a][DUMMY] = 1;   // dummy keeps the 2-factor
+        isF2[DUMMY][b] = isF2[b][DUMMY] = 1;
+        isF2[DUMMY][DUMMY] = 0;
+        vector<vector<char>>().swap(isF);
+        pF = &isF2;
+    }
+
+    rng.seed(0x9E3779B97F4A7C15ULL ^ (unsigned long long)n);
+
+    // -------------------------------------------------------------- solving
+    const int TAIL = 48;
+    int totalRounds = N - 3;             // number of matchings to extract
+    vector<int> match(N, -1), U;
+    vector<int> order(N);
+
+    bool done = false;
+    int outerAttempts = 0, innerAttempts = 0, midFail = 0, tailFail = 0;
+    for (int outer = 0; outer < 60 && !done; outer++) {
+        outerAttempts++;
+        buildGraph(*pF);
+        bool fail = false;
+        int R1 = totalRounds - TAIL;
+        if (R1 < 0) R1 = 0;
+        for (int r = 0; r < R1 && !fail; r++) {
+            for (int i = 0; i < N; i++) order[i] = i;
+            if (!oneRound(match, order, U, r + 1, nullptr)) fail = true;
+        }
+        if (fail) { midFail++; continue; }
+        vector<int> snapOff, snapVals;
+        takeSnapshot(snapOff, snapVals);
+        for (int inner = 0; inner < 40 && !done && !fail; inner++) {
+            innerAttempts++;
+            vector<pair<int,int>> written;
+            bool f2 = false;
+            int r = R1;
+            for (; r < totalRounds && !f2; r++) {
+                for (int i = 0; i < N; i++) order[i] = i;
+                if (!oneRound(match, order, U, r + 1, &written)) f2 = true;
+            }
+            if (f2) tailFail++;
+            if (!f2) {
+                bool clean = true;
+                for (int i = 0; i < N && clean; i++) if (!nb[i].empty()) clean = false;
+                if (clean) done = true;
+            }
+            if (!done) {
+                // undo colours written in the failed tail and restore snapshot
+                for (auto& pr : written) {
+                    colMat[(size_t)pr.first * WORIG + pr.second] = -1;
+                    colMat[(size_t)pr.second * WORIG + pr.first] = -1;
+                }
+                restoreGraph(snapOff, snapVals);
+            }
         }
     }
-    if(!have){ printf("NO\n"); return 0; }
 
-    printf("YES\n%d\n",(int)best.size());
-    for(auto&o:best){
-        printf("%d %d %d %d\n",o.a,o.b,o.c,o.d);
-        printf("%d %d %d %d %d %d\n",o.u1,o.v1,o.u2,o.v2,o.u3,o.v3);
+    if (getenv("DBG"))
+        fprintf(stderr, "n=%d outer=%d inner=%d midFail=%d tailFail=%d done=%d\n",
+                n, outerAttempts, innerAttempts, midFail, tailFail, (int)done);
+
+    // --------------------------------------------------------------- output
+    {
+        string out;
+        out.reserve(1 << 18);
+        char tmp[16];
+        auto flushOut = [&]() { fwrite(out.data(), 1, out.size(), stdout); out.clear(); };
+        auto putInt = [&](int v) {
+            if (v < 0) { out.push_back('-'); out.push_back('1'); out.push_back(' '); return; }
+            int len = 0;
+            if (v == 0) tmp[len++] = '0';
+            while (v > 0) { tmp[len++] = char('0' + v % 10); v /= 10; }
+            while (len > 0) out.push_back(tmp[--len]);
+            out.push_back(' ');
+        };
+        putInt(C); out.back() = '\n';
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                int v = (i == j) ? -1 : (int)colMat[(size_t)i * n + j];
+                putInt(v);
+            }
+            out.back() = '\n';
+            if (out.size() > (1 << 17)) flushOut();
+        }
+        flushOut();
     }
     return 0;
 }

@@ -1,85 +1,98 @@
-# 79. Walk Variance
-
 ## Problem Description
 
-You are given a directed graph. Find the infimum variance among all walks from vertex $1$ to vertex $n$.
+This is an interactive problem.
 
-A walk from vertex $1$ to vertex $n$ is a sequence of edges $p=(e_1,e_2,\ldots,e_l)$ such that:
+A hidden lock has $n$ dials, represented by $a_1,\ldots,a_n$, where every value lies in $[1,n]$. Initially the values are not all equal.
 
-- the starting vertex of $e_1$ is vertex $1$;
-- the ending vertex of $e_l$ is vertex $n$;
-- for every consecutive pair, the ending vertex of $e_i$ is the starting vertex of $e_{i+1}$.
+One operation chooses position $p$ and advances that dial by one cyclic step:
 
-Edges in a walk do not need to be distinct.
+$$a_p\leftarrow(a_p\bmod n)+1.$$
 
-The variance of a walk is
+After the operation, the judge reports whether some **other** position has the same value as the newly changed $a_p$.
 
-$$
-D(p)=\frac{1}{l}\sum_{i=1}^{l}\left(w_{e_i}-\overline{w}\right)^2,
-$$
-
-where
-
-$$
-\overline{w}=\frac{1}{l}\sum_{i=1}^{l}w_{e_i}
-$$
-
-is the average edge weight of the walk.
+Make all dial values equal using at most $\left\lceil3n(n+1)/2\right\rceil$ operations. The final common value can be any number in $[1,n]$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains two integers $n$ and $m$, the number of vertices and directed edges.
+First read the number of test cases $T$. At the start of each case, read $n$; the hidden array itself is not supplied.
 
-Each of the next $m$ lines contains three integers $x_i$, $y_i$, and $w_i$, describing a directed edge from $x_i$ to $y_i$ with weight $w_i$.
+After each valid query, read one integer:
+
+- `0`: no other dial equals the changed dial;
+- `1`: at least one other dial equals the changed dial;
+- `-1`: an illegal operation or an exceeded operation budget; terminate the entire program immediately.
 
 ## Output Format
 
 Write to standard output.
 
-Print one real number: the infimum variance among all walks from vertex $1$ to vertex $n$. If no such walk exists, print `-1`.
+To advance dial $p$, print:
 
-For a reported value $b$, let
+```text
+? p
+```
 
-$$
-\varepsilon=\max\{1,b\}\cdot10^{-9}.
-$$
+End the line and flush output before reading the response. When you believe every value is equal, print:
 
-The answer is accepted when both of the following hold:
+```text
+!
+```
 
-- for every walk $p$ from vertex $1$ to vertex $n$, $D(p)>b-\varepsilon$;
-- there exists a walk $p_0$ from vertex $1$ to vertex $n$ such that $D(p_0)<b+\varepsilon$.
+Then proceed directly to the next test case. This declaration does not count as an operation. A declaration made before all values are equal results in Wrong Answer.
+
+Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, `flush(output)` in Pascal, and `sys.stdout.flush()` in Python. Failing to flush queries may cause an idleness or time-limit verdict.
 
 ## Examples
 
-Input:
+Input received:
 
 ```text
-4 4
-1 2 3
-1 3 4
-2 4 5
-3 4 7
+1
+4
+1
+1
+0
+1
 ```
 
-Output:
+Output emitted:
 
 ```text
-1.000000000000000
+? 1
+? 3
+? 4
+? 4
+!
 ```
+
+The first two input values are $T=1$ and $n=4$. Each remaining value is the response to the next query; they are not an ordinary batch input that can be read in advance.
 
 ## Explanation / Notes
 
-The walk $1\to2\to4$ uses edge weights $3$ and $5$. Its average weight is $4$, and its variance is $1$.
+The hidden array in the example starts as $[1,2,1,4]$. Its successive states are:
 
-Because edges may be repeated, the set of attainable walk variances need not contain its greatest lower bound; therefore the problem asks for the infimum rather than necessarily a minimum.
+| Query | New state | Reply |
+| --- | --- | ---: |
+| `? 1` | $[2,2,1,4]$ | 1 |
+| `? 3` | $[2,2,2,4]$ | 1 |
+| `? 4` | $[2,2,2,1]$ | 0 |
+| `? 4` | $[2,2,2,2]$ | 1 |
+
+The program then declares success with `!`. A reply of `1` merely means that the dial just changed has a matching value elsewhere; it does **not** by itself certify that every dial is equal.
 
 ## Constraints
 
-- $2\le n\le30$.
-- $1\le m\le200$.
-- $1\le x_i,y_i\le n$.
-- $x_i\ne y_i$.
-- $0\le w_i\le20$.
-- The required absolute or relative error is at most $10^{-9}$.
+- $1\le T\le100$.
+- $3\le n\le100$ in each case.
+- Across all test cases, $\sum n\le10^3$.
+- Every hidden value always belongs to $[1,n]$.
+- The hidden initial values are not all equal.
+- Each query position satisfies $1\le p\le n$.
+- One query advances exactly one dial by exactly one step, with $n$ wrapping to $1$.
+- Per case, at most $\left\lceil3n(n+1)/2\right\rceil$ operations are permitted; success declarations do not consume this budget.
+- Query replies are `0` or `1`, with `-1` reserved for illegal interaction or an exceeded budget.
+- On `-1`, stop immediately rather than attempting to continue to another case.
+- Every query must end with a newline and be flushed.
+- Time limit: **2 seconds**. Memory limit: **1024 MB**.

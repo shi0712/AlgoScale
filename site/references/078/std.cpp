@@ -1,110 +1,174 @@
 #include <bits/stdc++.h>
 using namespace std;
-using int64 = long long;
 
-struct Block {
-    int l, r, z;
+using int64 = long long;
+static constexpr int64 NEG = -(1LL << 60);
+
+struct Player {
+    int e, junior;
 };
 
-static int64 solve_case(vector<int> a, int m) {
-    int n = (int)a.size();
-    int mn = *min_element(a.begin(), a.end());
-    for (int &x : a) x -= mn;
-    int V = *max_element(a.begin(), a.end());
+vector<int64> solve(int n, int d, vector<int> limit, vector<Player> input) {
+    sort(limit.begin(), limit.end());
+    vector<Player> a(1, {0, 0});  // Global player indices are 1-based.
+    for (const auto &p : input)
+        if (p.e <= limit.back()) a.push_back(p);
+    sort(a.begin() + 1, a.end(), [](const Player &x, const Player &y) {
+        return x.e < y.e;
+    });
+    const int m = (int)a.size() - 1;
+    const int W = 2 * n + 1;
+    if (m < 2 * n) return vector<int64>(W, -1);
 
-    int64 C = -a[0];
-    for (int i = 1; i < n; ++i) C += max(0, a[i - 1] - a[i]);
+    // id[c][k]: global index of the k-th player of category c.
+    // Category 1 is junior; category 0 is senior.
+    vector<int> id[2] = {vector<int>(1, 0), vector<int>(1, 0)};
+    vector<array<int, 2>> pre(m + 1);
+    array<int, 2> last = {0, 0};
+    for (int i = 1; i <= m; ++i) {
+        pre[i] = last;
+        id[a[i].junior].push_back(i);
+        last[a[i].junior] = i;
+    }
+    const int sz[2] = {(int)id[0].size() - 1, (int)id[1].size() - 1};
 
-    int64 ans = (int64)V + C;
-    if (m == 1 || V == 0) return ans;
+    // same[c][k]: last feasible adjacent same-category pair ending at/before k.
+    vector<int> same[2];
+    for (int c = 0; c < 2; ++c) {
+        same[c].assign(sz[c] + 1, 0);
+        for (int k = 1; k <= sz[c]; ++k) {
+            same[c][k] = same[c][k - 1];
+            if (k >= 2 && a[id[c][k]].e - a[id[c][k - 1]].e <= d)
+                same[c][k] = k;
+        }
+    }
 
-    vector<int> vals = a;
-    sort(vals.begin(), vals.end());
-    vals.erase(unique(vals.begin(), vals.end()), vals.end());
-    if ((int)vals.size() <= 2) return 0;
+    // reach[c][k]: number of opposite-category players with ability <= e[c][k]+d.
+    vector<int> reach[2];
+    for (int c = 0; c < 2; ++c) {
+        reach[c].assign(sz[c] + 1, 0);
+        int p = 0;
+        for (int k = 1; k <= sz[c]; ++k) {
+            while (p < sz[c ^ 1] &&
+                   (int64)a[id[c ^ 1][p + 1]].e <= (int64)a[id[c][k]].e + d)
+                ++p;
+            reach[c][k] = p;
+        }
+    }
 
-    vector<int> rank(V + 1, -1);
-    for (int i = 0; i < (int)vals.size(); ++i) rank[vals[i]] = i;
+    // good[k]: last category-0 player at/before k having any compatible category-1 player.
+    vector<int> good(sz[0] + 1, 0);
+    for (int k = 1; k <= sz[0]; ++k) {
+        good[k] = good[k - 1];
+        int p = reach[0][k];
+        if (p > 0 && (int64)a[id[1][p]].e >= (int64)a[id[0][k]].e - d)
+            good[k] = k;
+    }
 
-    for (int D = 1; D <= V; ++D) {
-        int base = V - D;
-        int cut = upper_bound(vals.begin(), vals.end(), base) - vals.begin();
+    // Sparse prefix DP for the preceding match layer.
+    vector<int> oldPos(1, 0);
+    vector<int64> oldDP(W, NEG);
+    oldDP[0] = 0;
+    int count[2] = {0, 0};
+    const int K = 2 * n - 1;
 
-        vector<int> lows;
-        lows.reserve((int)vals.size() - cut + 1);
-        lows.push_back(base);
-        for (int j = cut; j < (int)vals.size(); ++j) lows.push_back(vals[j]);
-        int K = (int)lows.size();
+    for (int j = 1; j <= n; ++j) {
+        for (int c = 0; c < 2; ++c)
+            while (count[c] < sz[c] && a[id[c][count[c] + 1]].e <= limit[j - 1])
+                ++count[c];
 
-        auto index_of = [&](int x) -> int {
-            if (x <= base) return 0;
-            return rank[x] - cut + 1;
+        vector<int> pos(1, 0);
+        pos.reserve(18 * K + 1);
+        auto add = [&](int v) {
+            pos.push_back(v);
+            if (pre[v][0]) pos.push_back(pre[v][0]);
+            if (pre[v][1]) pos.push_back(pre[v][1]);
         };
 
-        vector<int64> diff(K + 1, 0);
-        auto add = [&](int l, int r, int w) {
-            if (l > r || w == 0) return;
-            diff[l] += w;
-            diff[r + 1] -= w;
-        };
-
-        deque<Block> dq;
-        dq.push_back({index_of(a[0]), K - 1, D});
-
-        for (int i = 1; i < n; ++i) {
-            if (a[i] > a[i - 1]) {
-                int cap = max(0, D - (a[i] - a[i - 1]));
-                int left = K;
-
-                while (!dq.empty() && dq.back().z > cap) {
-                    Block b = dq.back();
-                    dq.pop_back();
-                    add(b.l, b.r, b.z - cap);
-                    left = b.l;
-                }
-
-                if (left < K && cap > 0) {
-                    if (!dq.empty() && dq.back().z == cap) dq.back().r = K - 1;
-                    else dq.push_back({left, K - 1, cap});
-                }
-
-                int first = index_of(a[i]);
-                while (!dq.empty() && dq.front().r < first) dq.pop_front();
-                if (!dq.empty()) dq.front().l = max(dq.front().l, first);
-            } else if (a[i] < a[i - 1]) {
-                int floorv = min(D, a[i - 1] - a[i]);
-                while (!dq.empty() && dq.front().z <= floorv) dq.pop_front();
-
-                int l = index_of(a[i]);
-                int r = dq.empty() ? K - 1 : dq.front().l - 1;
-                if (l <= r && floorv > 0) dq.push_front({l, r, floorv});
+        // At most K disjoint greedy maximum pairs of each homogeneous type.
+        for (int c = 0; c < 2; ++c) {
+            int p = count[c];
+            for (int k = 0; k < K; ++k) {
+                int r = same[c][p];
+                if (!r) break;
+                add(id[c][r - 1]);
+                add(id[c][r]);
+                p = r - 2;
             }
         }
 
-        for (const Block &b : dq) add(b.l, b.r, b.z);
-
-        int64 saved = 0;
-        for (int j = 0; j < K; ++j) {
-            saved += diff[j];
-            ans = min(ans, (int64)lows[j] + D + C - saved);
+        // At most K disjoint greedy maximum mixed-category pairs.
+        int x = count[0], y = count[1];
+        for (int k = 0; k < K && x > 0 && y > 0; ++k) {
+            int u = good[min(x, reach[1][y])];
+            if (!u) break;
+            int v = min(y, reach[0][u]);
+            add(id[0][u]);
+            add(id[1][v]);
+            x = u - 1;
+            y = v - 1;
         }
-        if (ans == 0) break;
+
+        sort(pos.begin(), pos.end());
+        pos.erase(unique(pos.begin(), pos.end()), pos.end());
+        int s = (int)pos.size();
+        vector<int64> curDP((size_t)s * W, NEG);
+
+        // before[i]: last oldPos strictly smaller than pos[i].
+        vector<int> before(s, 0);
+        int p = 0;
+        for (int i = 1; i < s; ++i) {
+            while (p + 1 < (int)oldPos.size() && oldPos[p + 1] < pos[i]) ++p;
+            before[i] = p;
+        }
+
+        int prevType[2] = {0, 0};
+        for (int i = 1; i < s; ++i) {
+            int64 *dst = curDP.data() + (size_t)i * W;
+            copy_n(dst - W, W, dst);  // Do not use pos[i].
+            int v = pos[i];
+            for (int c = 0; c < 2; ++c) {
+                int k = prevType[c];
+                if (!k) continue;
+                int u = pos[k];
+                if (a[v].e - a[u].e > d) continue;
+                int delta = a[u].junior + a[v].junior;
+                const int64 *src = oldDP.data() + (size_t)before[k] * W;
+                int64 gain = (int64)a[u].e + a[v].e;
+                for (int t = 0; t <= 2 * (j - 1); ++t)
+                    if (src[t] != NEG)
+                        dst[t + delta] = max(dst[t + delta], src[t] + gain);
+            }
+            prevType[a[v].junior] = i;
+        }
+        oldPos.swap(pos);
+        oldDP.swap(curDP);
     }
+
+    vector<int64> ans(W);
+    size_t base = (oldPos.size() - 1) * W;
+    for (int t = 0; t < W; ++t)
+        ans[t] = oldDP[base + t] == NEG ? -1 : oldDP[base + t];
     return ans;
 }
 
+#ifndef TENNIS_TEST
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
-    int T;
-    if (!(cin >> T)) return 0;
-    while (T--) {
-        int n, m;
-        cin >> n >> m;
-        vector<int> a(n);
-        for (int &x : a) cin >> x;
-        cout << solve_case(a, m) << '\n';
+    int n, m, d;
+    cin >> n >> m >> d;
+    vector<int> limit(n);
+    for (int &x : limit) cin >> x;
+    vector<Player> a(m);
+    for (auto &p : a) {
+        int type;
+        cin >> p.e >> type;
+        p.junior = (type == 1);
     }
+    auto ans = solve(n, d, std::move(limit), std::move(a));
+    for (int t = 0; t <= 2 * n; ++t)
+        cout << ans[t] << (t == 2 * n ? '\n' : ' ');
     return 0;
 }
+#endif

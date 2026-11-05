@@ -1,27 +1,31 @@
-# 20. Balanced Rainbow Sequence
-
 ## Problem Description
 
-A bracket sequence has $n$ positions. Each position contains an opening or closing parenthesis and has one of three fixed colors: lime, gray, or blue.
+A card has one of $n$ suits and a rank in $[1,m]$. Each suit is either a trump or a regular suit; there may be several trump suits or none. Multiple physical cards may have the same suit and rank. Both players know both hands.
 
-One change flips a parenthesis between `(` and `)`. Colors and positions cannot change. Find the minimum number of flips needed so that both of these statements hold:
+A card $(s_1,r_1)$ beats $(s_2,r_2)$ exactly when either $s_1=s_2$ and $r_1>r_2$, or $s_1$ is a trump suit and $s_2$ is not.
 
-1. Removing all lime brackets leaves a balanced bracket sequence.
-2. Removing all gray brackets leaves a balanced bracket sequence.
+The game proceeds as follows:
 
-Report impossibility if no choice of orientations satisfies both conditions. A balanced sequence may be empty; otherwise it is formed by concatenating balanced sequences or enclosing a balanced sequence in a matching opening and closing pair. The two brackets of such a pair need not have the same color.
+1. The attacker chooses any card in their hand as the initial attack.
+2. The defender must play an unused card that beats the attacker's most recent card. If no such card exists, the defender loses.
+3. The attacker must play an unused card whose rank equals the rank of some card previously played by either player. If no such card exists, the attacker loses.
+4. Repeat from step 2.
+
+Count the initial attacks from which the attacker can force a win when both players make optimal later choices. Different physical copies count as different starting attacks, even when suit and rank coincide.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, a string $s$ of $n$ parentheses, then $n$ integers $c_1,\ldots,c_n$. Colors 0, 1, and 2 mean lime, gray, and blue, respectively.
+Read $n,m$. Next read $n$ flags $t_i$, where 1 marks a trump suit and 0 a regular suit.
+
+Read an $n\times m$ matrix of attacker counts, followed by an $n\times m$ matrix of defender counts. Entry $(i,j)$ is the number of cards with suit $i$ and rank $j$ in that hand.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum number of changes, or `-1` when impossible.
+Print the number of winning initial attacks as an integer.
 
 ## Examples
 
@@ -30,29 +34,31 @@ Print the minimum number of changes, or `-1` when impossible.
 Input:
 
 ```text
-3
-()(
-0 2 1
+1 2
+0
+4294967296 0
+0 2147483647
 ```
 
 Output:
 
 ```text
--1
+4294967296
 ```
 
 ## Explanation / Notes
 
-Removing the lime bracket leaves positions 2 and 3, so position 2 must be an opening bracket. Removing the gray bracket leaves positions 1 and 2, so position 2 must be a closing bracket. These requirements conflict, and the answer is `-1`.
+An already played card cannot be reused. Ranks from all earlier attacks and defenses remain available for checking the attacker's rank restriction.
 
-The full sequence itself need not be balanced: the two required color-deleted subsequences must be balanced.
+Different trump suits do not automatically beat each other: the ordinary higher-rank rule requires the same suit.
 
 ## Constraints
 
 - One test case.
-- $1\le n\le6000$.
-- $|s|=n$, and every character is `(` or `)`.
-- $0\le c_i\le2$ for every position.
-- Only bracket orientations may change; order and colors are fixed.
-- Empty subsequences are balanced.
+- $1\le n,m\le18$.
+- Every $t_i$ is either 0 or 1.
+- Every entry in each hand matrix is an integer in $[0,10^{12}]$.
+- Each player's total number of cards is positive.
+- Duplicate cards are allowed and count separately in the answer.
+- No output modulus is specified; print the exact count.
 - Time limit: 2 seconds; memory limit: 512 MiB.

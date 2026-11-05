@@ -1,201 +1,229 @@
-#include <array>
+#include <algorithm>
 #include <cassert>
-#include <cstdint>
 #include <iostream>
-#include <numeric>
-#include <string>
+#include <utility>
 #include <vector>
+
 using namespace std;
 
-namespace {
+class Solver {
+    int n;
+    vector<int> first, to, next_edge;
+    vector<int> parent, height, heavy, offset, length;
+    vector<int> bucket_head, bucket_tail, next_child;
+    vector<int> order, path;
+#ifdef LOCAL_CHECK
+    long long bucket_scans = 0;
+    long long diameter_sum = 0;
+    int initial_potential = 0;
+#endif
 
-using Cell = uint16_t;
-constexpr Cell NONE = UINT16_MAX;
-
-class EdgeColoring {
-    int n, k;
-    vector<vector<Cell>> color, to, missing, position;
-
-    void occupy(int v, int c) {
-        int p = position[v][c];
-        int last = missing[v].back();
-        assert(p != NONE);
-        missing[v][p] = static_cast<Cell>(last);
-        position[v][last] = static_cast<Cell>(p);
-        missing[v].pop_back();
-        position[v][c] = NONE;
+    void add_edge(int u, int v) {
+        next_edge.push_back(first[u]);
+        to.push_back(v);
+        first[u] = static_cast<int>(to.size()) - 1;
     }
 
-    void release(int v, int c) {
-        assert(position[v][c] == NONE);
-        position[v][c] = static_cast<Cell>(missing[v].size());
-        missing[v].push_back(static_cast<Cell>(c));
+    int find_endpoint(int start) {
+        fill(parent.begin(), parent.end(), 0);
+        order.clear();
+        order.push_back(start);
+        parent[start] = -1;
+        height[start] = 0;
+        int farthest = start;
+        for (int i = 0; i < static_cast<int>(order.size()); ++i) {
+            int u = order[i];
+            if (height[u] > height[farthest]) farthest = u;
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (v == parent[u]) continue;
+                parent[v] = u;
+                height[v] = height[u] + 1;
+                order.push_back(v);
+            }
+        }
+        return farthest;
     }
 
-    void eraseEdge(int u, int v) {
-        int c = color[u][v];
-        assert(c != NONE);
-        color[u][v] = color[v][u] = NONE;
-        to[u][c] = to[v][c] = NONE;
-        release(u, c);
-        release(v, c);
+    void append_to_bucket(int u, int v) {
+        int h = height[v];
+        assert(0 <= h && h < length[u]);
+        int index = offset[u] + h;
+        next_child[v] = 0;
+        if (bucket_head[index] == 0) {
+            bucket_head[index] = v;
+        } else {
+            next_child[bucket_tail[index]] = v;
+        }
+        bucket_tail[index] = v;
     }
 
-    // Color a/b are swapped on the maximal alternating path starting at u.
-    // Color a is missing at u before the operation.
-    void swapAlternatingPath(int u, int a, int b) {
-        vector<array<int, 3>> path;
-        int x = u, c = b;
-        while (to[x][c] != NONE) {
-            int y = to[x][c];
-            path.push_back({x, y, c});
-            x = y;
-            c = a ^ b ^ c;
+    void initialize_rooted_tree(int root) {
+        fill(parent.begin(), parent.end(), 0);
+        order.clear();
+        order.push_back(root);
+        parent[root] = -1;
+        for (int i = 0; i < static_cast<int>(order.size()); ++i) {
+            int u = order[i];
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (v == parent[u]) continue;
+                parent[v] = u;
+                order.push_back(v);
+            }
         }
-        for (const auto &e : path) {
-            eraseEdge(e[0], e[1]);
+
+        int total_length = 0;
+        for (int i = n - 1; i >= 0; --i) {
+            int u = order[i];
+            heavy[u] = 0;
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (parent[v] != u) continue;
+                if (heavy[u] == 0 || height[v] > height[heavy[u]]) heavy[u] = v;
+            }
+            height[u] = heavy[u] == 0 ? 0 : height[heavy[u]] + 1;
+            length[u] = 0;
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (parent[v] == u && v != heavy[u]) {
+                    length[u] = max(length[u], height[v] + 1);
+                }
+            }
+            offset[u] = total_length;
+            total_length += length[u];
         }
-        for (const auto &e : path) {
-            paint(e[0], e[1], a ^ b ^ e[2]);
+        assert(total_length <= n - 1);
+        bucket_head.assign(total_length, 0);
+        bucket_tail.assign(total_length, 0);
+        for (int u : order) {
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (parent[v] == u && v != heavy[u]) append_to_bucket(u, v);
+            }
         }
+#ifdef LOCAL_CHECK
+        initial_potential = total_length;
+#endif
+    }
+
+    void merge_buckets(int a, int b) {
+        if (length[a] < length[b]) {
+            swap(length[a], length[b]);
+            swap(offset[a], offset[b]);
+        }
+        for (int h = 0; h < length[b]; ++h) {
+#ifdef LOCAL_CHECK
+            ++bucket_scans;
+#endif
+            int x = offset[a] + h;
+            int y = offset[b] + h;
+            if (bucket_head[y] == 0) continue;
+            if (bucket_head[x] == 0) {
+                bucket_head[x] = bucket_head[y];
+            } else {
+                next_child[bucket_tail[x]] = bucket_head[y];
+            }
+            bucket_tail[x] = bucket_tail[y];
+        }
+        length[b] = 0;
+    }
+
+    void restore_vertex(int u, int chain_child) {
+        if (chain_child != 0 &&
+            (length[u] == 0 || height[chain_child] >= length[u] - 1)) {
+            heavy[u] = chain_child;
+        } else if (length[u] != 0) {
+            int index = offset[u] + length[u] - 1;
+            int v = bucket_head[index];
+            assert(v != 0);
+            bucket_head[index] = next_child[v];
+            if (bucket_head[index] == 0) bucket_tail[index] = 0;
+            next_child[v] = 0;
+            heavy[u] = v;
+
+            // Insert before trimming. Thus the logical bucket array never grows.
+            if (chain_child != 0) append_to_bucket(u, chain_child);
+            while (length[u] != 0 &&
+                   bucket_head[offset[u] + length[u] - 1] == 0) {
+                --length[u];
+#ifdef LOCAL_CHECK
+                ++bucket_scans;
+#endif
+            }
+        } else {
+            heavy[u] = 0;
+        }
+        height[u] = heavy[u] == 0 ? 0 : height[heavy[u]] + 1;
     }
 
 public:
-    EdgeColoring(int n_, int k_)
-        : n(n_), k(k_), color(n, vector<Cell>(n, NONE)),
-          to(n, vector<Cell>(k, NONE)), missing(n, vector<Cell>(k)),
-          position(n, vector<Cell>(k)) {
-        for (int v = 0; v < n; ++v) {
-            iota(missing[v].begin(), missing[v].end(), Cell(0));
-            iota(position[v].begin(), position[v].end(), Cell(0));
+    explicit Solver(int n_) : n(n_), first(n + 1, -1), parent(n + 1),
+        height(n + 1), heavy(n + 1), offset(n + 1), length(n + 1),
+        next_child(n + 1) {
+        to.reserve(2 * max(0, n - 1));
+        next_edge.reserve(2 * max(0, n - 1));
+        order.reserve(n);
+        path.reserve(n);
+    }
+
+    void read_edges() {
+        for (int i = 1; i < n; ++i) {
+            int u, v;
+            cin >> u >> v;
+            add_edge(u, v);
+            add_edge(v, u);
         }
     }
 
-    void paint(int u, int v, int c) {
-        assert(color[u][v] == NONE);
-        occupy(u, c);
-        occupy(v, c);
-        color[u][v] = color[v][u] = static_cast<Cell>(c);
-        to[u][c] = static_cast<Cell>(v);
-        to[v][c] = static_cast<Cell>(u);
-    }
+    int run() {
+        int root = find_endpoint(1);
+        initialize_rooted_tree(root);
+        int answer = 0;
 
-    // Inserts and colors one new edge in O(n) using a Vizing fan.
-    void insertEdge(int u, int v) {
-        vector<int> fan{v};
-        vector<int> where(n, -1);
-        where[v] = 0;
-
-        int beta = -1, last = -1;
-        while (true) {
-            assert(!missing[fan.back()].empty());
-            beta = missing[fan.back()].back();
-            int w = to[u][beta];
-
-            if (w == NONE) {
-                last = static_cast<int>(fan.size()) - 1;
-                break;
+        while (heavy[root] != 0) {
+            path.clear();
+            int u = root;
+            while (u != 0) {
+                path.push_back(u);
+                int v = heavy[u];
+                heavy[u] = 0;
+                u = v;
             }
-            if (where[w] != -1) {
-                int j = where[w];
-                assert(j > 0 && !missing[u].empty());
-                int alpha = missing[u].back();
-                swapAlternatingPath(u, alpha, beta);
-                last = (to[fan[j - 1]][beta] == NONE)
-                           ? j - 1
-                           : static_cast<int>(fan.size()) - 1;
-                break;
+            int diameter = static_cast<int>(path.size()) - 1;
+#ifdef LOCAL_CHECK
+            diameter_sum += diameter;
+#endif
+            for (int i = 0; i < (diameter + 1) / 2; ++i) {
+                merge_buckets(path[i], path[diameter - i]);
             }
-            where[w] = static_cast<int>(fan.size());
-            fan.push_back(w);
+            int last = diameter / 2;
+            for (int i = last; i >= 0; --i) {
+                restore_vertex(path[i], i == last ? 0 : path[i + 1]);
+            }
+            ++answer;
         }
 
-        for (int i = 0; i < last; ++i) {
-            int c = color[u][fan[i + 1]];
-            eraseEdge(u, fan[i + 1]);
-            paint(u, fan[i], c);
-        }
-        paint(u, fan[last], beta);
+#ifdef LOCAL_CHECK
+        assert(bucket_scans == initial_potential);
+        assert(diameter_sum <= 2LL * (n - 1));
+#endif
+        return answer;
     }
-
-    int oneMissingColor(int v) const {
-        assert(missing[v].size() == 1);
-        return missing[v].back();
-    }
-
-    const vector<vector<Cell>> &result() const { return color; }
 };
-
-vector<vector<Cell>> solve(const vector<string> &graph) {
-    int n = static_cast<int>(graph.size());
-    int colors = (n & 1) ? n - 2 : n - 3;
-    EdgeColoring ec(n, colors);
-
-    int center = 0;
-    int reserved = -1;
-    if ((n & 1) == 0) {
-        vector<int> nonNeighbors;
-        for (int v = 1; v < n; ++v) {
-            if (graph[0][v] == '0') nonNeighbors.push_back(v);
-        }
-        assert(nonNeighbors.size() == 2);
-        center = nonNeighbors[0];
-        reserved = nonNeighbors[1];
-    }
-
-    vector<int> core;
-    for (int v = 0; v < n; ++v) {
-        if (v != center && ((n & 1) || v != 0)) core.push_back(v);
-    }
-    assert(static_cast<int>(core.size()) == colors + 1);
-
-    // A 1-factorization of K_(colors+1), with the last vertex treated as infinity.
-    // Removing absent edges preserves a valid partial coloring of the core.
-    for (int i = 0; i <= colors; ++i) {
-        for (int j = i + 1; j <= colors; ++j) {
-            if (graph[core[i]][core[j]] == '0') continue;
-            int c = (j == colors) ? (2 * i) % colors : (i + j) % colors;
-            ec.paint(core[i], core[j], c);
-        }
-    }
-
-    // In the even case, center-reserved is inserted last if it is an edge.
-    for (int v : core) {
-        if (v != reserved && graph[center][v] == '1') ec.insertEdge(center, v);
-    }
-    if (reserved != -1 && graph[center][reserved] == '1') {
-        ec.insertEdge(center, reserved);
-    }
-
-    // For even n, every color is now missing at exactly one neighbor of vertex 0.
-    if ((n & 1) == 0) {
-        for (int v = 1; v < n; ++v) {
-            if (graph[0][v] == '1') ec.paint(0, v, ec.oneMissingColor(v));
-        }
-    }
-    return ec.result();
-}
-
-}  // namespace
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n;
-    if (!(cin >> n)) return 0;
-    vector<string> graph(n);
-    for (string &row : graph) cin >> row;
-
-    int colors = (n & 1) ? n - 2 : n - 3;
-    auto answer = solve(graph);
-
-    cout << colors << '\n';
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            int value = answer[i][j] == NONE ? -1 : answer[i][j] + 1;
-            cout << value << (j + 1 == n ? '\n' : ' ');
-        }
+    int tests;
+    cin >> tests;
+    while (tests--) {
+        int n;
+        cin >> n;
+        Solver solver(n);
+        solver.read_edges();
+        cout << solver.run() << '\n';
     }
     return 0;
 }

@@ -1,308 +1,148 @@
 #include <bits/stdc++.h>
 using namespace std;
-typedef long long ll;
 
-static const int MOD = 998244353;
+using cd = complex<double>;
 
-struct Mat { int a, b, c, d; };
+/*
+ *  Let w = e^{-2*pi*i/n},  u_t = w^{k*t}  (|u_t| = 1)  and
+ *      G_t = sum_{s != k} f_s * w^{s*t}.
+ *  Setting f_k = x gives F_t = G_t + x*u_t, hence
+ *      |F_t| = |G_t * conj(u_t) + x| = |x + w_t|,  w_t := G_t * conj(u_t).
+ *  So we must minimize, over integers x, the maximum distance from -x to the
+ *  points w_t of the complex plane:
+ *      answer = min_{x in Z} max_t sqrt((x + Re w_t)^2 + (Im w_t)^2).
+ *  This objective is convex in x (maximum of convex functions), so an integer
+ *  ternary search finds the optimum.  All G_t come from one DFT, computed with
+ *  Bluestein's algorithm (chirp-z) on a power-of-two FFT.
+ */
 
-static inline Mat mmul(const Mat &x, const Mat &y) {
-    return Mat{
-        (int)(((ll)x.a * y.a + (ll)x.b * y.c) % MOD),
-        (int)(((ll)x.a * y.b + (ll)x.b * y.d) % MOD),
-        (int)(((ll)x.c * y.a + (ll)x.d * y.c) % MOD),
-        (int)(((ll)x.c * y.b + (ll)x.d * y.d) % MOD)};
-}
-static const Mat IDM{1, 0, 0, 1};
+static int L;              // FFT length (power of two)
+static vector<cd> rt;      // rt[i] = e^{-2*pi*i*i/L}, 0 <= i <= L/2
+static vector<int> rev;
 
-static int n;
-static vector<int> adjHead, adjNext, adjTo; // CSR adjacency
-static vector<int> par_, heavy, szs, ordr;
-static vector<char> mem_;
-static vector<int> kL;
-static vector<int> lightOff, lightPow, lidx;
-static vector<Mat> ltree;
-static vector<int> chainId, cpos, chainOff, chainPow;
-static vector<Mat> ctree;
-static vector<vector<int> > chains;
-static vector<int> inv2p;
-static vector<Mat> nodeM;
-static int root_;
-static int answer;
-
-static inline int nextpow2(int x) { int s = 1; while (s < x) s <<= 1; return s; }
-
-static inline void lightAgg(int x, int &AL, int &BL) {
-    if (lightPow[x] == 0) { AL = 1; BL = 0; return; }
-    const Mat &m = ltree[lightOff[x] + 1];
-    AL = m.a; BL = m.c;
-}
-
-static inline void computeNodeM(int x) {
-    int AL, BL;
-    lightAgg(x, AL, BL);
-    if (mem_[x]) {
-        int t = (int)(((ll)2 * BL + AL) % MOD);
-        nodeM[x] = Mat{AL, (int)(2LL * AL % MOD), BL, t};
-    } else {
-        int k = kL[x];
-        int h = heavy[x];
-        if (h != -1 && !mem_[h]) k++;
-        int coef = inv2p[k];
-        int v1 = (int)((ll)AL * coef % MOD);
-        nodeM[x] = Mat{0, 0, v1, (int)(2LL * v1 % MOD)};
+static void initFFT(int L_) {
+    L = L_;
+    rt.assign((size_t)(L / 2 + 1), cd(1.0, 0.0));
+    for (int i = 0; i <= L / 2; i++) {
+        long double ang = -2.0L * acosl(-1.0L) * (long double)i / (long double)L;
+        rt[(size_t)i] = cd((double)cosl(ang), (double)sinl(ang));
     }
+    rev.assign((size_t)L, 0);
+    int lg = 0;
+    while ((1 << lg) < L) lg++;
+    if (lg > 0)
+        for (int i = 0; i < L; i++)
+            rev[(size_t)i] = (rev[(size_t)(i >> 1)] >> 1) | ((i & 1) << (lg - 1));
 }
 
-static inline void updateNode(int x) {
-    computeNodeM(x);
-    int c = chainId[x], base = chainOff[c], S = chainPow[c];
-    int j = S + cpos[x];
-    ctree[base + j] = nodeM[x];
-    for (j >>= 1; j >= 1; j >>= 1)
-        ctree[base + j] = mmul(ctree[base + 2 * j], ctree[base + 2 * j + 1]);
-}
-
-static inline void setLightLeaf(int q, int y, int u, int J) {
-    int base = lightOff[q], S = lightPow[q];
-    int j = S + lidx[y];
-    ltree[base + j] = Mat{u, 0, J, u};
-    for (j >>= 1; j >= 1; j >>= 1)
-        ltree[base + j] = mmul(ltree[base + 2 * j], ltree[base + 2 * j + 1]);
-}
-
-static inline void setLightLeafRaw(int q, int y, int u, int J) {
-    int base = lightOff[q], S = lightPow[q];
-    ltree[base + S + lidx[y]] = Mat{u, 0, J, u};
-}
-
-static void flip(int x) {
-    mem_[x] = 1;
-    updateNode(x);
-    int p = par_[x];
-    if (p != -1 && heavy[p] == x) updateNode(p);
-    int c = chainId[x];
-    while (true) {
-        const Mat &pr = ctree[chainOff[c] + 1];
-        int P = pr.a, J = pr.c;
-        int top = chains[c][0];
-        if (top == root_) { answer = J; return; }
-        int q = par_[top];
-        int u = (int)((2LL * J + P) % MOD);
-        setLightLeaf(q, top, u, J);
-        if (top == x) kL[q]--;
-        updateNode(q);
-        c = chainId[q];
+static void fft(vector<cd>& a, bool inv) {
+    for (int i = 0; i < L; i++)
+        if (i < rev[(size_t)i]) swap(a[(size_t)i], a[(size_t)rev[(size_t)i]]);
+    for (int len = 2; len <= L; len <<= 1) {
+        int half = len >> 1, stride = L / len;
+        for (int i = 0; i < L; i += len) {
+            for (int j = 0; j < half; j++) {
+                cd w = rt[(size_t)(j * stride)];
+                if (inv) w = conj(w);
+                cd u = a[(size_t)(i + j)];
+                cd v = a[(size_t)(i + j + half)] * w;
+                a[(size_t)(i + j)] = u + v;
+                a[(size_t)(i + j + half)] = u - v;
+            }
+        }
+    }
+    if (inv) {
+        double invL = 1.0 / (double)L;
+        for (auto& z : a) z *= invL;
     }
 }
 
 int main() {
-    // ---- fast input ----
-    static string sbuf;
-    {
-        sbuf.reserve(1 << 22);
-        char tmp[1 << 16];
-        size_t r;
-        while ((r = fread(tmp, 1, sizeof(tmp), stdin)) > 0) sbuf.append(tmp, r);
+    int n, k;
+    if (scanf("%d %d", &n, &k) != 2) return 0;
+    vector<long long> f((size_t)n);
+    for (int i = 0; i < n; i++)
+        if (scanf("%lld", &f[(size_t)i]) != 1) return 0;
+
+    // ---- G_t = sum_{s != k} f_s * w^{s*t} via Bluestein ----
+    int need = max(1, 2 * n - 1);
+    int Lsz = 1;
+    while (Lsz < need) Lsz <<= 1;
+    initFFT(Lsz);
+
+    const long double PI = acosl(-1.0L);
+    vector<cd> chirp((size_t)n);                       // e^{-i*pi*s^2/n}
+    vector<cd> A((size_t)Lsz, cd(0.0, 0.0)), B((size_t)Lsz, cd(0.0, 0.0));
+    for (int s = 0; s < n; s++) {
+        long long sq = (long long)s * (long long)s % (2LL * n);
+        long double ang = -PI * (long double)sq / (long double)n;
+        long double c = cosl(ang), si = sinl(ang);
+        chirp[(size_t)s] = cd((double)c, (double)si);
+        B[(size_t)s] = cd((double)c, -(double)si);     // e^{+i*pi*s^2/n}
     }
-    const char *buf = sbuf.data();
-    size_t bufLen = sbuf.size();
-    size_t bufPos = 0;
-    auto readInt = [&]() -> int {
-        while (bufPos < bufLen && (buf[bufPos] < '0' || buf[bufPos] > '9')) bufPos++;
-        int v = 0;
-        while (bufPos < bufLen && buf[bufPos] >= '0' && buf[bufPos] <= '9') {
-            v = v * 10 + (buf[bufPos] - '0');
-            bufPos++;
+    for (int j = 1; j < n; j++) B[(size_t)(Lsz - j)] = B[(size_t)j];  // B[-j] = B[j]
+
+    for (int s = 0; s < n; s++) {
+        if (s == k) continue;                          // f_k is the free choice
+        long long val = f[(size_t)s];
+        if (val == 0) continue;
+        A[(size_t)s] = (double)val * chirp[(size_t)s];
+    }
+
+    fft(A, false);
+    fft(B, false);
+    for (int i = 0; i < Lsz; i++) A[(size_t)i] *= B[(size_t)i];
+    fft(A, true);
+
+    // ---- line representation of |x + w_t|^2 = x^2 + slope_t*x + icept_t ----
+    vector<double> slope((size_t)n), icept((size_t)n);
+    double M = 0.0;                                    // max_t |w_t|
+    for (int t = 0; t < n; t++) {
+        cd G = chirp[(size_t)t] * A[(size_t)t];        // G_t
+        long long r = ((long long)k * t) % n;          // u_t = e^{-2*pi*i*r/n}
+        long double ang = 2.0L * PI * (long double)r / (long double)n;
+        cd uc((double)cosl(ang), (double)sinl(ang));   // conj(u_t)
+        cd w = G * uc;
+        double a = w.real(), b = w.imag();
+        slope[(size_t)t] = 2.0 * a;
+        icept[(size_t)t] = a * a + b * b;
+        double len = sqrt(a * a + b * b);
+        if (len > M) M = len;
+    }
+
+    // Any |x| > 2M gives value >= |x| - M > M = value at x = 0, so the
+    // optimum lies in [-2M, 2M].
+    long long X = (long long)(2.0 * M) + 3;
+
+    const double* SL = slope.data();
+    const double* IC = icept.data();
+
+    // binary search on the (monotone) difference-free convex objective:
+    // F(x) = x^2 + max_t (slope_t * x + icept_t)
+    auto F = [&](long long x) -> double {
+        double xd = (double)x;
+        double best = -1e300;
+        for (int t = 0; t < n; t++) {
+            double v = SL[t] * xd + IC[t];
+            if (v > best) best = v;
         }
-        return v;
+        return xd * xd + best;
     };
 
-    n = readInt();
-
-    adjHead.assign(n, -1);
-    adjTo.reserve(2 * max(0, n - 1));
-    adjNext.reserve(2 * max(0, n - 1));
-    for (int i = 0; i < n - 1; i++) {
-        int u = readInt() - 1, v = readInt() - 1;
-
-        adjTo.push_back(v); adjNext.push_back(adjHead[u]); adjHead[u] = (int)adjTo.size() - 1;
-        adjTo.push_back(u); adjNext.push_back(adjHead[v]); adjHead[v] = (int)adjTo.size() - 1;
+    long long lo = -X, hi = X;                         // integer ternary search
+    while (hi - lo > 3) {
+        long long m1 = lo + (hi - lo) / 3;
+        long long m2 = hi - (hi - lo) / 3;
+        if (F(m1) < F(m2)) hi = m2;
+        else lo = m1;
     }
-    vector<int> ops(n > 1 ? n - 1 : 0);
-    vector<char> isOp(n, 0);
-    for (int i = 0; i < n - 1; i++) { ops[i] = readInt() - 1; isOp[ops[i]] = 1; }
-    if (n == 1) return 0;
-    int r = 0;
-    while (isOp[r]) r++;
-    root_ = r;
-
-    // ---- root the tree ----
-    par_.assign(n, -1);
-    ordr.reserve(n);
-    vector<int> stk;
-    stk.push_back(r);
-    vector<char> vis(n, 0);
-    vis[r] = 1;
-    while (!stk.empty()) {
-        int x = stk.back(); stk.pop_back();
-        ordr.push_back(x);
-        for (int e = adjHead[x]; e != -1; e = adjNext[e]) {
-            int y = adjTo[e];
-            if (!vis[y]) { vis[y] = 1; par_[y] = x; stk.push_back(y); }
-        }
+    double bestVal = 1e300;
+    for (long long x = lo - 2; x <= hi + 2; x++) {
+        double v = F(x);
+        if (v < bestVal) bestVal = v;
     }
 
-    // ---- sizes and heavy child ----
-    szs.assign(n, 1);
-    heavy.assign(n, -1);
-    for (int i = n - 1; i >= 0; i--) {
-        int x = ordr[i];
-        int best = -1, bestSz = 0;
-        for (int e = adjHead[x]; e != -1; e = adjNext[e]) {
-            int y = adjTo[e];
-            if (par_[y] == x) {
-                szs[x] += szs[y];
-                if (szs[y] > bestSz) { bestSz = szs[y]; best = y; }
-            }
-        }
-        heavy[x] = best;
-    }
-
-    // ---- HLD chains ----
-    chainId.assign(n, -1);
-    cpos.assign(n, 0);
-    chains.clear();
-    for (int i = 0; i < n; i++) {
-        int x = ordr[i];
-        if (par_[x] == -1 || heavy[par_[x]] != x) {
-            // x is chain head
-            int cid = (int)chains.size();
-            chains.push_back(vector<int>());
-            int y = x;
-            while (y != -1) {
-                chainId[y] = cid;
-                cpos[y] = (int)chains.back().size();
-                chains.back().push_back(y);
-                y = heavy[y];
-            }
-        }
-    }
-
-    // ---- light children blocks ----
-    // count light children
-    lightOff.assign(n, 0);
-    lightPow.assign(n, 0);
-    lidx.assign(n, 0);
-    {
-        vector<int> cnt(n, 0);
-        for (int x = 0; x < n; x++) {
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) cnt[p]++;
-        }
-        // assign indices in a stable order: iterate over children in reverse-order list
-        vector<int> fill(n, 0);
-        for (int i = n - 1; i >= 0; i--) {
-            int x = ordr[i];
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) lidx[x] = fill[p]++;
-        }
-        long long total = 0;
-        for (int x = 0; x < n; x++) {
-            if (cnt[x] > 0) {
-                lightPow[x] = nextpow2(cnt[x]);
-                total += 2LL * lightPow[x];
-            }
-        }
-        ltree.assign(total, IDM);
-        long long off = 0;
-        for (int x = 0; x < n; x++) {
-            if (lightPow[x] > 0) { lightOff[x] = (int)off; off += 2LL * lightPow[x]; }
-        }
-    }
-
-    // ---- chain segment trees ----
-    {
-        int nc = (int)chains.size();
-        chainOff.assign(nc, 0);
-        chainPow.assign(nc, 0);
-        long long total = 0;
-        for (int c = 0; c < nc; c++) {
-            chainPow[c] = nextpow2((int)chains[c].size());
-            total += 2LL * chainPow[c];
-        }
-        ctree.assign(total, IDM);
-        long long off = 0;
-        for (int c = 0; c < nc; c++) { chainOff[c] = (int)off; off += 2LL * chainPow[c]; }
-    }
-
-    // ---- inverse powers of 2 ----
-    inv2p.assign(n + 2, 1);
-    {
-        int inv2 = (MOD + 1) / 2;
-        for (int i = 1; i <= n + 1; i++) inv2p[i] = (int)((ll)inv2p[i - 1] * inv2 % MOD);
-    }
-
-    // ---- initial bottom-up DP ----
-    mem_.assign(n, 0);
-    kL.assign(n, 0);
-    nodeM.assign(n, IDM);
-    {
-        vector<int> Pv(n, 0), Jv(n, 0), Uv(n, 0);
-        // kL init: count light children (none in S yet)
-        for (int x = 0; x < n; x++) {
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) kL[p]++;
-        }
-        for (int i = n - 1; i >= 0; i--) {
-            int x = ordr[i];
-            if (lightPow[x] > 0) {
-                int base = lightOff[x], S = lightPow[x];
-                for (int j = S - 1; j >= 1; j--)
-                    ltree[base + j] = mmul(ltree[base + 2 * j], ltree[base + 2 * j + 1]);
-            }
-            computeNodeM(x);
-            int h = heavy[x];
-            int Px, Jx;
-            if (h == -1) { Px = nodeM[x].a; Jx = nodeM[x].c; }
-            else {
-                Px = (int)(((ll)nodeM[x].a * Pv[h] + (ll)nodeM[x].b * Jv[h]) % MOD);
-                Jx = (int)(((ll)nodeM[x].c * Pv[h] + (ll)nodeM[x].d * Jv[h]) % MOD);
-            }
-            Pv[x] = Px; Jv[x] = Jx;
-            Uv[x] = (int)((2LL * Jx + Px) % MOD);
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) setLightLeafRaw(p, x, Uv[x], Jv[x]);
-        }
-        answer = Jv[r];
-    }
-
-    // ---- build chain segment trees ----
-    {
-        int nc = (int)chains.size();
-        for (int c = 0; c < nc; c++) {
-            int base = chainOff[c], S = chainPow[c];
-            int L = (int)chains[c].size();
-            for (int i = 0; i < L; i++) ctree[base + S + i] = nodeM[chains[c][i]];
-            for (int j = S + L; j < 2 * S; j++) ctree[base + j] = IDM;
-            for (int j = S - 1; j >= 1; j--)
-                ctree[base + j] = mmul(ctree[base + 2 * j], ctree[base + 2 * j + 1]);
-        }
-    }
-
-    // ---- process operations ----
-    string out;
-    out.reserve((size_t)(n - 1) * 11);
-    char tmp[16];
-    for (int i = 0; i < n - 1; i++) {
-        flip(ops[i]);
-        int v = answer;
-        int len = 0;
-        if (v == 0) tmp[len++] = '0';
-        while (v > 0) { tmp[len++] = char('0' + v % 10); v /= 10; }
-        while (len > 0) out.push_back(tmp[--len]);
-        out.push_back('\n');
-    }
-    fwrite(out.data(), 1, out.size(), stdout);
+    double ans = (bestVal > 0.0) ? sqrt(bestVal) : 0.0;
+    printf("%.15f\n", ans);
     return 0;
 }

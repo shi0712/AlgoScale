@@ -1,64 +1,60 @@
-# 37. Inverted
-
 ## Problem Description
 
-Initially, an undirected tree has vertices $1,\ldots,n$. Process a sequence of $n-1$ distinct original vertices.
+For integers $f_0,\ldots,f_{n-1}$, define
 
-When processing vertex $x$, first create a new vertex $x+n$. For every original vertex $i$ adjacent to $x$ in the original tree:
+$$F_t=\sum_{s=0}^{n-1} f_s\exp\left(-\frac{2\pi\mathrm{i}st}{n}\right),\qquad 0\le t<n,$$
 
-- If vertex $i+n$ does not yet exist, add edge $(x+n,i)$.
-- Otherwise, add edge $(x+n,i+n)$ and delete edge $(x,i+n)$. The latter edge is guaranteed to exist at this stage.
+where $\mathrm{i}^2=-1$ and $\exp(\mathrm{i}\theta)=\cos\theta+\mathrm{i}\sin\theta$.
 
-After each operation, report the number of spanning trees of the current graph modulo $998244353$.
+The index $k$ is fixed. Replace $f_k$ by any integer and minimize
+
+$$\max_{0\le t<n}|F_t|.$$
+
+Here $|p+q\mathrm{i}|=\sqrt{p^2+q^2}$ is the complex modulus.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$. The next $n-1$ lines contain tree edges $u,v$. The final sequence contains $n-1$ distinct integers $b_1,\ldots,b_{n-1}$, the original vertices to process in order.
+The first line contains $n,k$. The second line contains $f_0,f_1,\ldots,f_{n-1}$ in that order. Indices are zero-based.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n-1$ lines. Line $i$ contains the spanning-tree count after processing $b_i$, modulo $998244353$.
+Print the minimum achievable maximum complex modulus as a real number. For submitted value $a$ and reference value $b$, the acceptance condition is
+
+$$\frac{|a-b|}{\max(1,|b|)}\le10^{-9}.$$
 
 ## Examples
 
 Input:
 
 ```text
-5
-1 2
-1 3
-2 4
-2 5
-1 5 2 3
+3 2
+1 1 0
 ```
 
 Output:
 
 ```text
-4
-4
-6
-1
+2.0
 ```
 
 ## Explanation / Notes
 
-An operation preserves the original edges $(x,i)$. The edge deletion in the second rule concerns $(x,i+n)$, which was created earlier; no other edge is removed.
+Only the entry at the supplied index $k$ may change. Its new value must be an integer, but it is **not** restricted to the input range $[-2000,2000]$; any integer is allowed.
 
-A spanning tree includes every vertex currently present. After $j$ operations, the graph has $n+j$ vertices. When $n=1$, the operation sequence and required output are both empty.
+The unchanged choice is permitted. For the sample, retaining the last entry as 0 yields a maximum modulus of 2, which is optimal.
 
 ## Constraints
 
-- $1\le n\le5000$.
-- Every input edge has endpoints in $[1,n]$.
-- The $n-1$ input edges form a valid tree.
-- $1\le b_i\le n$, and the $n-1$ sequence entries are pairwise distinct.
-- Each original vertex is processed at most once; exactly one original vertex is never processed.
-- New vertex labels are $n+1$ through $2n$, but only labels corresponding to processed vertices are created.
-- Counts are taken modulo $998244353$.
-- Time limit: 1 second.
-- Memory limit: 256 MB.
+- There is one input instance.
+- $1\le n\le2000$.
+- $0\le k<n$.
+- Initially, every $f_i$ is an integer satisfying $-2000\le f_i\le2000$.
+- The replacement value of $f_k$ is an arbitrary integer; no finite replacement bound is specified.
+- The transform contains $n$ complex values indexed from 0 through $n-1$.
+- The required absolute/relative error is at most $10^{-9}$ under the formula in Output Format.
+- Time limit: 2 seconds.
+- Memory limit: 512 MB.

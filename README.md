@@ -12,7 +12,7 @@ The project page publishes each problem's source link, source title, original ex
 For accepted benchmark submissions, the catalog links directly to the exact
 `.cpp` source received by the UOJ judge. Failed, partial-score, and unjudged
 submissions are not published. No model response text, reasoning trace, logs,
-hidden judge material, or reference solution is published.
+or hidden judge material is published.
 
 ## Project page
 
@@ -74,6 +74,19 @@ and reference implementation as UTF-8, writes them under
 `site/references/NNN/`, and updates `referenceAssets` in the public catalog. It
 fails instead of silently publishing a mismatched package. The site renders
 Markdown and LaTeX in a dedicated solution viewer and syntax-highlights C++.
+
+Each problem also publishes an English original statement and its AlgoScale
+statement. The reference viewer provides Compare, Original, and AlgoScale
+modes; titles come from the catalog and are not repeated as the first line of
+either Markdown body. The normalized layout is:
+
+```text
+site/references/NNN/
+  original-statement.md
+  algoscale-statement.md
+  solution.md
+  std.cpp
+```
 
 ## Publish generated C++ from another model
 

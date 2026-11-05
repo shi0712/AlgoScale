@@ -1,4 +1,3 @@
-For a fixed maximum height `x`, the minimum number of horizontal and vertical strips is
-`ceil(h/x) + ceil(w/floor(s/x))`. A continuous lower bound confines the relevant integer values to an interval around the continuous optimum. Binary searches find the interval endpoints; only `O(s^(1/4))` values are evaluated.
+The standard implementation constructs spanning trees in both graphs, tests fundamental paths, contracts cyclic biconnected edge blocks, and checks strongly connected components of the resulting dependency graph. It runs in near-linear `O((n+m) log n)` time and linear space.
 
-The standard runs in `O(s^(1/4) + log s)` time and `O(1)` extra space. The original solution scans `x = 1..min(h,s)` and is `O(s^(1/2))`; the new limit is `h,w,s <= 10^18`.
+The original official approach explicitly enumerates auxiliary-graph paths and is quadratic in the graph size on dense cases. The strengthened range is `sum n,sum m <= 10000`.

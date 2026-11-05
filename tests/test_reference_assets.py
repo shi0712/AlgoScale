@@ -19,7 +19,12 @@ class ReferenceAssetsTest(unittest.TestCase):
                 assets = problem.get("referenceAssets", {})
                 self.assertEqual(
                     set(assets),
-                    {"solution", "standardSolution", "originalStatement"},
+                    {
+                        "solution",
+                        "standardSolution",
+                        "originalStatement",
+                        "algoscaleStatement",
+                    },
                 )
                 for relative in assets.values():
                     self.assertTrue(relative.startswith("./references/"))
@@ -36,9 +41,17 @@ class ReferenceAssetsTest(unittest.TestCase):
         expected = sorted(
             f"{problem_id:03d}/{filename}"
             for problem_id in (problem["id"] for problem in self.catalog)
-            for filename in ("solution.md", "std.cpp", "original-statement.md")
+            for filename in (
+                "solution.md",
+                "std.cpp",
+                "original-statement.md",
+                "algoscale-statement.md",
+            )
         )
         self.assertEqual(files, expected)
+
+    def test_problem_ids_are_contiguous(self) -> None:
+        self.assertEqual([problem["id"] for problem in self.catalog], list(range(1, 86)))
 
 
 if __name__ == "__main__":

@@ -2,287 +2,109 @@
 using namespace std;
 using int64 = long long;
 
-struct BucketQueue {
-    array<int, 256> head{};
-    array<unsigned long long, 4> mask{};
-    unsigned groups = 0;
-    vector<pair<int,int>> nodes;
-
-    BucketQueue() { head.fill(-1); }
-
-    void clear() {
-        while (groups) {
-            int g = __builtin_ctz(groups);
-            while (mask[g]) {
-                int b = __builtin_ctzll(mask[g]);
-                head[g * 64 + b] = -1;
-                mask[g] &= mask[g] - 1;
-            }
-            groups &= groups - 1;
-        }
-        nodes.clear();
-    }
-
-    bool empty() const { return groups == 0; }
-
-    void push(int d, int u) {
-        nodes.emplace_back(u, head[d]);
-        head[d] = (int)nodes.size() - 1;
-        mask[d >> 6] |= 1ULL << (d & 63);
-        groups |= 1U << (d >> 6);
-    }
-
-    pair<int,int> pop() {
-        int g = __builtin_ctz(groups);
-        int b = __builtin_ctzll(mask[g]);
-        int d = g * 64 + b;
-        int p = head[d];
-        int u = nodes[p].first;
-        head[d] = nodes[p].second;
-        if (head[d] == -1) {
-            mask[g] &= ~(1ULL << b);
-            if (!mask[g]) groups &= ~(1U << g);
-        }
-        return {d, u};
-    }
+struct Block {
+    int l, r, z;
 };
 
-struct MinCostResidual {
-    struct Edge {
-        int to, next;
-        int64 cap, cost;
-    };
+static int64 solve_case(vector<int> a, int m) {
+    int n = (int)a.size();
+    int mn = *min_element(a.begin(), a.end());
+    for (int &x : a) x -= mn;
+    int V = *max_element(a.begin(), a.end());
 
-    int n;
-    vector<int> head;
-    vector<Edge> edges;
+    int64 C = -a[0];
+    for (int i = 1; i < n; ++i) C += max(0, a[i - 1] - a[i]);
 
-    explicit MinCostResidual(int n_) : n(n_), head(n_, -1) {}
+    int64 ans = (int64)V + C;
+    if (m == 1 || V == 0) return ans;
 
-    int addEdge(int u, int v, int64 cap, int64 cost, int64 revCap = 0) {
-        int id = (int)edges.size();
-        edges.push_back({v, head[u], cap, cost});
-        head[u] = id;
-        edges.push_back({u, head[v], revCap, -cost});
-        head[v] = id + 1;
-        return id;
-    }
+    vector<int> vals = a;
+    sort(vals.begin(), vals.end());
+    vals.erase(unique(vals.begin(), vals.end()), vals.end());
+    if ((int)vals.size() <= 2) return 0;
 
-    // Potentials are feasible on entry. Only reduced distances smaller than
-    // stopCost - potential[t] are relevant. In this problem the bound is <= 251.
-    int64 augmentUntil(int s, int t, int64 flowLimit, int64 stopCost,
-                       vector<int64>& potential) {
-        vector<int> dist(n), pre(n);
-        BucketQueue q;
-        int64 flow = 0;
+    vector<int> rank(V + 1, -1);
+    for (int i = 0; i < (int)vals.size(); ++i) rank[vals[i]] = i;
 
-        while (flow < flowLimit && potential[t] < stopCost) {
-            int bound = (int)(stopCost - potential[t]);
-            if (!(1 <= bound && bound <= 256)) {
-                throw runtime_error("internal bucket bound exceeded");
-            }
+    for (int D = 1; D <= V; ++D) {
+        int base = V - D;
+        int cut = upper_bound(vals.begin(), vals.end(), base) - vals.begin();
 
-            fill(dist.begin(), dist.end(), bound);
-            fill(pre.begin(), pre.end(), -1);
-            q.clear();
-            dist[s] = 0;
-            q.push(0, s);
+        vector<int> lows;
+        lows.reserve((int)vals.size() - cut + 1);
+        lows.push_back(base);
+        for (int j = cut; j < (int)vals.size(); ++j) lows.push_back(vals[j]);
+        int K = (int)lows.size();
 
-            while (!q.empty()) {
-                auto [du, u] = q.pop();
-                if (du != dist[u]) continue;
-                if (u == t) break;
+        auto index_of = [&](int x) -> int {
+            if (x <= base) return 0;
+            return rank[x] - cut + 1;
+        };
 
-                for (int id = head[u]; id != -1; id = edges[id].next) {
-                    const Edge& e = edges[id];
-                    if (e.cap == 0) continue;
-                    int64 rcost = e.cost + potential[u] - potential[e.to];
-                    if (rcost < 0) throw runtime_error("negative reduced cost");
-                    int64 nd = du + rcost;
-                    if (nd < dist[e.to]) {
-                        dist[e.to] = (int)nd;
-                        pre[e.to] = id;
-                        q.push((int)nd, e.to);
-                    }
+        vector<int64> diff(K + 1, 0);
+        auto add = [&](int l, int r, int w) {
+            if (l > r || w == 0) return;
+            diff[l] += w;
+            diff[r + 1] -= w;
+        };
+
+        deque<Block> dq;
+        dq.push_back({index_of(a[0]), K - 1, D});
+
+        for (int i = 1; i < n; ++i) {
+            if (a[i] > a[i - 1]) {
+                int cap = max(0, D - (a[i] - a[i - 1]));
+                int left = K;
+
+                while (!dq.empty() && dq.back().z > cap) {
+                    Block b = dq.back();
+                    dq.pop_back();
+                    add(b.l, b.r, b.z - cap);
+                    left = b.l;
                 }
-            }
 
-            int step = dist[t];
-            for (int v = 0; v < n; ++v) potential[v] += min(dist[v], step);
-            if (step == bound) break;
+                if (left < K && cap > 0) {
+                    if (!dq.empty() && dq.back().z == cap) dq.back().r = K - 1;
+                    else dq.push_back({left, K - 1, cap});
+                }
 
-            int64 add = flowLimit - flow;
-            for (int v = t; v != s; v = edges[pre[v] ^ 1].to)
-                add = min(add, edges[pre[v]].cap);
-            for (int v = t; v != s; v = edges[pre[v] ^ 1].to) {
-                int id = pre[v];
-                edges[id].cap -= add;
-                edges[id ^ 1].cap += add;
+                int first = index_of(a[i]);
+                while (!dq.empty() && dq.front().r < first) dq.pop_front();
+                if (!dq.empty()) dq.front().l = max(dq.front().l, first);
+            } else if (a[i] < a[i - 1]) {
+                int floorv = min(D, a[i - 1] - a[i]);
+                while (!dq.empty() && dq.front().z <= floorv) dq.pop_front();
+
+                int l = index_of(a[i]);
+                int r = dq.empty() ? K - 1 : dq.front().l - 1;
+                if (l <= r && floorv > 0) dq.push_front({l, r, floorv});
             }
-            flow += add;
         }
-        return flow;
+
+        for (const Block &b : dq) add(b.l, b.r, b.z);
+
+        int64 saved = 0;
+        for (int j = 0; j < K; ++j) {
+            saved += diff[j];
+            ans = min(ans, (int64)lows[j] + D + C - saved);
+        }
+        if (ans == 0) break;
     }
-};
+    return ans;
+}
 
-struct OriginalEdge {
-    int u, v;
-    int64 w;
-    int dualA, dualB; // -1 for vertical edges on the left/right boundary
-    int paid1 = -1, paid2 = -1;
-};
-
-int main(int argc, char** argv) {
+int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
-    bool objectiveOnly = (argc >= 2 && string(argv[1]) == "--objective-only");
 
     int T;
     if (!(cin >> T)) return 0;
     while (T--) {
-        int n, m, k;
-        cin >> n >> m >> k;
-        const int N = n * m;
-        const int dualS = (n - 1) * (m - 1);
-        const int dualT = dualS + 1;
-
-        vector<OriginalEdge> original;
-        original.reserve(n * (m - 1) + (n - 1) * m);
-        vector<vector<pair<int,int64>>> graph(N);
-
-        auto addOriginal = [&](int u, int v, int64 w, int a, int b) {
-            original.push_back({u, v, w, a, b});
-            graph[u].push_back({v, w});
-            graph[v].push_back({u, w});
-        };
-
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j + 1 < m; ++j) {
-                int64 w; cin >> w;
-                int a = (i == 0 ? dualS : (i - 1) * (m - 1) + j);
-                int b = (i == n - 1 ? dualT : i * (m - 1) + j);
-                addOriginal(i * m + j, i * m + j + 1, w, a, b);
-            }
-        }
-        for (int i = 0; i + 1 < n; ++i) {
-            for (int j = 0; j < m; ++j) {
-                int64 w; cin >> w;
-                int a = -1, b = -1;
-                if (0 < j && j + 1 < m) {
-                    a = i * (m - 1) + j;
-                    b = i * (m - 1) + j - 1;
-                }
-                addOriginal(i * m + j, (i + 1) * m + j, w, a, b);
-            }
-        }
-
-        const int64 INF = (1LL << 62);
-        vector<int64> h(N, INF);
-        priority_queue<pair<int64,int>, vector<pair<int64,int>>, greater<pair<int64,int>>> pq;
-        for (int i = 0; i < n; ++i) {
-            h[i * m] = 0;
-            pq.push({0, i * m});
-        }
-        while (!pq.empty()) {
-            auto [d, u] = pq.top(); pq.pop();
-            if (d != h[u]) continue;
-            for (auto [v, w] : graph[u]) {
-                if (d + w < h[v]) {
-                    h[v] = d + w;
-                    pq.push({h[v], v});
-                }
-            }
-        }
-
-        int64 D = INF;
-        for (int i = 0; i < n; ++i) D = min(D, h[i * m + (m - 1)]);
-        for (auto& x : h) x = min(x, D);
-
-        vector<int64> result(original.size());
-
-        if (n <= k) {
-            // Primal construction. First and last columns are contracted.
-            int s = 0, t = 1, V = 2;
-            vector<int> id(N);
-            for (int i = 0; i < n; ++i) {
-                for (int j = 0; j < m; ++j) {
-                    if (j == 0) id[i * m + j] = s;
-                    else if (j == m - 1) id[i * m + j] = t;
-                    else id[i * m + j] = V++;
-                }
-            }
-
-            MinCostResidual mf(V);
-            vector<int64> potential(V, 0);
-            for (int v = 0; v < N; ++v) potential[id[v]] = h[v];
-            for (const auto& e : original) {
-                int u = id[e.u], v = id[e.v];
-                if (u == v) continue;
-                mf.addEdge(u, v, 1, e.w);
-                mf.addEdge(v, u, 1, e.w);
-            }
-
-            mf.augmentUntil(s, t, n + 1, D + k, potential);
-            if (potential[t] != D + k) throw runtime_error("primal construction failed");
-
-            for (size_t i = 0; i < original.size(); ++i) {
-                const auto& e = original[i];
-                result[i] = max(e.w, llabs(potential[id[e.u]] - potential[id[e.v]]));
-            }
-        } else {
-            // Planar-dual construction. h induces a free dual flow of value D.
-            MinCostResidual mf(dualT + 1);
-            vector<int64> potential(dualT + 1, 0);
-
-            for (auto& e : original) {
-                if (e.dualA == -1) continue;
-                int64 f = h[e.v] - h[e.u];
-                if (llabs(f) > e.w) throw runtime_error("invalid induced dual flow");
-
-                mf.addEdge(e.dualA, e.dualB, e.w - f, 0, e.w + f);
-                e.paid1 = mf.addEdge(e.dualA, e.dualB, k, 1);
-                e.paid2 = mf.addEdge(e.dualB, e.dualA, k, 1);
-            }
-
-            int64 sent = mf.augmentUntil(dualS, dualT, k, n + 1, potential);
-            if (sent != k) throw runtime_error("dual construction failed");
-
-            for (size_t i = 0; i < original.size(); ++i) {
-                const auto& e = original[i];
-                result[i] = e.w;
-                if (e.dualA != -1) {
-                    result[i] += mf.edges[e.paid1 ^ 1].cap;
-                    result[i] += mf.edges[e.paid2 ^ 1].cap;
-                }
-            }
-        }
-
-        int64 answer = 0;
-        for (size_t i = 0; i < original.size(); ++i) {
-            if (result[i] < original[i].w || result[i] > 2000000000LL)
-                throw runtime_error("invalid output edge weight");
-            answer += result[i] - original[i].w;
-        }
-
-        cout << answer << '\n';
-        if (objectiveOnly) continue;
-
-        size_t p = 0;
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j + 1 < m; ++j) {
-                if (j) cout << ' ';
-                cout << result[p++];
-            }
-            cout << '\n';
-        }
-        for (int i = 0; i + 1 < n; ++i) {
-            for (int j = 0; j < m; ++j) {
-                if (j) cout << ' ';
-                cout << result[p++];
-            }
-            cout << '\n';
-        }
+        int n, m;
+        cin >> n >> m;
+        vector<int> a(n);
+        for (int &x : a) cin >> x;
+        cout << solve_case(a, m) << '\n';
     }
     return 0;
 }

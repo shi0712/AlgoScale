@@ -1,100 +1,76 @@
-# 82. The Last Singer
-
 ## Problem Description
 
 This is an interactive problem.
 
-A hidden lock has $n$ dials, represented by $a_1,\ldots,a_n$, where every value lies in $[1,n]$. Initially the values are not all equal.
+There is a hidden permutation $p_1,p_2,\ldots,p_n$ of the integers $1,2,\ldots,n$.
 
-One operation chooses position $p$ and advances that dial by one cyclic step:
+You may query an interval $[l,r]$. The interactor returns the parity of the number of inversions inside that interval:
 
-$$a_p\leftarrow(a_p\bmod n)+1.$$
+$$
+\left(\sum_{l\le i<j\le r}[p_i>p_j]\right)\bmod 2,
+$$
 
-After the operation, the judge reports whether some **other** position has the same value as the newly changed $a_p$.
+where $[p_i>p_j]$ equals $1$ when $p_i>p_j$, and $0$ otherwise.
 
-Make all dial values equal using at most $\left\lceil3n(n+1)/2\right\rceil$ operations. The final common value can be any number in $[1,n]$.
+Determine the entire hidden permutation.
 
 ## Input Format
 
 Read from standard input.
 
-First read the number of test cases $T$. At the start of each case, read $n$; the hidden array itself is not supplied.
+First read the integer $n$. The hidden permutation itself is not supplied.
 
-After each valid query, read one integer:
-
-- `0`: no other dial equals the changed dial;
-- `1`: at least one other dial equals the changed dial;
-- `-1`: an illegal operation or an exceeded operation budget; terminate the entire program immediately.
+After every valid query, read one integer: the inversion-count parity of the queried interval.
 
 ## Output Format
 
 Write to standard output.
 
-To advance dial $p$, print:
+To query an interval, print:
 
 ```text
-? p
+? l r
 ```
 
-End the line and flush output before reading the response. When you believe every value is equal, print:
+where $l$ and $r$ are valid interval endpoints. End the line and flush the output before reading the response.
+
+To report the hidden permutation, print:
 
 ```text
-!
+! p_1 p_2 ... p_n
 ```
 
-Then proceed directly to the next test case. This declaration does not count as an operation. A declaration made before all values are equal results in Wrong Answer.
+The final answer does not count as a query. Terminate the program after printing it.
 
-Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, `flush(output)` in Pascal, and `sys.stdout.flush()` in Python. Failing to flush queries may cause an idleness or time-limit verdict.
+Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, `flush(output)` in Pascal, and `sys.stdout.flush()` in Python. Failing to flush a query may cause an idleness or time-limit verdict.
 
 ## Examples
 
-Input received:
+The table shows one possible complete interaction in chronological order. A blank cell means that the other side sends the next message.
 
-```text
-1
-4
-1
-1
-0
-1
-```
-
-Output emitted:
-
-```text
-? 1
-? 3
-? 4
-? 4
-!
-```
-
-The first two input values are $T=1$ and $n=4$. Each remaining value is the response to the next query; they are not an ordinary batch input that can be read in advance.
+| Judge sends | Program sends |
+| --- | --- |
+| `3` | |
+| | `? 1 2` |
+| `0` | |
+| | `? 1 3` |
+| `0` | |
+| | `? 2 3` |
+| `1` | |
+| | `! 2 3 1` |
 
 ## Explanation / Notes
 
-The hidden array in the example starts as $[1,2,1,4]$. Its successive states are:
+The hidden permutation is fixed before the interaction begins. The interactor is **non-adaptive**: it does not change the permutation in response to your queries.
 
-| Query | New state | Reply |
-| --- | --- | ---: |
-| `? 1` | $[2,2,1,4]$ | 1 |
-| `? 3` | $[2,2,2,4]$ | 1 |
-| `? 4` | $[2,2,2,1]$ | 0 |
-| `? 4` | $[2,2,2,2]$ | 1 |
-
-The program then declares success with `!`. A reply of `1` merely means that the dial just changed has a matching value elsewhere; it does **not** by itself certify that every dial is equal.
+The transcript above is only an example. The judge responses depend on the hidden permutation and are not ordinary batch input that can be read in advance.
 
 ## Constraints
 
-- $1\le T\le100$.
-- $3\le n\le100$ in each case.
-- Across all test cases, $\sum n\le10^3$.
-- Every hidden value always belongs to $[1,n]$.
-- The hidden initial values are not all equal.
-- Each query position satisfies $1\le p\le n$.
-- One query advances exactly one dial by exactly one step, with $n$ wrapping to $1$.
-- Per case, at most $\left\lceil3n(n+1)/2\right\rceil$ operations are permitted; success declarations do not consume this budget.
-- Query replies are `0` or `1`, with `-1` reserved for illegal interaction or an exceeded budget.
-- On `-1`, stop immediately rather than attempting to continue to another case.
-- Every query must end with a newline and be flushed.
-- Time limit: **2 seconds**. Memory limit: **1024 MB**.
+- $1\le n\le2000$.
+- $(p_1,p_2,\ldots,p_n)$ is a permutation of $(1,2,\ldots,n)$.
+- Every query satisfies $1\le l\le r\le n$.
+- At most $4\times10^4$ queries may be issued.
+- Every query response is either $0$ or $1$.
+- The interactor is non-adaptive.
+- Time limit: **1 second**. Memory limit: **1024 MB**.

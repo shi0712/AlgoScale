@@ -1,24 +1,24 @@
-# 16. DFS Order 4
-
 ## Problem Description
 
-Consider all rooted trees on vertices $1,\ldots,n$ with root 1 such that the parent $f_i$ of vertex $i$ satisfies $1\le f_i<i$ for $i=2,\ldots,n$.
+There are $n$ elements. Element $i$ has value $w_i$, operation cost $p_i$, and a pointer to element $a_i$. Each element has a binary color $c_i$.
 
-For each tree, run depth-first search from vertex 1. Append a vertex to the order when first visiting it, and visit its children in increasing vertex-label order. Thus each tree produces one deterministic DFS preorder.
+Initially, $c_s=1$ and every other color is 0. An operation on index $i$ replaces its color by the current color of the pointed-to element:
 
-There are $(n-1)!$ possible parent arrays. Count how many different DFS orders they produce, modulo the supplied prime $P$. Orders are different when some position contains different vertices.
+$$c_i\leftarrow c_{a_i},$$
+
+and costs $p_i$. Perform any finite number of operations, possibly zero. Your final score is the sum of $w_i$ over elements whose final color is 1, minus the total cost of all operations. Find the maximum possible score.
 
 ## Input Format
 
 Read from standard input.
 
-Read two integers $n,P$.
+Read $n,s$, then three lines containing $w_1,\ldots,w_n$, $p_1,\ldots,p_n$, and $a_1,\ldots,a_n$, respectively.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of distinct DFS orders modulo $P$.
+Print the maximum score as one integer.
 
 ## Examples
 
@@ -27,27 +27,29 @@ Print the number of distinct DFS orders modulo $P$.
 Input:
 
 ```text
-4 114514199
+3 1
+-1 -1 2
+1 0 0
+3 1 2
 ```
 
 Output:
 
 ```text
-2
+1
 ```
 
 ## Explanation / Notes
 
-For $n=4$, the two possible orders are $[1,2,3,4]$ and $[1,2,4,3]$. They can be obtained from parent arrays $(f_2,f_3,f_4)=(1,1,1)$ and $(1,1,2)$, respectively.
-
-The number of distinct orders is requested, so different trees producing the same order count only once.
+In the example, operate on elements $2,1,3,2$ in that order. The color arrays become $[1,1,0]$, $[0,1,0]$, $[0,1,1]$, and $[0,0,1]$. The only final contribution is $w_3=2$, and the total cost is 1, giving the optimal score 1.
 
 ## Constraints
 
 - One test case.
-- $1\le n\le800$.
-- $10^8\le P\le1.01\times10^9$.
-- $P$ is guaranteed to be prime.
-- Every considered tree has root 1 and satisfies $1\le f_i<i$.
-- Child visitation order is increasing by label; it is not a free choice.
+- $1\le s\le n\le5000$.
+- $-10^9\le w_i\le10^9$; values may be negative.
+- $0\le p_i\le10^9$; zero-cost operations are allowed.
+- $1\le a_i\le n$ and $a_i\ne i$ for every index.
+- Initially only element $s$ has color 1.
+- The same index may be operated on repeatedly; each operation incurs its cost.
 - Time limit: 2 seconds; memory limit: 1024 MB.

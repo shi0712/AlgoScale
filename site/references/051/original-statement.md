@@ -1,67 +1,68 @@
-# 51. Tree Transform
-
 ## Problem Description
 
-Given two labeled, unrooted trees $S,T$ on the same $n$ vertices, transform $S$ into $T$ using at most $10^4$ operations.
+A simple undirected graph has $N$ vertices, each of degree exactly $N-3$. Its adjacency matrix is supplied as binary strings.
 
-An operation selects four distinct vertices $x,y,z,w$ that form the consecutive path $x-y-z-w$ in the **current** tree. Remove its three edges, then add three edges whose endpoints all belong to $\{x,y,z,w\}$. After the replacement, the whole graph must still be a tree.
+Assign a positive integer color to every edge so that any two edges sharing a vertex have different colors. The edge chromatic number is the smallest possible maximum color in such an assignment.
 
-Produce a valid sequence within the operation budget, or report that none exists.
+Find this minimum number $C$ and produce an edge coloring that attains it.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, then $n-1$ pairs describing the edges of $S$, followed by another $n-1$ pairs describing the edges of $T$.
+Read $N$, followed by $N$ binary strings $S_1,\ldots,S_N$, each of length $N$. Character $j$ of $S_i$ is `1` precisely when edge $\{i,j\}$ exists.
 
 ## Output Format
 
 Write to standard output.
 
-If no permitted transformation exists within the budget, print `NO`.
+Print $C$, followed by an $N\times N$ integer matrix $c$.
 
-Otherwise print `YES`, then the operation count $m$. For every operation, print two lines:
+- If edge $\{i,j\}$ exists, $c_{i,j}=c_{j,i}$ is its assigned positive color, at most $C$.
+- If the edge does not exist, print $c_{i,j}=-1$.
+- Every diagonal entry must be $-1$.
 
-1. $x\ y\ z\ w$, describing the path to remove from the current tree;
-2. $a_1\ b_1\ a_2\ b_2\ a_3\ b_3$, describing the three replacement edges.
-
-The final edge set must equal that of $T$. Any valid sequence with $0\le m\le10^4$ is accepted.
+Any optimal valid coloring is accepted.
 
 ## Examples
 
 Input:
 
 ```text
-4
-1 2
-1 3
-1 4
-1 2
-2 3
-3 4
+5
+01001
+10100
+01010
+00101
+10010
 ```
 
 Output:
 
 ```text
-NO
+3
+-1 2 -1 -1 1
+2 -1 3 -1 -1
+-1 3 -1 1 -1
+-1 -1 1 -1 3
+1 -1 -1 3 -1
 ```
 
 ## Explanation / Notes
 
-Tree equality uses vertex labels: the same unordered endpoint pairs must be edges in both trees. An isomorphic shape with different labels is insufficient.
+The example graph is a cycle of length 5. Its edges cannot alternate between only two colors around the odd cycle. The displayed coloring uses three colors and is optimal.
 
-In the example, the initial star has no path on four distinct vertices, so no operation is possible. It differs from the target path, so the answer is `NO`.
+Colors belong to edges, not to vertices. Nonedges must be represented by $-1$, rather than by color zero.
 
 ## Constraints
 
-- $4\le n\le100$.
-- Both input graphs are guaranteed to be trees with vertex labels in $[1,n]$.
-- Every printed vertex label must lie in $[1,n]$.
-- Each operation uses four pairwise distinct vertices forming a three-edge path at that exact stage.
-- Every new edge endpoint must be one of those four vertices.
-- The graph must remain a tree after **every** complete operation, not only at the end.
-- The final graph must have exactly the target's labeled edge set.
-- The number of operations must satisfy $0\le m\le10^4$.
-- Time limit: 1 second.
-- Memory limit: 256 MB.
+- There is one input instance.
+- $4\le N\le300$.
+- Each adjacency row has exactly $N$ characters, each `0` or `1`.
+- The graph is simple and undirected: the matrix is symmetric and its diagonal is zero.
+- Every vertex has degree exactly $N-3$.
+- Consequently, the number of edges is exactly $N(N-3)/2$.
+- All actual edge colors must be positive integers, with distinct colors on edges incident to a common vertex.
+- The reported $C$ must be minimal; a proper coloring using more than the optimal number is insufficient.
+- Time limit: 3 seconds.
+- Memory limit: 1024 MB.

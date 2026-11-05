@@ -1,63 +1,58 @@
-# 48. Steadily Growing Steam
-
 ## Problem Description
 
-There are $n$ cards. Card $i$ has an integer value $v_i$ and a positive point number $t_i$.
+A tree with $n$ vertices is rooted at vertex 1. There are $m$ specified paths. Path $i$ joins $a_i$ to $b_i$, and $a_i$ is an ancestor of $b_i$, possibly the same vertex.
 
-First choose at most $k$ distinct cards and double their point numbers, at most once each. Then choose two disjoint sets of cards $S,T$ whose point-number sums, after those doublings, are equal. Cards outside $S\cup T$ may be left unused.
-
-Maximize the total value
-
-$$\sum_{i\in S\cup T}v_i.$$
-
-Doubling changes a card's point number only, not its value.
+Repeatedly choose a vertex uniformly at random from all $n$ vertices and delete every remaining specified path that contains it. Stop when all specified paths have been deleted. Determine the expected number of operations, represented modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n,k$. Each of the next $n$ lines contains $v_i,t_i$, in that order.
+Read $n,m$. The second line supplies $n-1$ parent values: its $i$-th entry is the parent of vertex $i+1$. Then read $m$ lines containing path endpoints $a_i,b_i$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the maximum total value of the selected cards as one integer.
+If the expectation in lowest terms is $x/y$, print the unique integer $d\in[0,998244352]$ satisfying
+
+$$dy\equiv x\pmod{998244353}.$$
+
+It is guaranteed that the expectation is finite and $y$ is not divisible by the modulus.
 
 ## Examples
 
 Input:
 
 ```text
-4 1
-10 1
--5 3
-5 1
-6 1
+3 3
+1 1
+1 2
+3 3
+1 1
 ```
 
 Output:
 
 ```text
-21
+499122181
 ```
 
 ## Explanation / Notes
 
-In the sample, double the point number of card 1. Then take $S=\{1\}$ and $T=\{3,4\}$. Both point sums are 2, and the combined value is $10+5+6=21$.
+Deleting a specified path does not delete tree vertices or edges. Each later draw still uses all $n$ vertices, including vertices drawn earlier. An operation may remove no paths.
 
-It is not necessary to select all cards or to use all $k$ doublings. Both selected sets may be empty; therefore a zero-value choice is always available, even when some card values are negative.
+A path includes both endpoints, so $a_i=b_i$ describes a one-vertex path. In the sample, completion requires that vertices 1 and 3 both have been drawn; the expectation is $9/2$, represented by the sample answer modulo $998244353$.
 
 ## Constraints
 
 - There is one input instance.
-- $1\le n\le100$.
-- $0\le k\le n$.
-- $-10^9\le v_i\le10^9$.
-- Initially $1\le t_i\le13$.
-- All inputs are integers.
-- At most $k$ distinct cards are doubled; no card may be doubled more than once.
-- A doubled point number equals $2t_i$, hence lies in $[2,26]$; an undoubled one remains unchanged.
-- $S\cap T=\varnothing$, and their final point-number sums must be equal. Their union need not contain every card.
-- Time limit: 1 second.
-- Memory limit: 512 MB.
+- $1\le n,m\le300$.
+- For every vertex $i=2,\ldots,n$, its parent $\mathrm{fa}_i$ satisfies $0<\mathrm{fa}_i<i$.
+- Every specified path satisfies $1\le a_i\le b_i\le n$.
+- Additionally, $a_i$ lies on the route from $b_i$ to root 1; the numerical endpoint inequality alone is not the entire path guarantee.
+- Each draw is uniform over $[1,n]$ and later draws may repeat earlier choices.
+- Specified paths need not be distinct.
+- The reduced expectation has a denominator invertible modulo $998244353$.
+- Time limit: 2 seconds.
+- Memory limit: 256 MB.

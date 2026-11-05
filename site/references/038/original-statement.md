@@ -1,62 +1,65 @@
-# 38. Discrete Fourier Transform
-
 ## Problem Description
 
-For integers $f_0,\ldots,f_{n-1}$, define
+The ground is a piecewise-linear profile through points $(x_1,y_1),\ldots,(x_n,y_n)$ in increasing horizontal order. Build a horizontal bridge at elevation $h$ from $x_1$ to $x_n$.
 
-$$F_t=\sum_{s=0}^{n-1} f_s\exp\left(-\frac{2\pi\mathrm{i}st}{n}\right),\qquad 0\le t<n,$$
+Pillars must be placed at the first and last profile points; additional pillars may be placed only at other supplied points. A pillar at $(x_i,y_i)$ has height $h-y_i$. Between consecutive pillars a distance $d$ apart, the bridge has a semicircular arch of radius $r=d/2$, with its highest point at elevation $h$. The arch may touch the ground but may never lie below it.
 
-where $\mathrm{i}^2=-1$ and $\exp(\mathrm{i}\theta)=\cos\theta+\mathrm{i}\sin\theta$.
+For pillar heights $h_1,\ldots,h_k$ and consecutive horizontal gaps $d_1,\ldots,d_{k-1}$, the cost is
 
-The index $k$ is fixed. Replace $f_k$ by any integer and minimize
+$$\alpha\sum_{j=1}^{k}h_j+\beta\sum_{j=1}^{k-1}d_j^2.$$
 
-$$\max_{0\le t<n}|F_t|.$$
-
-Here $|p+q\mathrm{i}|=\sqrt{p^2+q^2}$ is the complex modulus.
+Find the minimum cost, or determine that no valid bridge can be built.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n,k$. The second line contains $f_0,f_1,\ldots,f_{n-1}$ in that order. Indices are zero-based.
+Read $n,h,\alpha,\beta$. The next $n$ lines contain $x_i,y_i$ in increasing order of $x_i$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum achievable maximum complex modulus as a real number. For submitted value $a$ and reference value $b$, the acceptance condition is
-
-$$\frac{|a-b|}{\max(1,|b|)}\le10^{-9}.$$
+Print the minimum cost. If no valid construction exists, print the lowercase word `impossible`.
 
 ## Examples
 
 Input:
 
 ```text
-3 2
-1 1 0
+4 10 1 1
+0 0
+1 9
+9 9
+10 0
 ```
 
 Output:
 
 ```text
-2.0
+impossible
 ```
 
 ## Explanation / Notes
 
-Only the entry at the supplied index $k$ may change. Its new value must be an integer, but it is **not** restricted to the input range $[-2000,2000]$; any integer is allowed.
+For pillars at horizontal positions $a<b$, put $r=(b-a)/2$ and $c=(a+b)/2$. The arch elevation at $x\in[a,b]$ is
 
-The unchanged choice is permitted. For the sample, retaining the last entry as 0 yields a maximum modulus of 2, which is optimal.
+$$h-r+\sqrt{r^2-(x-c)^2}.$$
+
+The ground profile must be at or below this curve throughout the span. The bridge height $h$ is an elevation above sea level, not a clearance measured independently from the changing ground.
+
+For the example, no valid bridge can be constructed, so the answer is `impossible`.
 
 ## Constraints
 
 - There is one input instance.
-- $1\le n\le2000$.
-- $0\le k<n$.
-- Initially, every $f_i$ is an integer satisfying $-2000\le f_i\le2000$.
-- The replacement value of $f_k$ is an arbitrary integer; no finite replacement bound is specified.
-- The transform contains $n$ complex values indexed from 0 through $n-1$.
-- The required absolute/relative error is at most $10^{-9}$ under the formula in Output Format.
-- Time limit: 2 seconds.
-- Memory limit: 512 MB.
+- $2\le n\le10^4$.
+- $1\le h\le10^5$.
+- $1\le\alpha,\beta\le10^4$.
+- $0\le x_1<x_2<\cdots<x_n\le10^5$.
+- Every ground elevation satisfies $0\le y_i<h$; the upper inequality is strict.
+- All supplied values are integers.
+- Only supplied profile points may support pillars; the first and last must do so.
+- Contact between an arch and the ground is allowed. Extending below the ground is forbidden.
+- The problem does not guarantee that a feasible bridge exists.
+- Time limit: 10 seconds.

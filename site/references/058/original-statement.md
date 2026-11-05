@@ -1,56 +1,56 @@
-# 58. Iroha and the Kingdom of Construction
-
 ## Problem Description
 
-A deck contains $2n$ cards. Its ranks are $1,\ldots,n$, each occurring exactly twice. Process the cards in their given order, placing each card on top of one of at most **260 stacks**.
+There are $n$ casinos and $m+1$ players. You are player $m+1$. The other players have already placed their dice: $a_{i,j}$ is player $j$'s dice count at casino $i$. Choose a nonnegative integer $b_i$ giving your dice count at each casino.
 
-After all cards have been placed, the stacks must allow complete removal of every card using this operation: choose two different nonempty stacks whose top cards have equal rank, and remove both top cards simultaneously.
+A casino is resolved independently:
 
-Output a stack assignment that makes complete removal possible. You need not output the removal sequence.
+1. Every dice count shared by at least two players is cancelled: all dice belonging to those players at this casino are removed.
+2. Among the remaining dice, the player with the largest positive count wins. If no dice remain, nobody wins.
+
+Let $w_j$ be the number of casinos won by player $j$. Your placement must satisfy $w_{m+1}\ge w_j$ for every other player, so a tie for the most casino wins is sufficient. Minimize $\sum_{i=1}^{n}b_i$ and output an optimal placement.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n$. The second line contains the $2n$ ranks $a_1,\ldots,a_{2n}$, in processing order.
+The first line contains the number of test cases $T$.
+
+For each test case, read $n,m$, followed by $n$ rows of $m$ integers. Entry $a_{i,j}$ describes the existing dice of player $j$ at casino $i$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $2n$ integers $c_1,\ldots,c_{2n}$. Card $i$ is pushed onto stack $c_i$, where $1\le c_i\le260$.
-
-Any valid assignment is accepted. Unused stacks are allowed.
+For each test case, print $n$ integers $b_1,\ldots,b_n$ describing a minimum-total placement. Each output count must be between $0$ and $10^9$. An optimal placement within this range always exists. Any optimal placement is accepted.
 
 ## Examples
 
 Input:
 
 ```text
-3
-1 2 3 1 3 2
+1
+1 4
+20 0 20 0
 ```
 
 Output:
 
 ```text
-1 1 1 2 2 3
+0
 ```
 
 ## Explanation / Notes
 
-The shown sample assignment produces stacks $[1,2,3]$, $[1,3]$, and $[2]$, listed from bottom to top. The other 257 stacks are empty. Remove rank 3 from stacks 1 and 2, rank 2 from stacks 1 and 3, and finally rank 1 from stacks 1 and 2.
-
-The deck is generated randomly as specified below. You do not need to minimize the number of stacks; using at most 260 is sufficient.
+The two existing counts of 20 cancel one another. Every remaining count is zero, so nobody wins the casino. Placing zero dice leaves every player with zero wins and meets the requirement with the minimum possible total.
 
 ## Constraints
 
-- $1\le n\le5\times10^5$.
-- There are exactly $2n$ input cards.
-- $1\le a_i\le n$, with integer ranks.
-- Each rank in $\{1,\ldots,n\}$ occurs exactly twice.
-- Each input deck is selected **uniformly at random** from all length-$2n$ sequences satisfying the multiplicity condition.
-- The test set consists of exactly 50 instances, including the sample. Each run receives one instance.
-- Every output stack index must satisfy $1\le c_i\le260$.
-- A removal must use two **different** stacks.
-- Time limit: **3 seconds**. Memory limit: **512 MB**.
+- $1\le T\le100$.
+- $1\le n,m\le50$ in each test case.
+- $0\le a_{i,j}\le10^8$; all input values are integers.
+- At most **three test cases** have $n>20$ **or** $m>20$.
+- Each chosen value must satisfy $0\le b_i\le10^9$.
+- A feasible optimal answer exists within the permitted output range.
+- Zero dice do not constitute a winning positive count.
+- A tie in the number of casino wins is allowed; ties in dice counts within one casino cause cancellation instead.
+- Time limit: **3 seconds**. Memory limit: **1024 MB**.

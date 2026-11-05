@@ -1,64 +1,62 @@
-# 36. Rolling For Days
-
 ## Problem Description
 
-A pool contains $n$ cards in $m$ types. Type $i$ initially has $a_i$ cards, and the target collection requires $b_i$ cards of that type.
+Initially, an undirected tree has vertices $1,\ldots,n$. Process a sequence of $n-1$ distinct original vertices.
 
-Each refresh draws one card uniformly from the cards currently remaining in the pool. If the target still needs that type, keep the card and remove it from the pool. Otherwise, immediately return it to the pool. Continue until all target counts have been collected.
+When processing vertex $x$, first create a new vertex $x+n$. For every original vertex $i$ adjacent to $x$ in the original tree:
 
-Compute the expected number of refreshes. Represent this rational expectation modulo $998244353$.
+- If vertex $i+n$ does not yet exist, add edge $(x+n,i)$.
+- Otherwise, add edge $(x+n,i+n)$ and delete edge $(x,i+n)$. The latter edge is guaranteed to exist at this stage.
+
+After each operation, report the number of spanning trees of the current graph modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-Read three lines:
-
-1. $n,m$;
-2. $a_1,\ldots,a_m$;
-3. $b_1,\ldots,b_m$.
+Read $n$. The next $n-1$ lines contain tree edges $u,v$. The final sequence contains $n-1$ distinct integers $b_1,\ldots,b_{n-1}$, the original vertices to process in order.
 
 ## Output Format
 
 Write to standard output.
 
-Let the expectation in lowest terms be $p/q$. Print
-
-$$p\,q^{-1}\pmod{998244353}$$
-
-as an integer from 0 through $998244352$. It is guaranteed that the denominator is not divisible by the modulus.
+Print $n-1$ lines. Line $i$ contains the spanning-tree count after processing $b_i$, modulo $998244353$.
 
 ## Examples
 
 Input:
 
 ```text
-2 2
-1 1
-1 1
+5
+1 2
+1 3
+2 4
+2 5
+1 5 2 3
 ```
 
 Output:
 
 ```text
-2
+4
+4
+6
+1
 ```
 
 ## Explanation / Notes
 
-A returned card remains available for later refreshes. A kept card is no longer eligible to be drawn. Sampling is uniform over individual remaining cards, so the probability of a type depends on its current multiplicity.
+An operation preserves the original edges $(x,i)$. The edge deletion in the second rule concerns $(x,i+n)$, which was created earlier; no other edge is removed.
 
-In the example, both cards are required, so every draw keeps a card and exactly two refreshes are needed. If every $b_i$ is zero, the target is already complete and the expectation is zero.
+A spanning tree includes every vertex currently present. After $j$ operations, the graph has $n+j$ vertices. When $n=1$, the operation sequence and required output are both empty.
 
 ## Constraints
 
-- There is one input instance.
-- $1\le n\le1000$.
-- $1\le m\le12$.
-- $1\le a_i\le n$ and $\sum_{i=1}^{m}a_i=n$.
-- $0\le b_i\le a_i$ for every type.
-- All input counts are integers.
-- Empty target requirements are allowed, including $b_i=0$ for every type.
-- For the reduced expectation $p/q$, $q\not\equiv0\pmod{998244353}$.
-- Time limit: 2 seconds.
-- Memory limit: 1024 MB.
+- $1\le n\le5000$.
+- Every input edge has endpoints in $[1,n]$.
+- The $n-1$ input edges form a valid tree.
+- $1\le b_i\le n$, and the $n-1$ sequence entries are pairwise distinct.
+- Each original vertex is processed at most once; exactly one original vertex is never processed.
+- New vertex labels are $n+1$ through $2n$, but only labels corresponding to processed vertices are created.
+- Counts are taken modulo $998244353$.
+- Time limit: 1 second.
+- Memory limit: 256 MB.

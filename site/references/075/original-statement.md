@@ -1,80 +1,49 @@
-# 75. Edit
-
 ## Problem Description
 
-Transform one weighted rooted tree into another at minimum cost. The children of every vertex have a fixed left-to-right order. The allowed operations are:
+An elevator starts at floor `start` at time zero in a building with floors $0,\ldots,n-1$. Each second, it can move one floor upward, move one floor downward, or wait.
 
-1. **Growing.** Add a new leaf $z$ as a child of $x$, inserting it anywhere in $x$'s ordered child list. If the new edge has weight $w$, the cost is $c_1w$.
-2. **Expansion.** Choose a nonempty consecutive group of children $y_l,\ldots,y_r$ of $x$. Add a new vertex $z$ between $x$ and that group. Replace the group in $x$'s list by $z$, and make $y_l,\ldots,y_r$ the ordered children of $z$. Their incident edge weights remain unchanged. If the new edge $(x,z)$ has weight $w$, the cost is $c_1w$.
-3. **Contraction.** Choose a child $y$ of $x$, delete $y$ and edge $(x,y)$, and splice $y$'s ordered children into $x$'s child list at $y$'s former position. Their incident edge weights remain unchanged. If the removed edge has weight $w$, the cost is $c_2w$.
-4. **Relabeling.** Change an edge weight from $w_1$ to $w_2$, at cost $c_3|w_1-w_2|$.
+There are $m$ requests. Request $i$ specifies arrival time $a_i$ and floor $f_i$. It completes instantly whenever the elevator occupies $f_i$ at time $t\ge a_i$.
 
-Two restrictions apply throughout the sequence of operations:
-
-- An edge newly added by growing or expansion cannot later be relabeled.
-- An edge that has been relabeled cannot later be contracted.
-
-The resulting tree must match the target under a vertex bijection preserving the root, child order, and every corresponding edge weight. Vertex names themselves need not match.
+Minimize the time when every request has completed.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the cost coefficients $c_1,c_2,c_3$.
+The first line contains three integers $n$, $\texttt{start}$, and $m$: the number of floors, the initial floor, and the number of requests.
 
-Two tree descriptions follow, first the initial tree and then the target tree. Each description begins with its vertex count $n$, followed by $n$ vertex records. A record starts with the number of children $k$, followed by $k$ ordered pairs
-
-```text
-child_1 weight_1 child_2 weight_2 ... child_k weight_k
-```
-
-The listed order is the left-to-right child order. A leaf has a record containing only `0`.
+Each of the next $m$ lines contains two integers $a_i$ and $f_i$, describing the arrival time and floor of one request.
 
 ## Output Format
 
 Write to standard output.
 
-Print one integer: the minimum total transformation cost.
+Print one integer: the minimum time by which all requests can be completed.
 
 ## Examples
 
 Input:
 
 ```text
-1 1 2
-4
-2 2 5 4 2
-1 3 1
-0
-0
-3
-2 2 1 3 2
-0
-0
+9 0 2
+0 8
+6 5
 ```
 
 Output:
 
 ```text
-5
+9
 ```
 
 ## Explanation / Notes
 
-In the sample, contract the weight-5 edge from the initial root to its first child. This promotes the weight-1 edge below that child to the root. The root is then incident to two ordered leaf edges of weights 1 and 2, matching the target. The cost is $1\cdot5=5$.
-
-An expansion groups a consecutive interval of children, so it cannot arbitrarily reorder them. Similarly, contraction preserves the order of the promoted children and of the surrounding siblings. A contracted leaf simply disappears.
+Move from floor 0 to floor 5, arriving at time 5. Wait until time 6 to complete the request at floor 5, then continue to floor 8 and finish at time 9. This is the minimum possible completion time.
 
 ## Constraints
 
-- $1\le c_1,c_2,c_3\le10^6$; these coefficients are integers.
-- The initial tree has at most **50** vertices.
-- The target tree has at most **2000** vertices.
-- Both inputs are weighted rooted trees with ordered child lists.
-- Each vertex record contains exactly $k$ child/weight pairs after its child count.
-- A tree with $n$ vertices has $n-1$ parent-child edges; each non-root vertex has exactly one parent.
-- Expansion requires $1\le l\le r\le k$ for the selected parent's current child list.
-- Newly introduced growing/expansion edges cannot be relabeled; relabeled edges cannot be contracted.
-- Time limit: **3 seconds**. Memory limit: **1024 MiB**.
-
-An unambiguous numeric range for edge weights and an explicit root-label convention are not specified.
+- $1\le n\le10^9$.
+- $1\le m\le500$.
+- $0\le a_i\le10^9$.
+- $0\le\texttt{start},f_i\le n-1$.
+- Requests need not be ordered by arrival time, and request times and floors may repeat.

@@ -1,24 +1,25 @@
-# 22. EI Gave Me a Zero
-
 ## Problem Description
 
-For given positive integers $n,m$, count arrays $a_1,\ldots,a_n$ with $1\le a_i\le m$ for which there is no pair $1\le i<j\le n$ satisfying
+For a permutation $p$ of $1,\ldots,n$, define:
 
-$$\max_{1\le k\le i}a_k=\min_{j\le k\le n}a_k.$$
+- Its number of excedances: the number of indices $i\in[1,n]$ with $p_i>i$.
+- Its number of descents: the number of indices $i\in[1,n-1]$ with $p_i>p_{i+1}$.
 
-Return the count modulo $998244353$.
+Let $h(n,m,k)$ count the permutations with exactly $m$ excedances and $k$ descents. Compute every $h(n,m,k)$ for the given $n$, modulo $M$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $T$, followed by $T$ lines, each containing $n,m$.
+Read $n,M$ on one line.
 
 ## Output Format
 
 Write to standard output.
 
-For each test case, print its count modulo $998244353$ on a separate line.
+Print $n$ rows of $n$ integers. Entry $(i,j)$, using one-based row and column indices, must be
+
+$$h(n,i-1,j-1)\bmod M.$$
 
 ## Examples
 
@@ -27,26 +28,31 @@ For each test case, print its count modulo $998244353$ on a separate line.
 Input:
 
 ```text
-1
-3 2
+3 998244353
 ```
 
 Output:
 
 ```text
-2
+1 0 0
+0 3 1
+0 1 0
 ```
 
 ## Explanation / Notes
 
-The forbidden equality compares a nonempty prefix with a nonempty suffix, and their endpoints must satisfy $i<j$. They need not be adjacent. Arrays are distinguished by their ordered entries.
+For $n=3$, the permutations grouped by (excedances, descents) are:
+
+- $(0,0)$: $[1,2,3]$.
+- $(1,1)$: $[2,1,3]$, $[3,1,2]$, $[1,3,2]$.
+- $(1,2)$: $[3,2,1]$.
+- $(2,1)$: $[2,3,1]$.
 
 ## Constraints
 
-- $1\le T\le10^5$.
-- $1\le n\le300$.
-- $1\le m\le10^9$.
-- Every counted array entry lies in $[1,m]$.
+- One test case.
+- $1\le n\le60$.
+- $10^8\le M\le10^9$, and $M$ is prime.
+- Both output statistics range from 0 to $n-1$.
 
-- Modulus: $998244353$.
-- Time limit: 2 seconds; memory limit: 256 MB.
+- Time limit: 3 seconds; memory limit: 1024 MB.

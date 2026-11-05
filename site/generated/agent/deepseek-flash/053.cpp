@@ -1,371 +1,337 @@
-// 密图调色板 — edge colouring of K_n minus a 2-factor
+// Tree Shadow Folding
 //
-// The complement F = K_n - G of the given graph is 2-regular, i.e. a disjoint
-// union of cycles (length >= 3).  Hence deg_G = n-3.
-//   * n even: chi' = n-3 and the edges split into n-3 perfect matchings.
-//   * n odd : chi' = n-2 (counting bound + Vizing).
-// For odd n we delete an edge {a,b} of F, insert a dummy vertex d joined to a
-// and b, obtaining a graph G' on n+1 (even) vertices that is again K_{n+1}
-// minus a 2-factor.  A 1-factorization of G' with n-2 perfect matchings turns
-// into a colouring of G with n-2 colours once the dummy edges (one per class)
-// and the edge {a,b} are deleted.
+// The current tree is kept as a "spine" (a diameter path) plus hanging
+// subtrees ("items").  A fold merges spine position i with spine position
+// K-1-i, so the item bags of symmetric positions are melded pairwise; the
+// folded tree is again a path of m = ceil(K/2) positions carrying bags.
 //
-// The 1-factorization itself is built by repeatedly extracting a perfect
-// matching (randomized greedy + short augmenting paths + Edmonds' blossom as a
-// fallback).  Extraction failures only happen in the last few rounds, so the
-// state right before those rounds is snapshotted and only the tail is retried.
-
-#include <bits/stdc++.h>
+// Every item hanging at position i has height <= i, so the diameter of the
+// folded tree is  D' = max_i (h_i + i)  (h_i = height of the deepest item at i).
+// Hence the new spine is positions 0..j*  (j* = argmax h_i+i)  followed by the
+// deepest chain inside the deepest item at j*, while positions j*+1..m-1 hang
+// off j* as a bare "path item".
+//
+// Each bag only needs meld / max / pop-max, so bags are leftist heaps keyed by
+// item height.
+#include <cstdio>
+#include <cstring>
+#include <vector>
+#include <algorithm>
 using namespace std;
 
-static int N;                 // number of vertices of the working graph (even)
-static int WORIG;             // original n
-static bool ODD;              // original n odd?
-static int DUMMY;             // dummy vertex index (= WORIG) when ODD
-static int PAIR_A = -1, PAIR_B = -1; // F-edge removed when ODD
-
-static vector<vector<int>> nb;         // alive neighbours
-static vector<uint16_t> posIn;         // position of v inside nb[u]
-static vector<uint64_t> aliveBits;     // alive adjacency bit matrix
-static int BW;                         // words per row of aliveBits
-
-static vector<int16_t> colMat;         // answer matrix, flat
-
-static mt19937_64 rng;
-
-static inline bool aliveQ(int u, int v) {
-    return (aliveBits[(size_t)u * BW + (v >> 6)] >> (v & 63)) & 1ULL;
-}
-static inline void clearBit(int u, int v) {
-    aliveBits[(size_t)u * BW + (v >> 6)] &= ~(1ULL << (v & 63));
-}
-static inline void delEdge(int u, int v) {
-    clearBit(u, v); clearBit(v, u);
-    int pu = posIn[(size_t)u * N + v], pv = posIn[(size_t)v * N + u];
-    int lu = (int)nb[u].size() - 1, lv = (int)nb[v].size() - 1;
-    nb[u][pu] = nb[u][lu]; posIn[(size_t)u * N + nb[u][lu]] = (uint16_t)pu; nb[u].pop_back();
-    nb[v][pv] = nb[v][lv]; posIn[(size_t)v * N + nb[v][lv]] = (uint16_t)pv; nb[v].pop_back();
-}
-
-// ------------------------------------------------------------------ blossom
-struct Blossom {
-    int n;
-    vector<int> match, p, base;
-    vector<char> used, bl;
-    vector<char> *u2;
-    Blossom(int n_) : n(n_) {
-        match.assign(n, -1); p.assign(n, -1); base.resize(n);
-        used.resize(n); bl.resize(n);
+// ------------------------------------------------------------------- I/O ----
+static char ibuf[1 << 16];
+static int ipos = 0, ilen = 0;
+static inline int gc_() {
+    if (ipos == ilen) {
+        ilen = (int)fread(ibuf, 1, sizeof(ibuf), stdin);
+        ipos = 0;
+        if (ilen <= 0) return -1;
     }
-    int lca(int a, int b) {
-        static vector<char> u; u.assign(n, 0);
-        for (;;) { a = base[a]; u[a] = 1; if (match[a] == -1) break; a = p[match[a]]; }
-        for (;;) { b = base[b]; if (u[b]) return b; b = p[match[b]]; }
+    return ibuf[ipos++];
+}
+static inline int readInt() {
+    int c = gc_();
+    while (c != -1 && (c < '0' || c > '9')) c = gc_();
+    if (c == -1) return -1;
+    int x = 0;
+    while (c >= '0' && c <= '9') { x = x * 10 + (c - '0'); c = gc_(); }
+    return x;
+}
+static vector<char> outbuf;
+static inline void writeInt(int x) {
+    char tmp[12]; int l = 0;
+    if (x == 0) tmp[l++] = '0';
+    while (x) { tmp[l++] = char('0' + x % 10); x /= 10; }
+    while (l) outbuf.push_back(tmp[--l]);
+    outbuf.push_back('\n');
+}
+
+// ----------------------------------------------------------------- items ----
+// An item node is simultaneously a leftist-heap node; index 0 is the null node.
+//   typ 0 ("piece") : p1 = attachment vertex u, p2 = subtree root v;
+//                     key = distance from u down to the deepest leaf through v.
+//   typ 1 ("path")  : p1 = offset into pathEntries, p2 = number of entries;
+//                     key = distance from the attachment point to the deepest
+//                     leaf inside the path item.
+static vector<int> ikey, ihl, ihr, idist, ityp, ip1, ip2;
+static vector<pair<int, int> > pathEntries;  // (bag root, height of bag)
+
+static inline int newItem(int key, int typ, int a, int b) {
+    int id = (int)ikey.size();
+    ikey.push_back(key); ihl.push_back(0); ihr.push_back(0);
+    idist.push_back(1); ityp.push_back(typ); ip1.push_back(a); ip2.push_back(b);
+    return id;
+}
+
+// Leftist heaps: a right spine has length <= floor(log2(size+1)) <= 20 here,
+// so melding two heaps touches at most ~40 entries.
+static int mstk[256];
+static inline int meld(int a, int b) {
+    if (!a) return b;
+    if (!b) return a;
+    int sp = 0;
+    while (a && b) {
+        if (ikey[a] < ikey[b]) { int t = a; a = b; b = t; }
+        mstk[sp++] = a;
+        a = ihr[a];
     }
-    void markPath(int v, int b, int child) {
-        while (base[v] != b) {
-            bl[base[v]] = bl[base[match[v]]] = 1;
-            p[v] = child; child = match[v]; v = p[match[v]];
-        }
+    int m = a ? a : b;
+    while (sp) {
+        int x = mstk[--sp];
+        ihr[x] = m;
+        if (idist[ihl[x]] < idist[ihr[x]]) { int t = ihl[x]; ihl[x] = ihr[x]; ihr[x] = t; }
+        idist[x] = idist[ihr[x]] + 1;
+        m = x;
     }
-    int findPath(int root) {
-        fill(used.begin(), used.end(), 0);
-        fill(p.begin(), p.end(), -1);
-        for (int i = 0; i < n; i++) base[i] = i;
-        used[root] = 1;
-        queue<int> q; q.push(root);
-        while (!q.empty()) {
-            int v = q.front(); q.pop();
-            for (int to : nb[v]) {
-                if (match[v] == to || base[v] == base[to]) continue;
-                if (to == root || (match[to] != -1 && p[match[to]] != -1)) {
-                    int cb = lca(v, to);
-                    fill(bl.begin(), bl.end(), 0);
-                    markPath(v, cb, to); markPath(to, cb, v);
-                    for (int i = 0; i < n; i++)
-                        if (bl[base[i]]) { base[i] = cb; if (!used[i]) { used[i] = 1; q.push(i); } }
-                } else if (p[to] == -1) {
-                    p[to] = v;
-                    if (match[to] == -1) {
-                        int cur = to;
-                        while (cur != -1) {
-                            int pv = p[cur];
-                            int nx = (pv == -1) ? -1 : match[pv];
-                            if (pv != -1) match[pv] = cur;
-                            match[cur] = pv;
-                            cur = nx;
-                        }
-                        return 1;
-                    }
-                    used[match[to]] = 1;
-                    q.push(match[to]);
+    return m;
+}
+static inline int bagKey(int bag) { return bag ? ikey[bag] : 0; }
+
+// --------------------------------------------------------------- globals ----
+static int n;
+static vector<int> adjStart, adjList;
+static vector<int> par_, downv, upv, order_, bq, bdist, bpar;
+static vector<int> best1, best2, arg1;
+static vector<int> suf;
+static vector<int> spine_, nbag_, nspine_;
+static vector<char> onpath;
+
+static inline int Hfun(int u, int v) { return par_[v] == u ? downv[v] : upv[u]; }
+
+// Append to `out` the bags for the spine positions produced by walking the
+// deepest chain inside item `start`.
+static vector<int> frPos, frToff, frTlen, frSub;
+static void promote(int start, vector<int>& out) {
+    int it = start;
+    for (;;) {
+        bool descended = false;
+        if (ityp[it] == 0) {
+            int cur = ip2[it], pr = ip1[it];
+            for (;;) {
+                int s = adjStart[cur], e = adjStart[cur + 1];
+                int bestw = -1, besth = -1;
+                for (int p = s; p < e; p++) {
+                    int w = adjList[p];
+                    if (w == pr) continue;
+                    int h = Hfun(cur, w);
+                    if (h > besth) { besth = h; bestw = w; }
                 }
-            }
-        }
-        return 0;
-    }
-};
-
-// try to complete `match` (restricted to verts) with short augmenting paths
-static int repair(vector<int>& match, const vector<int>& verts, vector<int>& U) {
-    U.clear();
-    for (int v : verts) if (match[v] < 0) U.push_back(v);
-    bool prog = true;
-    while (prog && !U.empty()) {
-        prog = false;
-        for (size_t i = 0; i < U.size(); i++) {
-            if (match[U[i]] >= 0) continue;
-            for (size_t j = i + 1; j < U.size(); j++) {
-                if (match[U[j]] >= 0) continue;
-                if (aliveQ(U[i], U[j])) { match[U[i]] = U[j]; match[U[j]] = U[i]; prog = true; break; }
-            }
-        }
-        if (prog) { U.clear(); for (int v : verts) if (match[v] < 0) U.push_back(v); continue; }
-        for (int u : U) {
-            if (match[u] >= 0) continue;
-            bool done = false;
-            for (int a : nb[u]) {
-                int b = match[a];
-                if (b < 0) continue;
-                for (int w : U) {
-                    if (w == u || match[w] >= 0 || w == b) continue;
-                    if (aliveQ(b, w)) {
-                        match[u] = a; match[a] = u; match[b] = w; match[w] = b;
-                        prog = true; done = true; break;
-                    }
+                int bag = 0;
+                for (int p = s; p < e; p++) {
+                    int w = adjList[p];
+                    if (w == pr || w == bestw) continue;
+                    bag = meld(bag, newItem(1 + Hfun(cur, w), 0, cur, w));
                 }
-                if (done) break;
+                out.push_back(bag);
+                if (bestw < 0) break;
+                pr = cur; cur = bestw;
+            }
+        } else {
+            int off = ip1[it], len = ip2[it];
+            suf.resize(len + 1);
+            suf[len] = -1;
+            for (int t = len - 1; t >= 0; t--) {
+                int h = pathEntries[off + t].second;
+                int nx = 1 + suf[t + 1];
+                suf[t] = h > nx ? h : nx;
+            }
+            int t = 0;
+            for (;;) {
+                int h = pathEntries[off + t].second;
+                if (t + 1 < len && 1 + suf[t + 1] > h) {
+                    out.push_back(pathEntries[off + t].first);
+                    t++;
+                    continue;
+                }
+                int bag = pathEntries[off + t].first;
+                int nb = bag ? meld(ihl[bag], ihr[bag]) : 0;
+                int pos = (int)out.size();
+                out.push_back(nb);
+                int subH = (t + 1 < len) ? 1 + suf[t + 1] : 0;
+                if (bag) {  // dive into the deepest item, continuing the chain
+                    if (t + 1 < len) {
+                        frPos.push_back(pos);
+                        frToff.push_back(off + t + 1);
+                        frTlen.push_back(len - t - 1);
+                        frSub.push_back(subH);
+                    }
+                    it = bag;
+                    descended = true;
+                } else {  // nothing left to dive into
+                    if (t + 1 < len) out[pos] = meld(out[pos], newItem(subH, 1, off + t + 1, len - t - 1));
+                }
+                break;
             }
         }
-        if (prog) { U.clear(); for (int v : verts) if (match[v] < 0) U.push_back(v); }
-    }
-    int c = 0;
-    for (int v : verts) if (match[v] < 0) c++;
-    return c;
-}
-
-// build the working graph (K_N minus 2-factor F')
-static void buildGraph(const vector<vector<char>>& isF) {
-    nb.assign(N, {});
-    posIn.assign((size_t)N * N, 0);
-    BW = (N + 63) / 64;
-    aliveBits.assign((size_t)N * BW, 0);
-    for (int i = 0; i < N; i++) {
-        vector<int>& L = nb[i];
-        L.reserve(N);
-        for (int j = 0; j < N; j++)
-            if (i != j && !isF[i][j]) {
-                posIn[(size_t)i * N + j] = (uint16_t)L.size();
-                L.push_back(j);
-            }
-        for (int j : L) aliveBits[(size_t)i * BW + (j >> 6)] |= 1ULL << (j & 63);
+        if (descended) continue;
+        // Every pending dive is finished now; attach the tails bottom-up.
+        while (!frPos.empty()) {
+            int pos = frPos.back(), toff = frToff.back(), tlen = frTlen.back(), sub = frSub.back();
+            frPos.pop_back(); frToff.pop_back(); frTlen.pop_back(); frSub.pop_back();
+            out[pos] = meld(out[pos], newItem(sub, 1, toff, tlen));
+        }
+        return;
     }
 }
 
-// restore a snapshot of the graph
-static void restoreGraph(const vector<int>& snapOff, const vector<int>& snapVals) {
-    for (int i = 0; i < N; i++) {
-        nb[i].clear();
-        for (int k = snapOff[i]; k < snapOff[i + 1]; k++) nb[i].push_back(snapVals[k]);
-        for (size_t k = 0; k < nb[i].size(); k++)
-            posIn[(size_t)i * N + nb[i][k]] = (uint16_t)k;
-    }
-    fill(aliveBits.begin(), aliveBits.end(), 0ULL);
-    for (int i = 0; i < N; i++)
-        for (int j : nb[i]) aliveBits[(size_t)i * BW + (j >> 6)] |= 1ULL << (j & 63);
-}
-// compact snapshot: flat copy of the neighbour lists
-static void takeSnapshot(vector<int>& snapOff, vector<int>& snapVals) {
-    snapOff.assign(N + 1, 0);
-    for (int i = 0; i < N; i++) snapOff[i + 1] = snapOff[i] + (int)nb[i].size();
-    snapVals.clear();
-    snapVals.reserve(snapOff[N]);
-    for (int i = 0; i < N; i++) snapVals.insert(snapVals.end(), nb[i].begin(), nb[i].end());
-}
+static int solveCase(int nn) {
+    n = nn;
+    if (n == 1) return 0;
 
-// one extraction round; returns false if no perfect matching could be found
-// colour = the colour index to write (0 = do not write)
-static bool oneRound(vector<int>& match, vector<int>& order, vector<int>& U, int colour,
-                     vector<pair<int,int>>* written) {
-    int m = (int)order.size();
-    for (int i = 0; i < m; i++) match[order[i]] = -1;
-    shuffle(order.begin(), order.end(), rng);
-    for (int u : order) {
-        if (match[u] != -1) continue;
-        vector<int>& L = nb[u];
-        int d = (int)L.size();
-        if (!d) continue;
-        int st = (int)(rng() % (uint64_t)d);
-        for (int t = 0; t < d; t++) {
-            int idx = st + t; if (idx >= d) idx -= d;
-            int v = L[idx];
-            if (match[v] == -1) { match[u] = v; match[v] = u; break; }
+    // ---- adjacency in CSR form ----
+    adjStart.assign(n + 1, 0);
+    vector<int> eu(n - 1), ev(n - 1);
+    for (int i = 0; i < n - 1; i++) {
+        int a = readInt() - 1, b = readInt() - 1;
+        eu[i] = a; ev[i] = b;
+        adjStart[a + 1]++;
+        adjStart[b + 1]++;
+    }
+    for (int i = 0; i < n; i++) adjStart[i + 1] += adjStart[i];
+    adjList.assign(2 * (n - 1), 0);
+    {
+        vector<int> cur(adjStart.begin(), adjStart.end() - 1);
+        for (int i = 0; i < n - 1; i++) {
+            adjList[cur[eu[i]]++] = ev[i];
+            adjList[cur[ev[i]]++] = eu[i];
         }
     }
-    int left = repair(match, order, U);
-    if (left > 0) {
-        Blossom B(N);
-        B.match = match;
-        for (int v : order) if (B.match[v] == -1) B.findPath(v);
-        match = B.match;
-        int l2 = 0;
-        for (int v : order) if (match[v] < 0) l2++;
-        if (l2) return false;
-    }
-    for (int v : order) {
-        int w = match[v];
-        if (w >= 0 && v < w) {
-            if (colour > 0 && v < WORIG && w < WORIG &&
-                !(ODD && ((v == PAIR_A && w == PAIR_B) || (v == PAIR_B && w == PAIR_A)))) {
-                colMat[(size_t)v * WORIG + w] = (int16_t)colour;
-                colMat[(size_t)w * WORIG + v] = (int16_t)colour;
-                if (written) written->push_back({v, w});
+    vector<int>().swap(eu);
+    vector<int>().swap(ev);
+
+    // ---- root the tree at 0, BFS order, down/up heights ----
+    par_.assign(n, -1);
+    order_.assign(n, 0);
+    bdist.assign(n, -1);
+    {
+        int qh = 0, qt = 0;
+        order_[qt++] = 0; par_[0] = -1; bdist[0] = 0;
+        while (qh < qt) {
+            int x = order_[qh++];
+            for (int p = adjStart[x]; p < adjStart[x + 1]; p++) {
+                int y = adjList[p];
+                if (y == par_[x]) continue;
+                par_[y] = x; bdist[y] = bdist[x] + 1; order_[qt++] = y;
             }
-            delEdge(v, w);
         }
     }
-    return true;
+    downv.assign(n, 0);
+    for (int i = n - 1; i >= 0; i--) {
+        int x = order_[i];
+        for (int p = adjStart[x]; p < adjStart[x + 1]; p++) {
+            int y = adjList[p];
+            if (par_[y] == x && downv[y] + 1 > downv[x]) downv[x] = downv[y] + 1;
+        }
+    }
+    upv.assign(n, 0);
+    best1.assign(n, 0); best2.assign(n, 0); arg1.assign(n, -1);
+    for (int i = 1; i < n; i++) {
+        int x = order_[i], p = par_[x], v = downv[x] + 1;
+        if (v > best1[p]) { best2[p] = best1[p]; best1[p] = v; arg1[p] = x; }
+        else if (v > best2[p]) best2[p] = v;
+    }
+    for (int i = 1; i < n; i++) {
+        int x = order_[i], p = par_[x];
+        int best = (arg1[p] != x) ? best1[p] : best2[p];
+        int cand = (p == 0) ? 0 : 1 + upv[p];
+        upv[x] = best > cand ? best : cand;
+    }
+
+    // ---- pick a diameter ----
+    int u = 0;
+    for (int i = 1; i < n; i++) if (bdist[i] > bdist[u]) u = i;
+    bpar.assign(n, -1);
+    {
+        int qh = 0, qt = 0;
+        bq.swap(order_);
+        bq[qt++] = u; bdist[u] = 0; bpar[u] = -1;
+        while (qh < qt) {
+            int x = bq[qh++];
+            for (int p = adjStart[x]; p < adjStart[x + 1]; p++) {
+                int y = adjList[p];
+                if (y == bpar[x]) continue;
+                bpar[y] = x; bdist[y] = bdist[x] + 1; bq[qt++] = y;
+            }
+        }
+    }
+    int v = 0;
+    for (int i = 1; i < n; i++) if (bdist[i] > bdist[v]) v = i;
+
+    // ---- item pool reset ----
+    ikey.clear(); ihl.clear(); ihr.clear(); idist.clear();
+    ityp.clear(); ip1.clear(); ip2.clear(); pathEntries.clear();
+    // null node
+    ikey.push_back(0); ihl.push_back(0); ihr.push_back(0);
+    idist.push_back(0); ityp.push_back(0); ip1.push_back(0); ip2.push_back(0);
+
+    // ---- initial spine and bags ----
+    onpath.assign(n, 0);
+    spine_.clear();
+    for (int x = v; x != -1; x = bpar[x]) { onpath[x] = 1; spine_.push_back(x); }
+    for (int i = 0; i < (int)spine_.size(); i++) {
+        int x = spine_[i];
+        int bag = 0;
+        for (int p = adjStart[x]; p < adjStart[x + 1]; p++) {
+            int y = adjList[p];
+            if (onpath[y]) continue;
+            bag = meld(bag, newItem(1 + Hfun(x, y), 0, x, y));
+        }
+        spine_[i] = bag;
+    }
+
+    // ---- fold until a single vertex remains ----
+    int folds = 0;
+    while ((int)spine_.size() > 1) {
+        int K = (int)spine_.size();
+        int m = (K + 1) >> 1;
+        nbag_.resize(m);
+        for (int i = 0; i < m; i++) {
+            int j = K - 1 - i;
+            nbag_[i] = (i == j) ? spine_[i] : meld(spine_[i], spine_[j]);
+        }
+        int best = -1, jstar = 0;
+        for (int i = 0; i < m; i++) {
+            int val = bagKey(nbag_[i]) + i;
+            if (val > best) { best = val; jstar = i; }
+        }
+        nspine_.clear();
+        for (int i = 0; i < jstar; i++) nspine_.push_back(nbag_[i]);
+        int bag = nbag_[jstar];
+        int pos = jstar;
+        if (bag) {
+            nspine_.push_back(meld(ihl[bag], ihr[bag]));
+            promote(bag, nspine_);
+        } else {
+            nspine_.push_back(0);
+        }
+        if (jstar + 1 < m) {
+            int off = (int)pathEntries.size();
+            int len = m - 1 - jstar;
+            int subH = 0;
+            for (int t = jstar + 1; t < m; t++) {
+                int h = bagKey(nbag_[t]);
+                pathEntries.push_back(make_pair(nbag_[t], h));
+                int val = h + (t - jstar);
+                if (val > subH) subH = val;
+            }
+            nspine_[pos] = meld(nspine_[pos], newItem(subH, 1, off, len));
+        }
+        spine_.swap(nspine_);
+        folds++;
+    }
+    return folds;
 }
 
 int main() {
-    // ---------------------------------------------------------------- input
-    vector<char> buf;
-    {
-        FILE* f = stdin;
-        fseek(f, 0, SEEK_END);
-        long sz = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        buf.resize(sz + 1);
-        size_t rd = fread(buf.data(), 1, sz, f);
-        buf[rd] = 0;
+    int T = readInt();
+    if (T < 0) return 0;
+    outbuf.reserve(1 << 22);
+    for (int tc = 0; tc < T; tc++) {
+        int nn = readInt();
+        if (nn < 0) break;
+        writeInt(solveCase(nn));
     }
-    int pos = 0;
-    int n = 0;
-    while (pos < (int)buf.size() && (buf[pos] < '0' || buf[pos] > '9')) pos++;
-    while (pos < (int)buf.size() && buf[pos] >= '0' && buf[pos] <= '9') n = n * 10 + (buf[pos++] - '0');
-    WORIG = n;
-    vector<vector<char>> isF(n, vector<char>(n, 0));
-    {
-        // read n rows of n characters
-        int i = 0;
-        while (i < n) {
-            while (pos < (int)buf.size() && (buf[pos] != '0' && buf[pos] != '1')) pos++;
-            if (pos + n > (int)buf.size()) break;
-            const char* row = buf.data() + pos;
-            for (int j = 0; j < n; j++) isF[i][j] = (i != j && row[j] == '0');
-            pos += n;
-            i++;
-        }
-    }
-    // free input buffer memory
-    vector<char>().swap(buf);
-
-    int C = (n % 2 == 0) ? n - 3 : n - 2;
-    colMat.assign((size_t)n * n, (int16_t)-1);
-
-    // Build working graph ---------------------------------------------------
-    // For odd n: split an F-edge {a,b} through a dummy vertex d.
-    ODD = (n % 2 == 1);
-    N = ODD ? n + 1 : n;
-    DUMMY = n;
-    static vector<vector<char>> isF2;
-    const vector<vector<char>>* pF = &isF;
-    if (ODD) {
-        isF2 = isF;
-        isF2.resize(N);
-        for (int i = 0; i < N; i++) isF2[i].resize(N, 0);
-        // find an F-edge
-        int a = -1, b = -1;
-        for (int i = 0; i < n && a < 0; i++)
-            for (int j = 0; j < n; j++)
-                if (isF[i][j]) { a = i; b = j; break; }
-        PAIR_A = a; PAIR_B = b;
-        isF2[a][b] = isF2[b][a] = 0;   // {a,b} becomes a G-edge
-        for (int i = 0; i < n; i++) isF2[DUMMY][i] = isF2[i][DUMMY] = 0;
-        isF2[DUMMY][a] = isF2[a][DUMMY] = 1;   // dummy keeps the 2-factor
-        isF2[DUMMY][b] = isF2[b][DUMMY] = 1;
-        isF2[DUMMY][DUMMY] = 0;
-        vector<vector<char>>().swap(isF);
-        pF = &isF2;
-    }
-
-    rng.seed(0x9E3779B97F4A7C15ULL ^ (unsigned long long)n);
-
-    // -------------------------------------------------------------- solving
-    const int TAIL = 48;
-    int totalRounds = N - 3;             // number of matchings to extract
-    vector<int> match(N, -1), U;
-    vector<int> order(N);
-
-    bool done = false;
-    int outerAttempts = 0, innerAttempts = 0, midFail = 0, tailFail = 0;
-    for (int outer = 0; outer < 60 && !done; outer++) {
-        outerAttempts++;
-        buildGraph(*pF);
-        bool fail = false;
-        int R1 = totalRounds - TAIL;
-        if (R1 < 0) R1 = 0;
-        for (int r = 0; r < R1 && !fail; r++) {
-            for (int i = 0; i < N; i++) order[i] = i;
-            if (!oneRound(match, order, U, r + 1, nullptr)) fail = true;
-        }
-        if (fail) { midFail++; continue; }
-        vector<int> snapOff, snapVals;
-        takeSnapshot(snapOff, snapVals);
-        for (int inner = 0; inner < 40 && !done && !fail; inner++) {
-            innerAttempts++;
-            vector<pair<int,int>> written;
-            bool f2 = false;
-            int r = R1;
-            for (; r < totalRounds && !f2; r++) {
-                for (int i = 0; i < N; i++) order[i] = i;
-                if (!oneRound(match, order, U, r + 1, &written)) f2 = true;
-            }
-            if (f2) tailFail++;
-            if (!f2) {
-                bool clean = true;
-                for (int i = 0; i < N && clean; i++) if (!nb[i].empty()) clean = false;
-                if (clean) done = true;
-            }
-            if (!done) {
-                // undo colours written in the failed tail and restore snapshot
-                for (auto& pr : written) {
-                    colMat[(size_t)pr.first * WORIG + pr.second] = -1;
-                    colMat[(size_t)pr.second * WORIG + pr.first] = -1;
-                }
-                restoreGraph(snapOff, snapVals);
-            }
-        }
-    }
-
-    if (getenv("DBG"))
-        fprintf(stderr, "n=%d outer=%d inner=%d midFail=%d tailFail=%d done=%d\n",
-                n, outerAttempts, innerAttempts, midFail, tailFail, (int)done);
-
-    // --------------------------------------------------------------- output
-    {
-        string out;
-        out.reserve(1 << 18);
-        char tmp[16];
-        auto flushOut = [&]() { fwrite(out.data(), 1, out.size(), stdout); out.clear(); };
-        auto putInt = [&](int v) {
-            if (v < 0) { out.push_back('-'); out.push_back('1'); out.push_back(' '); return; }
-            int len = 0;
-            if (v == 0) tmp[len++] = '0';
-            while (v > 0) { tmp[len++] = char('0' + v % 10); v /= 10; }
-            while (len > 0) out.push_back(tmp[--len]);
-            out.push_back(' ');
-        };
-        putInt(C); out.back() = '\n';
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                int v = (i == j) ? -1 : (int)colMat[(size_t)i * n + j];
-                putInt(v);
-            }
-            out.back() = '\n';
-            if (out.size() > (1 << 17)) flushOut();
-        }
-        flushOut();
-    }
+    fwrite(outbuf.data(), 1, outbuf.size(), stdout);
     return 0;
 }

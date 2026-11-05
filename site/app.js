@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261104-complexity-audit-2";
+const SITE_RELEASE = "20261105-statement-compare";
 
 const state = {
   problems: [],
@@ -181,9 +181,9 @@ function renderProblems() {
 
     const referenceCell = element("td", "reference-cell");
     const referenceAssets = problem.referenceAssets || {};
-    if (referenceAssets.originalStatement) {
-      const statement = element("a", "reference-link reference-link-statement", "Statement");
-      statement.href = `./reference.html?id=${problem.id}&asset=originalStatement&v=${SITE_RELEASE}`;
+    if (referenceAssets.originalStatement && referenceAssets.algoscaleStatement) {
+      const statement = element("a", "reference-link reference-link-statement", "Compare");
+      statement.href = `./reference.html?id=${problem.id}&asset=statementComparison&v=${SITE_RELEASE}`;
       referenceCell.append(statement);
     }
     if (referenceAssets.solution) {

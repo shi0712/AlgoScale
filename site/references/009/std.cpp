@@ -1,148 +1,211 @@
-// Arc Paths, n <= 1,000,000. Deterministic O(n log n), O(n) memory.
-// C++17. Geometry is exact; only arc weights and shortest-path sums are floating point.
+// Source: user-provided final OptimizedSolver; executable algorithm preserved.
+// 2e6 release: 1 <= n <= 2,000,000; 0 <= P,Q,h[i] <= 2,000,000.
+// Audit: <=5 effective square roots/item; <=21 halvings/item; total sum <=4e12.
+// Counts in int are <=10,000,000; aggregate costs and threshold squares use int64.
+// No precomputed answers. See admin/range_audit.md for the expansion audit.
 #include <bits/stdc++.h>
 using namespace std;
-using i64 = long long;
-using i128 = __int128_t;
-using u64 = unsigned long long;
-using ld = long double;
-struct FastInput {
-    static constexpr int SZ = 1 << 16;
-    char b[SZ]; int p=0,q=0;
-    int get() { if(p==q){q=(int)fread(b,1,SZ,stdin);p=0;if(!q)return EOF;}return b[p++]; }
-    int next(){int c=get(),s=1,x=0;while(c<=32&&c!=EOF)c=get();if(c=='-')s=-1,c=get();while(c>='0'&&c<='9'){x=x*10+c-'0';c=get();}return x*s;}
+using ll = long long;
+
+struct Result {
+    ll val, qmin;
 };
-struct Circle { int x,y,r,v; };
-static vector<Circle> cs;
-struct ArcLess {
-    bool operator()(int a,int b)const {
-        int i=a>>1,j=b>>1;
-        if(i==j)return a<b;
-        const auto &A=cs[i],&B=cs[j];
-        i128 dx=(i64)A.x-B.x,dy=(i64)A.y-B.y,dr=(i64)A.r-B.r;
-        if(dx*dx+dy*dy<=dr*dr){
-            if(A.r>B.r)return !(a&1);
-            return b&1;
+
+// 一个固定高度分布的除法收益后缀表。
+struct HalfTable {
+    ll sum = 0;
+    vector<ll> cnt, gain;
+
+    void build(const vector<int>& freq) {
+        int h = static_cast<int>(freq.size()) - 1;
+        vector<ll> c(freq.begin(), freq.end());
+        cnt.assign(h + 2, 0);
+        gain.assign(h + 2, 0);
+        sum = 0;
+        for (int x = h; x >= 1; --x) {
+            sum += 1LL * x * freq[x];
+            cnt[(x + 1) / 2] += c[x];
+            c[x / 2] += c[x];
         }
-        if(A.y!=B.y)return A.y<B.y;
-        return A.x<B.x;
-    }
-};
-struct Event { int x,code; bool operator<(const Event&b)const{
-    if(x!=b.x)return x<b.x;
-    // The highest bit used here separates all insertions from all deletions.
-    return code<b.code;
-}};
-// Node number before angle sorting identifies its free transfer partner: id ^ 1.
-// Additional S/T occurrences have no such partner and are handled as sources/targets.
-struct Mark { int x,y,c,id; };
-static int half(const Mark&a){return a.y>0||(a.y==0&&a.x>0)?0:1;}
-static i64 cross(const Mark&a,const Mark&b){return (i64)a.x*b.y-(i64)a.y*b.x;}
-static i64 dot(const Mark&a,const Mark&b){return (i64)a.x*b.x+(i64)a.y*b.y;}
-struct AngleLess {
-    bool operator()(const Mark&a,const Mark&b)const{
-        if(a.c!=b.c)return a.c<b.c;
-        int x=half(a),y=half(b);if(x!=y)return x<y;
-        i64 z=cross(a,b);if(z)return z>0;
-        return a.id<b.id;
-    }
-};
-// Indexed binary heap: at most one heap entry per vertex; no unbounded stale copies.
-struct Heap {
-    vector<int> a,pos;
-    const vector<double>&d;
-    Heap(int n,const vector<double>&D):pos(n,-1),d(D){a.reserve(n);}
-    void up(int p){while(p){int q=(p-1)/2;if(d[a[q]]<=d[a[p]])break;swap(a[p],a[q]);pos[a[p]]=p;pos[a[q]]=q;p=q;}}
-    void push_or_decrease(int v){if(pos[v]==-2)return;if(pos[v]==-1){pos[v]=(int)a.size();a.push_back(v);}up(pos[v]);}
-    int pop(){int v=a[0];pos[v]=-2;int w=a.back();a.pop_back();if(!a.empty()){
-        a[0]=w;pos[w]=0;int p=0;
-        for(;;){int l=p*2+1;if(l>=(int)a.size())break;int r=l+1,q=l;if(r<(int)a.size()&&d[a[r]]<d[a[l]])q=r;
-            if(d[a[p]]<=d[a[q]])break;swap(a[p],a[q]);pos[a[p]]=p;pos[a[q]]=q;p=q;}}
-        return v;
-    }
-};
-int main(){
-    FastInput in;int n=in.next(),sx=in.next(),sy=in.next(),tx=in.next(),ty=in.next();
-    cs.resize(n);for(auto &c:cs){c.x=in.next();c.y=in.next();c.r=in.next();c.v=in.next();}
-    if(sx==tx&&sy==ty){puts("0");return 0;}
-    vector<u64> pairs;
-    pairs.reserve((size_t)6*n);
-    auto check=[&](int i,int j){
-        if(i==j)return;
-        i128 dx=(i64)cs[i].x-cs[j].x,dy=(i64)cs[i].y-cs[j].y;
-        i128 s=(i64)cs[i].r+cs[j].r,d=(i64)cs[i].r-cs[j].r;
-        i128 q=dx*dx+dy*dy;
-        if(q==s*s||q==d*d){if(i>j)swap(i,j);pairs.push_back((u64)(unsigned)i<<32|(unsigned)j);}
-    };
-    {
-        const int DEL=1<<21; // 2*n < 2^21; code actually stores the circle id.
-        vector<Event> ev;ev.reserve((size_t)2*n);
-        for(int i=0;i<n;i++){ev.push_back({cs[i].x-cs[i].r,i});ev.push_back({cs[i].x+cs[i].r,DEL+i});}
-        sort(ev.begin(),ev.end());
-        set<int,ArcLess> st;
-        vector<array<set<int,ArcLess>::iterator,2>> where(n);
-        for(auto e:ev){
-            bool del=e.code>=DEL;int i=del?e.code-DEL:e.code;
-            if(!del){for(int s=0;s<2;s++){
-                auto p=st.insert(2*i+s).first;where[i][s]=p;
-                if(p!=st.begin())check(*prev(p)>>1,i);
-                auto q=next(p);if(q!=st.end())check(i,*q>>1);
-            }}else{for(int s=0;s<2;s++){
-                auto p=where[i][s],q=next(p);
-                if(p!=st.begin()&&q!=st.end())check(*prev(p)>>1,*q>>1);
-                st.erase(p);
-            }}
+        for (int x = h; x >= 0; --x) {
+            gain[x] = gain[x + 1] + 1LL * x * cnt[x];
+            cnt[x] += cnt[x + 1];
         }
     }
-    sort(pairs.begin(),pairs.end());pairs.erase(unique(pairs.begin(),pairs.end()),pairs.end());
-    // Release spare pair storage before allocating marks.
-    vector<u64>(pairs).swap(pairs);
-    const int paired=(int)pairs.size()*2;
-    vector<int> sources,targets;
-    auto on=[&](int i,int x,int y){i128 dx=(i64)x-cs[i].x,dy=(i64)y-cs[i].y;return dx*dx+dy*dy==(i128)cs[i].r*cs[i].r;};
-    size_t extra=0;for(int i=0;i<n;i++)extra+=on(i,sx,sy)+on(i,tx,ty);
-    const int N=paired+(int)extra;
-    vector<Mark> mark;mark.reserve(N);
-    for(auto p:pairs){
-        int i=(int)(p>>32),j=(int)(unsigned)p;
-        int dx=cs[j].x-cs[i].x,dy=cs[j].y-cs[i].y;
-        i128 sum=(i64)cs[i].r+cs[j].r;
-        bool ext=(i128)dx*dx+(i128)dy*dy==sum*sum;
-        int k=(int)mark.size();
-        if(ext){mark.push_back({dx,dy,i,k});mark.push_back({-dx,-dy,j,k+1});}
-        else{if(cs[i].r<cs[j].r)dx=-dx,dy=-dy;mark.push_back({dx,dy,i,k});mark.push_back({dx,dy,j,k+1});}
+
+    Result query(int w) const {
+        int pos = min(w + 1, static_cast<int>(cnt.size()) - 1);
+        return {sum - gain[pos] + 1LL * w * cnt[pos], cnt[pos]};
     }
-    vector<u64>().swap(pairs);
-    for(int i=0;i<n;i++){
-        if(on(i,sx,sy)){int k=(int)mark.size();sources.push_back(k);mark.push_back({sx-cs[i].x,sy-cs[i].y,i,k});}
-        if(on(i,tx,ty)){int k=(int)mark.size();targets.push_back(k);mark.push_back({tx-cs[i].x,ty-cs[i].y,i,k});}
-    }
-    sort(mark.begin(),mark.end(),AngleLess{});
-    vector<int> pre(N),nxt(N);
-    vector<double> cw(N);
-    const ld TAU=2*acosl(-1.L);
-    for(int l=0;l<N;){
-        int r=l+1;while(r<N&&mark[r].c==mark[l].c)r++;
-        const Circle &c=cs[mark[l].c];
-        for(int k=l;k<r;k++){
-            const auto&a=mark[k];const auto&b=mark[k+1==r?l:k+1];
-            nxt[a.id]=b.id;pre[b.id]=a.id;
-            ld theta=atan2l((ld)cross(a,b),(ld)dot(a,b));if(theta<0)theta+=TAU;
-            cw[a.id]=(double)(theta*(ld)c.r*(ld)c.v);
+};
+
+struct Item {
+    int d, k, count;
+};
+
+struct OptimizedSolver {
+    int H, P, total, border = 0, threshold;
+    vector<int> rt, lg, cnt, pref, chosen;
+    HalfTable original, baseline;
+
+    OptimizedSolver(vector<int> freq, int p) : P(p) {
+        H = static_cast<int>(freq.size()) - 1;
+        rt.assign(H + 1, 0);
+        lg.assign(H + 1, 0);
+        for (int x = 1; x <= H; ++x) {
+            rt[x] = rt[x - 1];
+            if (1LL * (rt[x] + 1) * (rt[x] + 1) <= x) ++rt[x];
+            lg[x] = lg[x / 2] + 1;
         }
-        l=r;
+        threshold = rt[H] + (1LL * rt[H] * rt[H] < H);
+        original.build(freq);
+        cnt = freq;
+        for (int x = H; x >= 2; --x) cnt[rt[x]] += cnt[x];
+        pref.assign(H + 1, 0);
+        for (int x = 2; x <= H; ++x) pref[x] = pref[x - 1] + cnt[x];
+        total = H >= 2 ? pref[H] : 0;
+        P = min(P, total);
+        if (!P) return;
+
+        // 按步骤起始高度选最大的 P 份，并真正更新基准高度分布。
+        chosen.assign(H + 1, 0);
+        int need = P;
+        for (int x = H; x >= 2; --x) {
+            int take = min(need, cnt[x]);
+            chosen[x] = take;
+            if (take) border = x;
+            freq[x] -= take;
+            freq[rt[x]] += take;
+            need -= take;
+        }
+        baseline.build(freq);
     }
-    vector<Mark>().swap(mark);vector<Circle>().swap(cs);
-    vector<double> dist(N,numeric_limits<double>::infinity());
-    Heap heap(N,dist);
-    for(int u:sources){dist[u]=0;heap.push_or_decrease(u);}
-    vector<unsigned char> is_target(N,0);for(int u:targets)is_target[u]=1;
-    auto relax=[&](int u,int v,double w){double nd=dist[u]+w;if(nd<dist[v]){dist[v]=nd;heap.push_or_decrease(v);}};
-    while(!heap.a.empty()){
-        int u=heap.pop();
-        if(is_target[u]){printf("%.18f\n",dist[u]);return 0;}
-        if(u<paired)relax(u,u^1,0);
-        relax(u,nxt[u],cw[u]);relax(u,pre[u],cw[pre[u]]);
+
+    // lg[t] 是 t 的二进制位数，lg[0]=0。
+    int divisions(int x, int w) const {
+        return lg[x / (2 * w + 1)];
     }
-    puts("-1");
+
+    int value(int x, int w, int b) const {
+        return (x >> b) + w * b;
+    }
+
+    // 按 (d,k) 降序选 need 份，返回总收益和节省的除法次数。
+    pair<ll, ll> select(const vector<Item>& items, int need) const {
+        if (!need) return {0, 0};
+        int low = H, high = 0;
+        for (const auto& t : items) {
+            low = min(low, t.d);
+            high = max(high, t.d);
+        }
+        vector<int> amount(high - low + 1, 0);
+        vector<ll> saved(high - low + 1, 0);
+        for (const auto& t : items) {
+            amount[t.d - low] += t.count;
+            saved[t.d - low] += 1LL * t.count * t.k;
+        }
+        ll gain_sum = 0, saved_sum = 0;
+        for (int d = high; d >= low; --d) {
+            if (need > amount[d - low]) {
+                gain_sum += 1LL * d * amount[d - low];
+                saved_sum += saved[d - low];
+                need -= amount[d - low];
+                continue;
+            }
+            gain_sum += 1LL * d * need;
+            vector<int> by_k(lg[H] + 1, 0);
+            for (const auto& t : items)
+                if (t.d == d) by_k[t.k] += t.count;
+            for (int k = lg[H]; k >= 0; --k) {
+                int take = min(need, by_k[k]);
+                saved_sum += 1LL * take * k;
+                need -= take;
+            }
+            return {gain_sum, saved_sum};
+        }
+        return {gain_sum, saved_sum};
+    }
+
+    Result calc(int w) const {
+        if (!P) return original.query(w);
+        if (P == total) return baseline.query(w);
+        vector<Item> items;
+        Result res;
+        int need;
+        if (w < threshold) {
+            res = original.query(w);
+            need = P;
+            for (int x = 2; x <= H;) {
+                int s = rt[x];
+                int l = divisions(x, w), m = divisions(s, w);
+                ll a = 2LL * w + 1;
+                ll next_s = (1LL * (s >> m) + 1) << m;
+                ll next_m = a << m;
+                ll r = min({
+                    H + 1LL,
+                    (1LL * (x >> l) + 1) << l,
+                    a << l,
+                    next_s * next_s,
+                    next_m * next_m
+                });
+                int end = static_cast<int>(r);
+                int count = pref[end - 1] - pref[x - 1];
+                if (count) {
+                    int d = value(x, w, l) - value(s, w, m);
+                    items.push_back({d, l - m, count});
+                }
+                x = end;
+            }
+        } else {
+            res = baseline.query(w);
+            need = 0;
+            int radius = static_cast<int>(4LL * H / w + 1);
+            int left = max(2, border - radius);
+            int right = min(H, border + radius);
+            for (int x = left; x <= right; ++x) {
+                if (!cnt[x]) continue;
+                int k = divisions(x, w);
+                int d = value(x, w, k) - rt[x];
+                items.push_back({d, k, cnt[x]});
+                // 撤回窗口内基准方案的选择，再统一重新选取。
+                res.val += 1LL * chosen[x] * d;
+                res.qmin += 1LL * chosen[x] * k;
+                need += chosen[x];
+            }
+        }
+        auto [gain_sum, saved_sum] = select(items, need);
+        res.val -= gain_sum;
+        res.qmin -= saved_sum;
+        return res;
+    }
+
+    ll solve(int q) const {
+        Result first = calc(1);
+        if (q >= first.val) return 0;
+        int left = 1, right = max(1, H);
+        while (left < right) {
+            int mid = (left + right) / 2;
+            if (calc(mid).qmin <= q) right = mid;
+            else left = mid + 1;
+        }
+        return calc(left).val - 1LL * left * q;
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, p, q, H = 0;
+    cin >> n >> p >> q;
+    vector<int> freq(1, 0);
+    for (int i = 0, x; i < n; ++i) {
+        cin >> x;
+        if (x >= static_cast<int>(freq.size()))
+            freq.resize(max(x + 1, 2 * static_cast<int>(freq.size())), 0);
+        ++freq[x];
+        H = max(H, x);
+    }
+    freq.resize(H + 1);
+    cout << OptimizedSolver(std::move(freq), p).solve(q) << '\n';
+    return 0;
 }

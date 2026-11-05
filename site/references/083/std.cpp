@@ -1,134 +1,176 @@
 #include <bits/stdc++.h>
 using namespace std;
-using int64 = long long;
 
-struct Block {
-    int l, r;
-    int64 sum;
-    // Lower bound on the cost of the gap immediately to this block's left.
-    int64 gap;
-    // An adjustable position in that gap; -1 when there is no left block.
-    int slot;
-};
+class Solver {
+    int n, height = 0;
+    vector<int> fa, dep, tin, tout, levelSize, cnt, capacity;
+    vector<array<int, 2>> son;
+    vector<long long> start;
+    int planned = 0;
 
-template <class Ask>
-vector<int64> reconstruct(int n, Ask ask) {
-    constexpr int64 A = 1'000'000'000LL;
-    vector<int64> positive(n + 1, 0);
-    vector<char> sampled(n + 1, false), unknown(n + 1, false);
-
-    // Sample singletons: skip one position after a positive answer.
-    for (int i = 1; i <= n; ) {
-        positive[i] = ask(i, i);
-        sampled[i] = true;
-        if (positive[i] > 0 && i + 2 <= n) i += 2;
-        else ++i;
+    bool inSubtree(int u, int x) const {
+        return tin[u] <= tin[x] && tin[x] < tout[u];
     }
 
-    // A skipped position whose right neighbour is nonpositive is easy to resolve.
-    for (int i = 1; i <= n; ++i) {
-        if (sampled[i]) continue;
-        if (positive[i + 1] == 0) {
-            positive[i] = ask(i - 1, i + 1) - positive[i - 1];
-        } else {
-            unknown[i] = true;
+    int rankOf(int m) const {
+        return int(lower_bound(capacity.begin(), capacity.end(), m)
+                   - capacity.begin());
+    }
+
+public:
+    Solver(int n_, const vector<int>& parent) : n(n_), fa(parent) {
+        dep.assign(n + 1, 0);
+        son.assign(n + 1, array<int, 2>{0, 0});
+        tin.resize(n + 1);
+        tout.resize(n + 1);
+        cnt.resize(n + 1);
+        for (int v = 2; v <= n; ++v) {
+            int p = fa[v];
+            if (!son[p][0]) son[p][0] = v;
+            else son[p][1] = v;
+            dep[v] = dep[p] + 1;
+            height = max(height, dep[v]);
         }
-    }
+        levelSize.assign(height + 1, 0);
+        for (int v = 1; v <= n; ++v) ++levelSize[dep[v]];
 
-    vector<int64> b = positive;
-    for (int i = 1; i <= n; ++i) {
-        if (unknown[i]) b[i] = A;
-    }
-
-    // Maximal runs of already-known positive entries.
-    vector<Block> runs;
-    for (int i = 1; i <= n; ) {
-        if (positive[i] == 0) {
-            ++i;
-            continue;
+        // Non-recursive DFS order; fa[v] < v also gives a bottom-up order.
+        vector<int> sz(n + 1, 1), stk;
+        for (int v = n; v >= 2; --v) sz[fa[v]] += sz[v];
+        stk.push_back(1);
+        int timer = 0;
+        while (!stk.empty()) {
+            int v = stk.back();
+            stk.pop_back();
+            tin[v] = timer++;
+            tout[v] = tin[v] + sz[v];
+            if (son[v][1]) stk.push_back(son[v][1]);
+            if (son[v][0]) stk.push_back(son[v][0]);
         }
-        int l = i;
-        int64 sum = 0;
-        while (i <= n && positive[i] > 0) sum += positive[i++];
-        runs.push_back({l, i - 1, sum, 0, -1});
+
+        // capacity[q]: q queries suffice for this many same-depth candidates.
+        capacity = {1, 2};
+        while (capacity.back() < n) {
+            int s = int(capacity.size());
+            capacity.push_back(capacity[s - 1] + capacity[s - 2] + 1);
+        }
+
+        // An aligned dyadic block reserves the within-level query budget.
+        start.resize(height + 1);
+        long long p = 0;
+        for (int d = 0; d <= height; ++d) {
+            long long w = 1LL << rankOf(levelSize[d]);
+            p = (p + w - 1) / w * w;
+            start[d] = p;
+            p += w;
+        }
+        while ((1LL << planned) < p) ++planned;
     }
 
-    vector<Block> st;
-    st.reserve(runs.size());
-    int previous_end = -1;
+    int plannedQueries() const { return planned; }
 
-    for (Block cur : runs) {
-        if (previous_end != -1) {
-            cur.slot = previous_end + 1;
-            if (cur.l == previous_end + 2 && unknown[cur.slot]) {
-                cur.gap = -A;  // The skipped entry might be positive.
+    template<class Ask>
+    int solve(Ask&& ask) {
+        int l = 0, r = height;
+        long long left = 0, right = 1LL << planned;
+
+        // Locate the depth using the alphabetic prefix code of the blocks.
+        while (l < r) {
+            long long mid = (left + right) / 2;
+            int cut = int(lower_bound(start.begin() + l,
+                                      start.begin() + r + 1, mid)
+                          - start.begin());
+            if (cut == l) {
+                left = mid;                // Empty left half: no query.
+            } else if (cut == r + 1) {
+                right = mid;               // Empty right half: no query.
+            } else if (ask(1, cut - 1)) {
+                r = cut - 1;
+                right = mid;
             } else {
-                cur.gap = 0;   // Every entry in this gap is nonpositive.
+                l = cut;
+                left = mid;
             }
         }
+        const int D = l;
+        vector<int> candidate;
+        for (int v = 1; v <= n; ++v)
+            if (dep[v] == D) candidate.push_back(v);
 
-        while (!st.empty()) {
-            Block left = st.back();
-            int64 small = min(left.sum, cur.sum);
-            int64 large = max(left.sum, cur.sum);
-            int64 answer = (cur.gap >= small)
-                         ? large : ask(left.l, cur.r);
+        // On level D, ? u (D-dep[u]) is exactly a subtree-membership query.
+        auto querySubtree = [&](int u) -> int {
+            int reply = ask(u, D - dep[u]);
+            int len = 0;
+            for (int x : candidate)
+                if (int(inSubtree(u, x)) == reply)
+                    candidate[len++] = x;
+            candidate.resize(len);
+            return reply;
+        };
 
-            if (answer > large) {
-                // The entire interval is a maximum subarray: its sum is known.
-                int64 needed = left.sum + cur.sum - answer;
-                b[cur.slot] -= needed - cur.gap;
-                cur.l = left.l;
-                cur.sum = answer;
-                cur.gap = left.gap;
-                cur.slot = left.slot;
-                st.pop_back();
-            } else {
-                // Only a lower bound on the gap cost is necessary for now.
-                int64 needed = max(cur.gap, small);
-                b[cur.slot] -= needed - cur.gap;
-                cur.gap = needed;
+        while (candidate.size() > 1) {
+            fill(cnt.begin(), cnt.end(), 0);
+            for (int x : candidate) cnt[x] = 1;
+            for (int v = n; v >= 2; --v) cnt[fa[v]] += cnt[v];
 
-                if (left.sum > cur.sum) break;
-
-                // Remove the smaller left block from the active stack.
-                // Its entries remain in b and become part of the combined gap.
-                st.pop_back();
-                if (st.empty()) {
-                    cur.gap = 0;
-                    cur.slot = -1;
-                } else {
-                    cur.gap += left.gap - left.sum;
-                    cur.slot = left.slot;
+            int m = int(candidate.size());
+            int q = rankOf(m);
+            int A = capacity[q - 1];
+            int low = m - A;
+            int chosen = 0, best = m + 1;
+            for (int v = 1; v <= n; ++v) {
+                if (low <= cnt[v] && cnt[v] <= A) {
+                    int imbalance = abs(m - 2 * cnt[v]);
+                    if (imbalance < best) {
+                        best = imbalance;
+                        chosen = v;
+                    }
                 }
             }
+            if (chosen) {
+                querySubtree(chosen);
+                continue;
+            }
+
+            // No balanced edge. Find the three-way junction.
+            // Each of its two child groups and its outside group has
+            // at most capacity[q-2] candidates.
+            int u = 1;
+            while (true) {
+                int next = 0;
+                for (int v : son[u])
+                    if (v && cnt[v] > A) next = v;
+                if (!next) break;
+                u = next;
+            }
+            int a = son[u][0], b = son[u][1];
+            assert(q >= 2 && a && b && cnt[a] && cnt[b]);
+            if (querySubtree(a)) continue;
+            querySubtree(b);
         }
-        st.push_back(cur);
-        previous_end = cur.r;
+        return candidate[0];
     }
-    return b;
-}
+};
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
     int T;
     if (!(cin >> T)) return 0;
     while (T--) {
         int n;
-        if (!(cin >> n)) return 0;
-        auto ask = [&](int l, int r) -> int64 {
-            cout << "? " << l << ' ' << r << endl;
-            int64 answer;
-            if (!(cin >> answer) || answer < 0) exit(0);
-            return answer;
+        cin >> n;
+        vector<int> fa(n + 1, 0);
+        for (int v = 2; v <= n; ++v) cin >> fa[v];
+        Solver solver(n, fa);
+        auto ask = [&](int u, int k) -> int {
+            cout << "? " << u << ' ' << k << endl;
+            int reply;
+            if (!(cin >> reply) || (reply != 0 && reply != 1)) exit(0);
+            return reply;
         };
-        vector<int64> b = reconstruct(n, ask);
-        cout << '!';
-        for (int i = 1; i <= n; ++i) cout << ' ' << b[i];
-        cout << endl;
-        // The statement specifies no extra verdict token after an answer.
+        int answer = solver.solve(ask);
+        cout << "! " << answer << endl;
     }
     return 0;
 }

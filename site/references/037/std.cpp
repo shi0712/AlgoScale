@@ -1,206 +1,171 @@
+// Single-point spectral rebalancing. C++17, online Bluestein FFT + upper hull.
+// No answer table; fixed bounds: n<=100000, abs(f_i)<=2000.
 #include <bits/stdc++.h>
 using namespace std;
 
-static constexpr int MOD = 998244353;
+using ld = long double;
+using cd = complex<ld>;
+const ld PI = acosl(-1.0L);
 
-struct Matrix {
-    int a = 0, b = 0, c = 0, d = 0;
-};
-
-Matrix multiply(const Matrix &x, const Matrix &y) {
-    return {
-        int((1LL * x.a * y.a + 1LL * x.b * y.c) % MOD),
-        int((1LL * x.a * y.b + 1LL * x.b * y.d) % MOD),
-        int((1LL * x.c * y.a + 1LL * x.d * y.c) % MOD),
-        int((1LL * x.c * y.b + 1LL * x.d * y.d) % MOD)
-    };
-}
-
-class DynamicDP {
-    struct Node {
-        int left = 0, right = 0, light = 0, parent = 0;
-        Matrix value;
-    };
-
-    int n, total, expressionRoot;
-    const vector<vector<int>> &graph;
-    vector<Node> tree;
-    vector<int> parent, size, heavy;
-    vector<unsigned char> active;
-
-    void pull(int u) {
-        Node &t = tree[u];
-        if (u > n) {
-            // 合并两组轻子树的贡献，只使用矩阵的第一列。
-            const Matrix &x = tree[t.left].value;
-            const Matrix &y = tree[t.right].value;
-            t.value = {
-                int(1LL * x.a * y.a % MOD), 0,
-                int((1LL * x.c * y.a + 1LL * x.a * y.c) % MOD), 0
-            };
-            return;
-        }
-
-        // 轻子树合并结果为 (A, B)，空集合为 (1, 0)。
-        int A = tree[t.light].value.a;
-        int B = tree[t.light].value.c;
-        Matrix m;
-        if (active[u]) {
-            int s = A + B;
-            if (s >= MOD) s -= MOD;
-            m = {s, A, B, A};
-        } else {
-            m = {A, 0, A, 0};
-        }
-
-        // 按重链从上到下的顺序：左区间 * 当前点矩阵 * 右区间。
-        if (t.left)  m = multiply(tree[t.left].value, m);
-        if (t.right) m = multiply(m, tree[t.right].value);
-        t.value = m;
+// 长度为 2 的幂的 FFT：正变换用负号，逆变换用正号并除以长度。
+void fft(vector<cd>& a, bool inverse) {
+    int n = (int)a.size();
+    for (int i = 1, j = 0; i < n; ++i) {
+        int bit = n >> 1;
+        for (; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if (i < j) swap(a[i], a[j]);
     }
-
-    int joinRake(int x, int y) {
-        if (!x) return y;
-        if (!y) return x;
-        int u = ++total;
-        tree[u].left = x;
-        tree[u].right = y;
-        tree[x].parent = tree[y].parent = u;
-        pull(u);
-        return u;
-    }
-
-    // prefix 是正权值的前缀和，返回区间的带权中位数。
-    static int weightedMedian(const vector<int> &prefix, int l, int r) {
-        int target = prefix[l] + (prefix[r + 1] - prefix[l] + 1) / 2;
-        return int(lower_bound(prefix.begin() + l + 1,
-                               prefix.begin() + r + 2, target)
-                   - prefix.begin()) - 1;
-    }
-
-    int buildRake(const vector<int> &ids, const vector<int> &prefix,
-                  int l, int r) {
-        if (l > r) return 0;
-        if (l == r) return ids[l];
-        int m = weightedMedian(prefix, l, r);
-        int x = buildRake(ids, prefix, l, m - 1);
-        int y = ids[m];
-        int z = buildRake(ids, prefix, m + 1, r);
-        return joinRake(joinRake(x, y), z);
-    }
-
-    int buildCompress(const vector<int> &ids, const vector<int> &prefix,
-                      int l, int r) {
-        if (l > r) return 0;
-        int m = weightedMedian(prefix, l, r);
-        int u = ids[m];
-        int x = buildCompress(ids, prefix, l, m - 1);
-        int y = buildCompress(ids, prefix, m + 1, r);
-        tree[u].left = x;
-        tree[u].right = y;
-        if (x) tree[x].parent = u;
-        if (y) tree[y].parent = u;
-        pull(u);
-        return u;
-    }
-
-    int buildChain(int head) {
-        vector<int> ids;
-        vector<int> prefix(1, 0);
-        for (int u = head; u; u = heavy[u]) {
-            vector<int> lightIds;
-            vector<int> lightPrefix(1, 0);
-            for (int v : graph[u]) {
-                if (parent[v] == u && v != heavy[u]) {
-                    lightIds.push_back(buildChain(v));
-                    lightPrefix.push_back(lightPrefix.back() + size[v]);
+    for (int len = 2; len <= n; len <<= 1) {
+        ld angle = (inverse ? 2.0L : -2.0L) * PI / len;
+        cd step(cosl(angle), sinl(angle));
+        for (int i = 0; i < n; i += len) {
+            cd w(1, 0);
+            for (int j = 0; j < len / 2; ++j) {
+                cd u = a[i + j];
+                cd v = a[i + j + len / 2] * w;
+                a[i + j] = u + v;
+                a[i + j + len / 2] = u - v;
+                // Bound recurrence drift: recompute one unit root every 256 steps.
+                if ((j & 255) == 255 && j + 1 < len / 2) {
+                    ld theta = angle * (j + 1);
+                    w = cd(cosl(theta), sinl(theta));
+                } else {
+                    w *= step;
                 }
             }
-            int lightRoot = buildRake(lightIds, lightPrefix,
-                                      0, int(lightIds.size()) - 1);
-            tree[u].light = lightRoot;
-            if (lightRoot) tree[lightRoot].parent = u;
-
-            ids.push_back(u);
-            // 点权为当前点及其所有轻子树的大小之和。
-            prefix.push_back(prefix.back() + size[u] - size[heavy[u]]);
         }
-        return buildCompress(ids, prefix, 0, int(ids.size()) - 1);
+    }
+    if (inverse) {
+        for (cd& z : a) z /= (ld)n;
+    }
+}
+
+// Bluestein 算法：计算任意长度 n 的 DFT。
+vector<cd> dft(const vector<ld>& g) {
+    int n = (int)g.size();
+    if ((n & (n - 1)) == 0) {
+        vector<cd> a(n);
+        for (int i = 0; i < n; ++i) a[i] = cd(g[i], 0);
+        fft(a, false);
+        return a;
     }
 
-public:
-    DynamicDP(int n_, const vector<vector<int>> &g)
-        : n(n_), total(n_), graph(g), tree(2 * n_ + 5),
-          parent(n_ + 1), size(n_ + 1), heavy(n_ + 1), active(n_ + 1) {
-        // 空链取单位矩阵，其第一列也恰好是空轻子树集合 (1, 0)。
-        tree[0].value = {1, 0, 0, 1};
-
-        vector<int> order;
-        order.reserve(n);
-        order.push_back(1);
-        for (int i = 0; i < int(order.size()); ++i) {
-            int u = order[i];
-            for (int v : graph[u]) {
-                if (v == parent[u]) continue;
-                parent[v] = u;
-                order.push_back(v);
-            }
-        }
-        for (int i = n - 1; i >= 0; --i) {
-            int u = order[i];
-            size[u] = 1;
-            for (int v : graph[u]) {
-                if (parent[v] != u) continue;
-                size[u] += size[v];
-                if (size[v] > size[heavy[u]]) heavy[u] = v;
-            }
-        }
-        expressionRoot = buildChain(1);
+    int m = 1;
+    while (m < 2 * n - 1) m <<= 1;
+    vector<cd> a(m), b(m), chirp(n);
+    for (int j = 0; j < n; ++j) {
+        // 先对 2*pi 取模，避免用过大的角度计算三角函数。
+        long long r = 1LL * j * j % (2LL * n);
+        ld angle = PI * (ld)r / n;
+        chirp[j] = cd(cosl(angle), -sinl(angle));
+        a[j] = g[j] * chirp[j];
+        b[j] = conj(chirp[j]);
+        if (j > 0) b[m - j] = b[j];
     }
+    fft(a, false);
+    fft(b, false);
+    for (int i = 0; i < m; ++i) a[i] *= b[i];
+    fft(a, true);
 
-    bool isActive(int u) const { return active[u] != 0; }
+    vector<cd> res(n);
+    for (int t = 0; t < n; ++t) res[t] = a[t] * chirp[t];
+    return res;
+}
 
-    void activate(int u) {
-        active[u] = 1;
-        for (int x = u; x; x = tree[x].parent) pull(x);
-    }
-
-    int forestCount() const {
-        // 根所在重链的矩阵积乘 (1, 0)^T，第二维就是 f_1[root]。
-        return tree[expressionRoot].value.c;
-    }
+struct Line {
+    ld m, c; // y = m*x + c
 };
 
+ld solve(const vector<int>& f, int k) {
+    int n = (int)f.size();
+    vector<ld> g(n);
+    for (int j = 1; j < n; ++j) g[j] = f[(k + j) % n];
+    // g[0] = 0，修改后的值 x 单独考虑。
+    vector<cd> A = dft(g);
+
+    // 这两个频率是实数，可直接用整数加减精确计算。
+    ld sum = 0, alternating = 0;
+    for (int j = 0; j < n; ++j) {
+        sum += g[j];
+        alternating += (j & 1) ? -g[j] : g[j];
+    }
+    A[0] = cd(sum, 0);
+    if (n % 2 == 0) A[n / 2] = cd(alternating, 0);
+
+    // 实序列满足 A[n-t] = conj(A[t])，只需考虑前半部分频率。
+    vector<Line> lines;
+    lines.reserve(n / 2 + 1);
+    for (int t = 0; t <= n / 2; ++t) {
+        ld a = A[t].real(), b = A[t].imag();
+        lines.push_back({2 * a, a * a + b * b});
+    }
+    sort(lines.begin(), lines.end(), [](const Line& a, const Line& b) {
+        if (a.m != b.m) return a.m < b.m;
+        return a.c > b.c; // 相同斜率时，截距大的排在前面。
+    });
+
+    vector<Line> hull;
+    vector<ld> left;
+    hull.reserve(lines.size());
+    left.reserve(lines.size());
+    const ld INF = numeric_limits<ld>::infinity();
+    for (const Line& ln : lines) {
+        if (!hull.empty() && ln.m == hull.back().m) continue;
+        ld start = -INF;
+        while (!hull.empty()) {
+            start = (hull.back().c - ln.c) / (ln.m - hull.back().m);
+            if (start > left.back()) break;
+            hull.pop_back();
+            left.pop_back();
+        }
+        if (hull.empty()) start = -INF;
+        hull.push_back(ln);
+        left.push_back(start);
+    }
+
+    // 第 i 段上 H(x) = x*x + m_i*x + c_i。
+    ld x0 = 0;
+    for (int i = 0; i < (int)hull.size(); ++i) {
+        ld right = (i + 1 < (int)hull.size()) ? left[i + 1] : INF;
+        ld vertex = -hull[i].m / 2;
+        if (vertex <= right) {
+            x0 = max(vertex, left[i]);
+            break;
+        }
+    }
+
+    auto evaluate = [&](long long x) -> ld {
+        ld ans = 0;
+        for (int t = 0; t <= n / 2; ++t) {
+            ld real = (ld)x + A[t].real();
+            ld imag = A[t].imag();
+            ans = max(ans, real * real + imag * imag);
+        }
+        return ans;
+    };
+
+    // 理论上只需检查 floor(x0)、ceil(x0)。
+    // 多检查左右各一个整数，减小整数边界处舍入误差的影响。
+    long long base = (long long)floorl(x0);
+    ld ans = INF;
+    for (long long x = base - 1; x <= base + 2; ++x) {
+        ans = min(ans, evaluate(x));
+    }
+    return sqrtl(ans);
+}
+
+#ifndef SPECTRAL_NO_MAIN
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n;
-    if (!(cin >> n)) return 0;
-    vector<vector<int>> graph(n + 1);
-    for (int i = 1; i < n; ++i) {
-        int u, v;
-        cin >> u >> v;
-        graph[u].push_back(v);
-        graph[v].push_back(u);
-    }
-
-    vector<int> power2(n + 1, 1);
-    for (int i = 1; i <= n; ++i)
-        power2[i] = int(2LL * power2[i - 1] % MOD);
-
-    DynamicDP dp(n, graph);
-    int exponent = 0; // 未操作点诱导森林的连通块数减一。
-    for (int i = 1; i < n; ++i) {
-        int x;
-        cin >> x;
-        int unoperatedNeighbors = 0;
-        for (int v : graph[x])
-            if (!dp.isActive(v)) ++unoperatedNeighbors;
-
-        exponent += unoperatedNeighbors - 1;
-        dp.activate(x);
-        cout << 1LL * power2[exponent] * dp.forestCount() % MOD << '\n';
-    }
+    int n, k;
+    if (!(cin >> n >> k)) return 0;
+    vector<int> f(n);
+    for (int& x : f) cin >> x;
+    cout << fixed << setprecision(15) << solve(f, k) << '\n';
     return 0;
 }
+
+#endif

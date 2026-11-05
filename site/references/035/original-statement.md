@@ -1,61 +1,62 @@
-# 35. Energy Distribution
-
 ## Problem Description
 
-An undirected network on $n$ vertices is described by a matrix $W$. For distinct vertices $i,j$, the value $w_{i,j}$ is the width of their tunnel; zero denotes the absence of a tunnel. There is at most one tunnel per pair.
+A pool contains $n$ cards in $m$ types. Type $i$ initially has $a_i$ cards, and the target collection requires $b_i$ cards of that type.
 
-Assign nonnegative real values $e_1,\ldots,e_n$ with total 1. Maximize
+Each refresh draws one card uniformly from the cards currently remaining in the pool. If the target still needs that type, keep the card and remove it from the pool. Otherwise, immediately return it to the pool. Continue until all target counts have been collected.
 
-$$E=\sum_{i=1}^{n}\sum_{j=i+1}^{n} e_i e_j w_{i,j}.$$
+Compute the expected number of refreshes. Represent this rational expectation modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by $n$ rows of $n$ integers describing $W$. The $j$-th entry of row $i$ is $w_{i,j}$.
+Read three lines:
+
+1. $n,m$;
+2. $a_1,\ldots,a_m$;
+3. $b_1,\ldots,b_m$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the maximum value of $E$ as a real number.
+Let the expectation in lowest terms be $p/q$. Print
 
-Your answer is accepted if
+$$p\,q^{-1}\pmod{998244353}$$
 
-$$\frac{|A-B|}{\max(|A|,1)}\le10^{-6},$$
-
-where $A$ is the submitted answer and $B$ is the reference answer.
+as an integer from 0 through $998244352$. It is guaranteed that the denominator is not divisible by the modulus.
 
 ## Examples
 
 Input:
 
 ```text
-2
-0 1
-1 0
+2 2
+1 1
+1 1
 ```
 
 Output:
 
 ```text
-0.250000
+2
 ```
 
 ## Explanation / Notes
 
-Energy may be divided continuously; the $e_i$ are not restricted to integers. Vertices may receive zero energy. The expression includes each unordered pair once and does not use matrix diagonal entries.
+A returned card remains available for later refreshes. A kept card is no longer eligible to be drawn. Sampling is uniform over individual remaining cards, so the probability of a type depends on its current multiplicity.
 
-For the example, assigning $1/2$ to each vertex gives $E=1/4$.
+In the example, both cards are required, so every draw keeps a card and exactly two refreshes are needed. If every $b_i$ is zero, the target is already complete and the expectation is zero.
 
 ## Constraints
 
 - There is one input instance.
-- $1\le n\le10$.
-- Every matrix entry is an integer with $0\le w_{i,j}\le1000$.
-- The network is undirected and has at most one tunnel between each pair of vertices.
-- Feasible energy assignments satisfy $e_i\ge0$ and $\sum_i e_i=1$.
-- The network need not be connected.
-- Precision: the explicit relative/absolute condition in Output Format is at most $10^{-6}$.
-- Time limit: 1 second.
-- Memory limit: 256 MB.
+- $1\le n\le1000$.
+- $1\le m\le12$.
+- $1\le a_i\le n$ and $\sum_{i=1}^{m}a_i=n$.
+- $0\le b_i\le a_i$ for every type.
+- All input counts are integers.
+- Empty target requirements are allowed, including $b_i=0$ for every type.
+- For the reduced expectation $p/q$, $q\not\equiv0\pmod{998244353}$.
+- Time limit: 2 seconds.
+- Memory limit: 1024 MB.

@@ -1,70 +1,61 @@
-# 5. Robots
-
 ## Problem Description
 
-Choose integer heights $h_i\in[A_i,B_i]$ for $n$ pillars arranged in order. For each possible starting index $s$, two robots start on pillar $s$ and move only between adjacent pillars.
+A rooted tree has $n$ vertices, root 1, and parent $p_i$ for each vertex $i\ge2$. Depth is the number of edges from the root, so $d_1=0$ and $d_i=d_{p_i}+1$. The tree's height is its maximum depth and is guaranteed to be at most the given bound $m$.
 
-- Robot P moves left while the next pillar's height is **at most** $h_s$. It stops at $l$ such that all heights from $l$ through $s$ are at most $h_s$, and either $l=1$ or $h_{l-1}>h_s$.
-- Robot Q moves right while the next pillar's height is **strictly less than** $h_s$. It stops at $r$ such that all heights from $s+1$ through $r$ are less than $h_s$, and either $r=n$ or $h_{r+1}\ge h_s$.
+Assign a nonnegative integer $a_i$ to every vertex. Let $S_i$ be the set of assigned values appearing in the subtree of $i$, including vertex $i$. The **mex** of a set is its smallest missing nonnegative integer.
 
-The numbers of moves are $s-l$ and $r-s$, respectively. Count the height assignments for which
+Find the maximum possible value of
 
-$$\left|(s-l)-(r-s)\right|\le2$$
+$$\sum_{i=1}^{n}\operatorname{mex}(S_i)$$
 
-holds for **every** starting index $s$. Two assignments differ when any pillar's height differs. Return the count modulo $10^9+7$.
+over all assignments.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by $n$ lines. Line $i$ contains the inclusive lower and upper height bounds $A_i,B_i$.
+Read the number of cases $t$. Each case consists of:
+
+1. A line containing $n,m$.
+2. A line containing the $n-1$ parents $p_2,p_3,\ldots,p_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of valid height assignments modulo $10^9+7$.
+For each case, print one nonnegative integer: the maximum tree value.
 
 ## Examples
 
 Input:
 
 ```text
-5
-3 3
-2 2
-3 4
-2 2
-3 3
+1
+5 2
+1 1 2 2
 ```
 
 Output:
 
 ```text
-1
+9
 ```
 
 ## Explanation / Notes
 
-The example permits two assignments. For $[3,2,3,2,3]$, starting at pillar 5 gives P four moves and Q zero, so that assignment is invalid. The assignment $[3,2,4,2,3]$ is valid:
+Assign $(a_1,a_2,a_3,a_4,a_5)=(3,2,0,0,1)$. The subtree mex values sum to $4+3+1+1+0=9$, which is optimal.
 
-| Start | P's stopping pillar | P's moves | Q's stopping pillar | Q's moves |
-| ---: | ---: | ---: | ---: | ---: |
-| 1 | 1 | 0 | 2 | 1 |
-| 2 | 2 | 0 | 2 | 0 |
-| 3 | 1 | 2 | 5 | 2 |
-| 4 | 4 | 0 | 4 | 0 |
-| 5 | 4 | 1 | 5 | 0 |
-
-The starting pillar itself does not count as a move. The asymmetric treatment of equal heights is part of the problem.
+Repeated values contribute only once to a subtree's set. The height bound $m$ concerns the input tree's structure; it is not an upper bound on assigned weights.
 
 ## Constraints
 
-- One test case is given; there is no leading case count.
-- $1\le n\le300$.
-- $1\le A_i\le B_i\le10^9$ for every pillar.
-- Every chosen height $h_i$ is an integer in the inclusive interval $[A_i,B_i]$.
-- The balance condition must hold for all $n$ starting positions.
+- $1\le t\le5$.
+- $2\le n\le8000$.
+- $1\le m\le\min(n-1,800)$.
+- $1\le p_i\le i-1$ for every $2\le i\le n$.
+- Vertex 1 is the root, with depth zero.
+- The input tree's height does not exceed $m$.
+- Chosen weights $a_i$ may be arbitrary nonnegative integers; they are decision variables rather than input values.
 
-- Time limit: 3 seconds.
-- Memory limit: 512000 KiB (500 MiB).
+- Time limit: 2 seconds.
+- Memory limit: 524288 KiB (512 MiB).

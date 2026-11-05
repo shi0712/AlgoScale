@@ -1,56 +1,51 @@
-# 72. Matching
-
 ## Problem Description
 
-There are $n$ sets containing $2m$ distinct elements in total. Initially, set $i$ contains $a_i$ elements, and each element belongs to exactly one set.
+Consider a tree on vertices $1,\ldots,n$, rooted at vertex $1$. A depth-first search starts by visiting and recording the root. At each vertex, its children may be processed in any order; each child's entire subtree is explored before moving on to the next child. Record a vertex when it is first visited.
 
-In each round, randomly partition all elements into $m$ pairs. Independently for each pair, randomly choose one of its two elements and move that element into the set containing its partner. The random matching and endpoint selections are uniform.
+You are given $m$ permutations, each starting with $1$. Count the rooted trees for which **every** supplied permutation can be a DFS order. The ordering of children may differ between the DFS runs.
 
-Find the expected number of rounds until all elements belong to a single set. Express this expectation modulo $998244353$.
+Trees are distinct when their edge sets differ. Return the count modulo $10^9+7$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $T$.
-
-Each case contains a line with $n,m$, followed by a line with the $n$ initial set sizes $a_1,\ldots,a_n$.
+The first line contains $n,m$. Each of the next $m$ lines contains one permutation $p_{k,1},\ldots,p_{k,n}$ of $1,\ldots,n$.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print one integer. If the expectation is $P/Q$, output $P\cdot Q^{-1}\bmod998244353$, where the inverse satisfies $QQ^{-1}\equiv1\pmod{998244353}$.
+Print the number of compatible rooted trees modulo $1000000007$.
 
 ## Examples
 
 Input:
 
 ```text
-1
-2 1
-1 1
+4 1
+1 2 3 4
 ```
 
 Output:
 
 ```text
-1
+5
 ```
 
 ## Explanation / Notes
 
-There are two elements, initially in separate sets. There is only one possible pair, and moving either endpoint puts both elements in one set. Exactly one round is required.
+Writing $(p_2,p_3,p_4)$ for the parents of vertices 2, 3, 4, the five compatible trees are $(1, 1, 1)$, $(1, 1, 3)$, $(1, 2, 1)$, $(1, 2, 2)$, and $(1, 2, 3)$.
 
-Elements remain distinguishable even when they share a set. A set may become empty during the process. If all elements are already in one set, the required number of rounds is zero.
+This is a first-visit DFS order, not a sequence that records returns to ancestors. Child order is a choice made during a traversal and is not part of the identity of a counted tree.
 
 ## Constraints
 
-- $1\le T\le100$.
-- $n,m$ are integers satisfying $1\le n\le2m\le400$.
-- Each initial size satisfies $1\le a_i\le2m$.
-- $\sum_{i=1}^{n}a_i=2m$ in every test case.
-- All $2m$ elements are distinct and initially belong to exactly one set each.
-- Across all test cases, $\sum n\le800$ and $\sum m\le400$.
-- Every round pairs all elements, with exactly one selected endpoint per pair.
-- Answer modulus: $998244353$.
+- $1\le n,m\le500$.
+- Every supplied sequence contains each integer in $[1,n]$ exactly once.
+- $p_{k,1}=1$ for every sequence $k$.
+- Every candidate tree is undirected and connected, with exactly $n-1$ edges and root $1$.
+- One common tree must support all $m$ DFS orders, though different child-processing orders may be used.
+- Answer modulus: $10^9+7$.
+- There is one instance per input.
+- Time limit: **3 seconds**. Memory limit: **1024 MiB**.

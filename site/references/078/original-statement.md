@@ -1,14 +1,14 @@
-# 78. Affection
-
 ## Problem Description
 
-There are $n$ students, numbered from $1$ to $n$. Their initial **affection** values are $a_1,a_2,\ldots,a_n$.
+The training team has $m$ candidate players. You need to select $2n$ players, pair them up, and assign the resulting pairs to $n$ tennis doubles matches.
 
-Sensei performs exactly one operation per day:
+Player $i$ has an estimated ability $e_i$ and is classified as either a junior or a senior according to their training experience.
 
-- Choose two integers $l$ and $r$ with $1\le l\le r\le n$, then increase $a_i$ by $1$ for every $i$ in the interval $[l,r]$.
+Match $i$ requires the ability of each participating player not to exceed $l_i$. For stability, the absolute difference between the abilities of the two players in every pair must not exceed $d$.
 
-Find the minimum number of days required so that at most $m$ distinct integers remain in the sequence $a_1,a_2,\ldots,a_n$.
+Players in a pair do not need to belong to the same category. To make full use of the potential of junior players, the coach wants to know the best possible lineup for every exact number of selected juniors.
+
+For each $t=0,1,\ldots,2n$, determine whether a valid pairing and assignment exists that contains exactly $t$ junior players. If it does not exist, the answer is $-1$. Otherwise, output the maximum possible sum of the abilities of the selected $2n$ players.
 
 ## Input Format
 
@@ -18,43 +18,60 @@ The first line contains an integer $T$, the number of test cases.
 
 For each test case:
 
-- The first line contains two integers $n$ and $m$.
-- The second line contains $n$ integers $a_1,a_2,\ldots,a_n$.
+- The first line contains three integers $n$, $m$, and $d$.
+- The second line contains $n$ integers $l_1,l_2,\ldots,l_n$.
+- Each of the following $m$ lines contains two integers $e_i$ and $t_i$. Here, $e_i$ is the estimated ability of player $i$; $t_i=1$ denotes a junior, and $t_i=2$ denotes a senior.
 
 ## Output Format
 
 Write to standard output.
 
-For each test case, print one non-negative integer: the minimum number of days required.
+For each test case, output $2n+1$ integers on one line. The $(i+1)$-st integer is the answer when exactly $i$ junior players are selected, for every $i=0,1,\ldots,2n$.
 
 ## Examples
 
 Input:
 
 ```text
-4
-3 1
-3 1 3
-5 1
-5 1 6 1 8
-5 2
-5 1 6 1 8
-5 2
-1 3 2 3 1
+2
+4 9 400
+800 900 1050 1200
+46 1
+264 2
+295 1
+305 1
+332 2
+678 1
+770 2
+903 2
+1291 2
+4 9 400
+800 900 1050 1200
+46 1
+264 2
+295 1
+305 2
+332 2
+678 2
+770 2
+903 2
+1291 1
 ```
 
 Output:
 
 ```text
-2
-12
-3
-1
+-1 -1 -1 -1 3593 -1 -1 -1 -1
+-1 -1 3593 -1 -1 -1 -1 -1 -1
 ```
 
 ## Constraints
 
-- $1\le T\le10$.
-- $1\le n\le400$.
-- $1\le m\le2$.
-- $0\le a_i\le100$.
+- $1\le T\le10^5$.
+- $1\le n\le20$.
+- $2n\le m\le10^5$.
+- $0\le d<10^9$.
+- $1\le l_i\le10^9$.
+- $1\le e_i\le10^9$.
+- $t_i\in\{1,2\}$.
+- The sum of $m$ over all test cases does not exceed $2\times10^5$.

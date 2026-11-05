@@ -1,391 +1,225 @@
 #include <bits/stdc++.h>
-#ifndef MINMUL
-#define MINMUL 32
-#endif
-#ifndef BLK
-#define BLK 32
-#endif
-
 using namespace std;
-typedef vector<int> vi;
-static const int MOD = 998244353;
+static const double INF = numeric_limits<double>::infinity();
 
-static int pw_(long long a, long long e) {
-    long long r = 1; a %= MOD;
-    while (e > 0) { if (e & 1) r = r * a % MOD; a = a * a % MOD; e >>= 1; }
-    return (int)r;
-}
-
-static int se_[40], sie_[40];
-static void init_ntt() {
-    int cnt2 = 23;
-    long long e = pw_(3, (MOD - 1) >> cnt2), ie = pw_(e, MOD - 2);
-    long long es[40], ies[40];
-    for (int i = cnt2; i >= 2; i--) { es[i - 2] = e; ies[i - 2] = ie; e = e * e % MOD; ie = ie * ie % MOD; }
-    long long now = 1;
-    for (int i = 0; i <= cnt2 - 2; i++) { se_[i] = (int)(now * es[i] % MOD); now = now * ies[i] % MOD; }
-    now = 1;
-    for (int i = 0; i <= cnt2 - 2; i++) { sie_[i] = (int)(now * ies[i] % MOD); now = now * es[i] % MOD; }
-}
-static inline int bsf_(unsigned int x) { return __builtin_ctz(x); }
-static void butterfly(vi &a) {
-    int n = (int)a.size();
-    int h = 31 - __builtin_clz((unsigned)n);
-    for (int ph = 1; ph <= h; ph++) {
-        int w = 1 << (ph - 1), p = 1 << (h - ph);
-        long long now = 1;
-        for (int s = 0; s < w; s++) {
-            int offset = s << (h - ph + 1);
-            int *base = a.data() + offset;
-            for (int i = 0; i < p; i++) {
-                int l = base[i];
-                int r = (int)((long long)base[i + p] * now % MOD);
-                int x = l + r; if (x >= MOD) x -= MOD;
-                int y = l - r; if (y < 0) y += MOD;
-                base[i] = x; base[i + p] = y;
-            }
-            now = now * se_[bsf_(~(unsigned)s)] % MOD;
-        }
+struct FastIn {
+    static const int S = 1 << 16;
+    char buf[S]; int n = 0, p = 0;
+    inline char gc() {
+        if (p == n) { n = (int)fread(buf, 1, S, stdin); p = 0; if (n <= 0) return 0; }
+        return buf[p++];
     }
-}
-static void butterfly_inv(vi &a) {
-    int n = (int)a.size();
-    int h = 31 - __builtin_clz((unsigned)n);
-    for (int ph = h; ph >= 1; ph--) {
-        int w = 1 << (ph - 1), p = 1 << (h - ph);
-        long long inow = 1;
-        for (int s = 0; s < w; s++) {
-            int offset = s << (h - ph + 1);
-            int *base = a.data() + offset;
-            for (int i = 0; i < p; i++) {
-                int l = base[i], r = base[i + p];
-                int x = l + r; if (x >= MOD) x -= MOD;
-                int y = l - r; if (y < 0) y += MOD;
-                base[i] = x; base[i + p] = (int)((long long)y * inow % MOD);
-            }
-            inow = inow * sie_[bsf_(~(unsigned)s)] % MOD;
-        }
+    template <class T> inline bool readInt(T &out) {
+        char c; T sign = 1, num = 0;
+        c = gc(); if (!c) return false;
+        while (c != '-' && (c < '0' || c > '9')) { c = gc(); if (!c) return false; }
+        if (c == '-') { sign = -1; c = gc(); }
+        for (; c >= '0' && c <= '9'; c = gc()) num = num * 10 + (c - '0');
+        out = num * sign; return true;
     }
-    int ninv = pw_(n, MOD - 2);
-    for (auto &x : a) x = (int)((long long)x * ninv % MOD);
-}
-
-static vi mul(const vi &a, const vi &b) {
-    if (a.empty() || b.empty()) return vi();
-    int n = (int)a.size(), m = (int)b.size();
-    if (min(n, m) <= MINMUL) {
-        vi c(n + m - 1, 0);
-        for (int i = 0; i < n; i++) {
-            if (!a[i]) continue;
-            long long ai = a[i];
-            for (int j = 0; j < m; j++) c[i + j] = (int)((c[i + j] + ai * b[j]) % MOD);
-        }
-        return c;
-    }
-    int need = n + m - 1, sz = 1;
-    while (sz < need) sz <<= 1;
-    vi fa(a.begin(), a.end()), fb(b.begin(), b.end());
-    fa.resize(sz); fb.resize(sz);
-    butterfly(fa); butterfly(fb);
-    for (int i = 0; i < sz; i++) fa[i] = (int)((long long)fa[i] * fb[i] % MOD);
-    butterfly_inv(fa);
-    fa.resize(need);
-    return fa;
-}
-
-static vi pinv(const vi &a, int n) {
-    vi r(1, pw_(a[0], MOD - 2));
-    while ((int)r.size() < n) {
-        int m = min(2 * (int)r.size(), n);
-        vi f(a.begin(), a.begin() + min((int)a.size(), m));
-        vi fr = mul(f, r);
-        fr.resize(m);
-        for (auto &x : fr) if (x) x = MOD - x;
-        fr[0] = (fr[0] + 2) % MOD;
-        r = mul(r, fr);
-        r.resize(m);
-    }
-    return r;
-}
-
-// a mod b ; irev = inverse of reversed b truncated (length >= deg(a)-deg(b)+2)
-static vi pmod(const vi &a, const vi &b, const vi &irev) {
-    int n = (int)a.size(), m = (int)b.size();
-    if (n < m) return a;
-    if (m == 1) return vi();
-    int qlen = n - m + 1;
-    vi ra(qlen);
-    for (int i = 0; i < qlen; i++) ra[i] = a[n - 1 - i];
-    vi t(qlen, 0);
-    if (qlen <= (int)irev.size()) {
-        for (int i = 0; i < qlen; i++) t[i] = irev[i];
-    } else {                       // defensive: lengthen the inverse series if ever needed
-        vi rev(b.rbegin(), b.rend());
-        vi full = pinv(rev, qlen);
-        for (int i = 0; i < qlen; i++) t[i] = full[i];
-    }
-    vi q = mul(ra, t);
-    q.resize(qlen);
-    reverse(q.begin(), q.end());
-    vi bq = mul(b, q);
-    vi r(m - 1, 0);
-    for (int i = 0; i < m - 1; i++) {
-        long long v = (i < n ? a[i] : 0);
-        if (i < (int)bq.size()) v -= bq[i];
-        v %= MOD; if (v < 0) v += MOD;
-        r[i] = (int)v;
-    }
-    return r;
-}
-
-// ---------------- per test ----------------
-struct PT {
-    int lo, hi;
-    vi poly, irev, actL;
-    int lc, rc;
 };
-static vector<PT> pt;
-static int n_;
-static vi Ans, factAt, Evec, prefAct;
-static const int B = BLK;
 
-static int buildPT(int lo, int hi) {
-    int id = (int)pt.size();
-    pt.push_back(PT{lo, hi, {}, {}, {}, -1, -1});
-    if (hi - lo == 1) {
-        pt[id].poly = vi{(int)((MOD - (long long)(lo % MOD)) % MOD), 1};
-        return id;
-    }
-    int mid = (lo + hi) >> 1;
-    int l = buildPT(lo, mid), r = buildPT(mid, hi);
-    pt[id].lc = l; pt[id].rc = r;
-    pt[id].poly = mul(pt[l].poly, pt[r].poly);
-    return id;
-}
+struct Ev { double g, dt, F; int t, q; };
 
-static vi truncMul(const vi &a, const vi &b, int n) {
-    if (n <= 0 || a.empty() || b.empty()) return vi();
-    if (min(a.size(), b.size()) <= MINMUL) {
-        vi c(n, 0);
-        for (int i = 0; i < (int)a.size() && i < n; i++) {
-            if (!a[i]) continue;
-            long long ai = a[i];
-            int lim = min((int)b.size(), n - i);
-            for (int j = 0; j < lim; j++) c[i + j] = (int)((c[i + j] + ai * b[j]) % MOD);
-        }
-        return c;
-    }
-    vi c = mul(a, b);
-    c.resize(min((int)c.size(), n));
-    return c;
-}
-// d = degree bound of the carried polynomial at this node (d < size(id))
-static void buildIrevTop(int id, int d) {
-    int lo = pt[id].lo, hi = pt[id].hi;
-    if (hi - lo <= B) return;
-    int lc = pt[id].lc, rc = pt[id].rc;
-    int sL = pt[lc].hi - pt[lc].lo, sR = pt[rc].hi - pt[rc].lo;
-    int mid = pt[rc].lo;
-    int a = prefAct[mid + 1] - prefAct[lo + 1];   // # factors with lo < Delta <= mid
-    int ql = d - sL + 1, qr = d + a - sR + 1;
-    int needL = max(ql, sL + 2), needR = max(qr, sR + 2);
+struct alignas(64) Nd {
+    double D, s, u;
+    double mcVal;
+    int mcCh, cntS, par, pos;
+    double pad[2];
+};
+
+vector<Ev> ev;
+vector<Nd> nd;
+vector<int> deg, head, adj, childStart, childList, ptr, ea, eb;
+vector<double> fminDeg, A, B;
+
+static void processTree(int n, int s0, int tt) {
+    deg.assign(n + 1, 0);
+    for (int i = 0; i + 1 < n; i++) { deg[ea[i]]++; deg[eb[i]]++; }
+    head.assign(n + 2, 0);
+    for (int i = 1; i <= n; i++) head[i + 1] = head[i] + deg[i];
+    adj.assign(2 * (n - 1) > 1 ? 2 * (n - 1) : 2, 0);
     {
-        vi revR(pt[rc].poly.rbegin(), pt[rc].poly.rend());
-        vi t(pt[id].irev.begin(), pt[id].irev.begin() + min((size_t)needL, pt[id].irev.size()));
-        pt[lc].irev = truncMul(t, revR, needL);
-        pt[lc].irev.resize(needL, 0);
-    }
-    {
-        vi revL(pt[lc].poly.rbegin(), pt[lc].poly.rend());
-        vi t(pt[id].irev.begin(), pt[id].irev.begin() + min((size_t)needR, pt[id].irev.size()));
-        pt[rc].irev = truncMul(t, revL, needR);
-        pt[rc].irev.resize(needR, 0);
-    }
-    buildIrevTop(lc, min(d, sL - 1));
-    buildIrevTop(rc, min(d + a, sR - 1));
-}
-
-static vi factorPoly(int j) { // (E_j - x)
-    return vi{(int)(Evec[j] % MOD), MOD - 1};
-}
-
-// returns product of factors with lo < Delta <= hi ; stores left-half product in pt[id].actL when node split
-static vi buildAct(int id) {
-    int lo = pt[id].lo, hi = pt[id].hi;
-    if (hi - lo <= B) {
-        vi p{1};
-        for (int v = lo + 1; v <= hi; v++) {
-            int j = (v <= n_ ? factAt[v] : -1);
-            if (j >= 0) p = mul(p, factorPoly(j));
+        vector<int> ps(head.begin(), head.end());
+        for (int i = 0; i + 1 < n; i++) {
+            int x = ea[i], y = eb[i];
+            adj[ps[x]++] = y; adj[ps[y]++] = x;
         }
-        return p;
     }
-    int mid = (lo + hi) >> 1;
-    int lc = pt[id].lc, rc = pt[id].rc;
-    vi L = buildAct(lc);
-    vi R = buildAct(rc);
-    pt[id].actL = L;
-    return mul(L, R);
-}
-
-static void solve(int id, vi P) {
-    int lo = pt[id].lo, hi = pt[id].hi;
-    if (hi - lo <= B) {
-        for (int u = lo; u < hi; u++) {
-            long long val = 0;
-            for (int k = (int)P.size() - 1; k >= 0; k--) val = (val * u + P[k]) % MOD;
-            for (int v = lo + 1; v <= u; v++) {
-                int j = (v <= n_ ? factAt[v] : -1);
-                if (j >= 0) {
-                    long long f = ((Evec[j] - u) % MOD + MOD) % MOD;
-                    val = val * f % MOD;
-                }
+    nd.assign(n + 1, Nd());
+    {
+        vector<int> order; order.assign(1, 1); order.reserve(n);
+        for (size_t qi = 0; qi < order.size(); qi++) {
+            int x = order[qi]; int px = nd[x].par;
+            for (int j = head[x]; j < head[x + 1]; j++) {
+                int y = adj[j];
+                if (y != px) { nd[y].par = x; order.push_back(y); }
             }
-            Ans[u] = (int)val;
         }
-        return;
     }
-    int mid = (lo + hi) >> 1;
-    int lc = pt[id].lc, rc = pt[id].rc;
-    vi PL = pmod(P, pt[lc].poly, pt[lc].irev);
-    solve(lc, PL);
-    vi PA = mul(P, pt[id].actL);
-    vi PR = pmod(PA, pt[rc].poly, pt[rc].irev);
-    solve(rc, PR);
-}
+    childStart.assign(n + 2, 0);
+    for (int v = 2; v <= n; v++) childStart[nd[v].par + 1]++;
+    for (int v = 1; v <= n; v++) childStart[v + 1] += childStart[v];
+    childList.assign(n - 1 > 0 ? n - 1 : 1, 0);
+    {
+        vector<int> ps(childStart.begin(), childStart.end());
+        for (int v = 2; v <= n; v++) childList[ps[nd[v].par]++] = v;
+        for (int v = 1; v <= n; v++)
+            sort(childList.begin() + childStart[v], childList.begin() + childStart[v + 1],
+                 [&](int x, int y) { return deg[x] < deg[y]; });
+    }
+    int L = 0;
+    { int a2 = s0; while (a2) { L++; a2 = nd[a2].par; } }
+    { int i = L, a2 = s0; while (a2) { nd[a2].pos = i--; a2 = nd[a2].par; } }
+    fminDeg.assign(n + 1, INF);
+    A.assign(L + 2, 0.0); B.assign(L + 2, 0.0);
+    ptr.assign(n + 1, 0);
 
-static char ibuf_[1 << 16];
-static int ipos_ = 0, ilen_ = 0;
-static inline int gc_() {
-    if (ipos_ == ilen_) { ilen_ = (int)fread(ibuf_, 1, sizeof(ibuf_), stdin); ipos_ = 0; if (ilen_ <= 0) return -1; }
-    return ibuf_[ipos_++];
-}
-static inline int readInt_() {
-    int c = gc_();
-    while (c != -1 && (c < '0' || c > '9')) c = gc_();
-    int x = 0;
-    while (c >= '0' && c <= '9') { x = x * 10 + (c - '0'); c = gc_(); }
-    return x;
+    nd[1].D = 1.0; nd[1].s = 1.0; nd[1].u = 0.0;
+    nd[1].mcVal = INF; nd[1].mcCh = 0; nd[1].cntS = 0;
+    fminDeg[1] = (childStart[2] > childStart[1]) ? (double)deg[childList[childStart[1]]] : INF;
+
+    int LS = 0, dstart = 1;
+    double tStore = 0.0, gPrev = INF;
+
+    for (int step = 1; step < n; step++) {
+        double curM = min(nd[1].mcVal, fminDeg[1]);
+        int x = dstart, v;
+        while (fminDeg[x] > nd[x].mcVal) { int y = nd[x].mcCh; if (!y) break; x = y; }
+        v = (ptr[x] < childStart[x + 1] - childStart[x]) ? childList[childStart[x] + ptr[x]] : 0;
+        if (!v) break;
+        double g = 1.0 / curM;
+        if (g > gPrev) g = gPrev;
+        gPrev = g;
+        Nd &nv = nd[v];
+        nv.D = (double)deg[v];
+        nv.s = 1.0 / nv.D;
+        nv.u = 1.0;
+        nv.mcVal = INF; nv.mcCh = 0; nv.cntS = 0;
+        {
+            int cs = childStart[v], len = childStart[v + 1] - cs;
+            fminDeg[v] = (len > 0) ? (double)deg[childList[cs]] : INF;
+        }
+        int p = nv.par;
+        Nd &np = nd[p];
+        ptr[p]++;
+        {
+            int cs = childStart[p], len = childStart[p + 1] - cs, p0 = ptr[p];
+            fminDeg[p] = (p0 < len) ? (double)deg[childList[cs + p0]] : INF;
+        }
+        np.cntS++;
+        int iv = nv.pos;
+        if (iv) { A[iv] = nv.s; B[iv] = nv.u; LS = iv; }
+
+        double ds = nv.s, du = nv.u;
+        double Dc = nv.D, uc = nv.u, Mc = fminDeg[v];
+        int c = v, a = p, dnew = p;
+        int ipa = np.pos;
+        double AiC = 0.0, BiC = 0.0;
+        bool cPath = (iv != 0);
+        if (cPath) { AiC = nv.s; BiC = nv.u; }
+        else if (ipa != 0 && ipa < LS) { AiC = A[ipa + 1]; BiC = B[ipa + 1]; }
+        for (;;) {
+            Nd &na = nd[a];
+            double keyc = Dc * (uc + Mc);
+            double fd = fminDeg[a];
+            if (a != 1) {
+                double Do = na.D, Dn = Do - ds;
+                double sn = 1.0 / Dn;
+                double un = sn * (na.u * Do + du);
+                double nds = sn - na.s, ndu = un - na.u;
+                na.D = Dn; na.s = sn; na.u = un;
+                double mcv;
+                if (na.cntS == 1) { mcv = keyc; na.mcVal = keyc; na.mcCh = c; }
+                else if (c == na.mcCh) {
+                    double best = INF; int bc = 0;
+                    for (int j = childStart[a]; j < childStart[a + 1]; j++) {
+                        int y = childList[j];
+                        Nd &ny = nd[y];
+                        if (ny.D == 0.0) continue;
+                        double vv = ny.D * (ny.u + min(ny.mcVal, fminDeg[y]));
+                        if (vv < best) { best = vv; bc = y; }
+                    }
+                    mcv = best; na.mcVal = best; na.mcCh = bc;
+                } else if (keyc < na.mcVal) { mcv = keyc; na.mcVal = keyc; na.mcCh = c; }
+                else mcv = na.mcVal;
+                double Mm = min(mcv, fd);
+                int ia = na.pos;
+                if (ia) {
+                    if (!cPath) {
+                        if (ia < LS) { AiC = A[ia + 1]; BiC = B[ia + 1]; }
+                        else { AiC = 1.0; BiC = 0.0; }
+                    }
+                    double nA = sn * AiC, nB = un * AiC + BiC;
+                    A[ia] = nA; B[ia] = nB;
+                    AiC = nA; BiC = nB; cPath = true;
+                } else cPath = false;
+                if (!(mcv < fd && na.mcCh == c)) dnew = a;
+                c = a; Dc = Dn; uc = un; Mc = Mm;
+                ds = nds; du = ndu;
+                a = na.par;
+            } else {
+                double mcv;
+                if (na.cntS == 1) { mcv = keyc; na.mcVal = keyc; na.mcCh = c; }
+                else if (c == na.mcCh) {
+                    double best = INF; int bc = 0;
+                    for (int j = childStart[1]; j < childStart[2]; j++) {
+                        int y = childList[j];
+                        Nd &ny = nd[y];
+                        if (ny.D == 0.0) continue;
+                        double vv = ny.D * (ny.u + min(ny.mcVal, fminDeg[y]));
+                        if (vv < best) { best = vv; bc = y; }
+                    }
+                    mcv = best; na.mcVal = best; na.mcCh = bc;
+                } else if (keyc < na.mcVal) { mcv = keyc; na.mcVal = keyc; na.mcCh = c; }
+                else mcv = na.mcVal;
+                if (!(mcv < fd && na.mcCh == c)) dnew = a;
+                break;
+            }
+        }
+        dstart = dnew;
+        double pv2 = 0.0, tv2 = 0.0;
+        if (LS == L) { pv2 = A[2]; tv2 = B[2]; }
+        double dt = tv2 - tStore; tStore = tv2;
+        double F = 1.0 - pv2;
+        if (F < 0.0) F = 0.0;
+        ev.push_back({g, dt, F, tt, step});
+    }
 }
 
 int main() {
-    init_ntt();
-    int T = readInt_();
-    if (T <= 0) return 0;
-    // read all tests
-    struct Test { int n, m; vector<int> a; };
-    vector<Test> tests(T);
-    int maxn = 2;
-    for (int t = 0; t < T; t++) {
-        int n = readInt_(), m = readInt_();
-        tests[t].n = n; tests[t].m = m;
-        tests[t].a.resize(m);
-        for (int i = 0; i < m; i++) tests[t].a[i] = readInt_();
-        maxn = max(maxn, n);
+    FastIn in;
+    int k;
+    if (!in.readInt(k)) return 0;
+    ev.reserve(1 << 12);
+    bool anyRoot = false;
+    for (int idx = 0; idx < k; idx++) {
+        int n, s0;
+        in.readInt(n); in.readInt(s0);
+        ea.assign(n - 1, 0); eb.assign(n - 1, 0);
+        for (int j = 0; j + 1 < n; j++) in.readInt(ea[j]), in.readInt(eb[j]);
+        if (s0 == 1) { anyRoot = true; continue; }
+        processTree(n, s0, idx);
     }
-    // inverses up to 2*maxn
-    int LIM = 2 * maxn + 10;
-    vector<int> inv(LIM);
-    inv[1] = 1;
-    for (int i = 2; i < LIM; i++) inv[i] = (int)((long long)(MOD - MOD / i) * inv[MOD % i] % MOD);
-
-    for (int t = 0; t < T; t++) {
-        int n = tests[t].n, m = tests[t].m;
-        vector<int> &a = tests[t].a;
-        // A[] and nxt
-        vector<int> nxt(m, -1), last(2 * n + 2, -1);
-        for (int i = m - 1; i >= 0; i--) { nxt[i] = last[a[i]]; last[a[i]] = i; }
-        vector<long long> A(m, 0);
-        for (int i = m - 2; i >= 0; i--) {
-            long long b = A[i + 1] + 1;
-            if (nxt[i] >= 0) b = max(b, A[nxt[i]] + n + 1);
-            A[i] = b;
-        }
-        long long A0 = A[0];
-        // first occurrences and Deltas
-        vector<char> seen(2 * n + 2, 0);
-        vector<long long> Deltas; // 1-based order
-        for (int i = 0; i < m; i++) {
-            if (!seen[a[i]]) { seen[a[i]] = 1; Deltas.push_back(A0 - A[i]); }
-        }
-        // active factors: Delta <= n-1
-        Evec.clear(); factAt.assign(n + 2, -1);
-        int Kact = 0;
-        for (int j = 0; j < (int)Deltas.size(); j++) {
-            long long d = Deltas[j];
-            if (d <= n - 1) {
-                Kact++;
-                int jj = j + 1; // 1-based
-                long long E = 2LL * n + d - jj;
-                Evec.push_back((int)(E % MOD));
-                factAt[(int)d] = (int)Evec.size() - 1;
-            }
-        }
-        prefAct.assign(n + 2, 0);
-        {
-            vector<int> cntAt(n + 1, 0);
-            for (int j = 0; j < (int)Deltas.size(); j++) if (Deltas[j] <= n - 1) cntAt[(int)Deltas[j]]++;
-            for (int v = 0; v <= n; v++) prefAct[v + 1] = prefAct[v] + cntAt[v];
-        }
-        // compute N(u) for u=0..n-1
-        Ans.assign(n, 0);
-        n_ = n;
-        double lg = log2((double)n);
-        bool useNaive = (n <= B) || ((double)Kact * n <= 6.3 * lg * lg * n + 1e5);
-#ifdef FORCE_NAIVE
-        useNaive = (n <= B);
-#endif
-#ifdef FORCE_POLY
-        useNaive = false;
-#endif
-        if (useNaive) {
-            // naive: factors in Delta order (== 1-based j order)
-            int nf = (int)Evec.size();
-            for (int u = 0; u < n; u++) {
-                long long val = 1;
-                for (int j = 0; j < nf; j++) {
-                    long long E = Evec[j];      // 2n + Delta_j - j
-                    long long d = E - 2LL * n + (j + 1); // Delta_j
-                    if (d > u) break;
-                    val = val * ((E - u) % MOD) % MOD;
-                }
-                Ans[u] = (int)val;
-            }
-        } else {
-            pt.clear();
-            int root = buildPT(0, n);
-            if (pt[root].lc >= 0) {
-                int sL0 = pt[pt[root].lc].hi - pt[pt[root].lc].lo;
-                int sR0 = pt[pt[root].rc].hi - pt[pt[root].rc].lo;
-                int need = max(sL0, sR0) + 2;
-                vi rev(pt[root].poly.rbegin(), pt[root].poly.rend());
-                pt[root].irev = pinv(rev, need);
-            }
-            buildIrevTop(root, 1);
-            buildAct(root);
-            vi P = factorPoly(factAt[0] >= 0 ? factAt[0] : 0);
-            // base at u=0: factor with Delta = 0 (always exists: first occurrence has Delta=0)
-            solve(root, P);
-            pt.clear();
-        }
-        // sum
-        long long S = 0;
-        long long Dinv = 1; // product_{j=1..q} inv(2n-j+1)
-        int q = 0;
-        for (int u = 0; u < n; u++) {
-            while (q < Kact) {
-                long long d = Deltas[q];
-                if (d <= u) {
-                    q++;
-                    Dinv = Dinv * inv[2 * n - q + 1] % MOD;
-                } else break;
-            }
-            long long Pv = (long long)Ans[u] * Dinv % MOD;
-            S = (S + 1 - Pv) % MOD;
-            if (S < 0) S += MOD;
-        }
-        long long ans = ((A0 % MOD) + 1 + S) % MOD;
-        printf("%lld\n", ans);
+    if (anyRoot) { printf("0.000000000000\n"); return 0; }
+    sort(ev.begin(), ev.end(), [](const Ev &X, const Ev &Y) {
+        if (X.g != Y.g) return X.g > Y.g;
+        if (X.t != Y.t) return X.t < Y.t;
+        return X.q < Y.q;
+    });
+    vector<double> Fcur(k, 1.0);
+    int zeros = 0; double tnz = 1.0, V = 0.0;
+    for (size_t i = 0; i < ev.size(); i++) {
+        int ti = ev[i].t;
+        double Fi = Fcur[ti], other;
+        if (Fi != 0.0) other = (zeros >= 1) ? 0.0 : tnz / Fi;
+        else other = (zeros >= 2) ? 0.0 : tnz;
+        V += ev[i].dt * other;
+        double nf = ev[i].F;
+        if (Fi != 0.0) tnz /= Fi; else zeros--;
+        if (nf != 0.0) tnz *= nf; else zeros++;
+        Fcur[ti] = nf;
     }
+    printf("%.12f\n", V);
     return 0;
 }

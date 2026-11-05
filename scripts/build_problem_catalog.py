@@ -18,7 +18,7 @@ PLATFORM_NAMES = {
     "Codeforces": "Codeforces",
 }
 
-EXCLUDED_PROBLEM_IDS = {1, 39, 80}
+INTERACTIVE_PROBLEM_IDS = {30, 79, 80, 81, 82, 83, 84, 85}
 
 
 def parse_args() -> argparse.Namespace:
@@ -30,7 +30,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def read_complexities(path: Path) -> dict[str, dict[str, str | None]]:
-    sheet = openpyxl.load_workbook(path, read_only=True, data_only=True).active
+    # Some valid XLSX writers omit the cached worksheet dimensions required by
+    # openpyxl's streaming reader. This workbook is small, so normal mode is
+    # both robust and inexpensive.
+    sheet = openpyxl.load_workbook(path, read_only=False, data_only=True).active
     headers = [sheet.cell(1, column).value for column in range(1, sheet.max_column + 1)]
     records: dict[str, dict[str, str | None]] = {}
 
@@ -73,8 +76,6 @@ def main() -> None:
     catalog = []
     for origin in origins:
         problem_id = int(origin["local_problem_id"])
-        if problem_id in EXCLUDED_PROBLEM_IDS:
-            continue
         title = origin["local_title"].strip()
         complexity = complexities.get(title, {})
         original_url = origin["original_url"].strip()
@@ -90,7 +91,7 @@ def main() -> None:
                 "platform": platform or "Pending",
                 "originalComplexity": complexity.get("originalComplexity") or None,
                 "algoscaleComplexity": complexity.get("algoscaleComplexity") or None,
-                "track": "Interactive" if problem_id >= 82 else "Standard",
+                "track": "Interactive" if problem_id in INTERACTIVE_PROBLEM_IDS else "Standard",
                 "generatedCode": existing_code.get(problem_id, {}),
                 "referenceAssets": existing_references.get(problem_id, {}),
                 "metadataStatus": (

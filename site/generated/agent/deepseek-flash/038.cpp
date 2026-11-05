@@ -1,148 +1,343 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-using cd = complex<double>;
-
 /*
- *  Let w = e^{-2*pi*i/n},  u_t = w^{k*t}  (|u_t| = 1)  and
- *      G_t = sum_{s != k} f_s * w^{s*t}.
- *  Setting f_k = x gives F_t = G_t + x*u_t, hence
- *      |F_t| = |G_t * conj(u_t) + x| = |x + w_t|,  w_t := G_t * conj(u_t).
- *  So we must minimize, over integers x, the maximum distance from -x to the
- *  points w_t of the complex plane:
- *      answer = min_{x in Z} max_t sqrt((x + Re w_t)^2 + (Im w_t)^2).
- *  This objective is convex in x (maximum of convex functions), so an integer
- *  ternary search finds the optimum.  All G_t come from one DFT, computed with
- *  Bluestein's algorithm (chirp-z) on a power-of-two FFT.
- */
+  For an edge (i,j) and a key point k with i<=k<=j let
+      t_k = h-y_k,  b_k = sqrt(x_j-x_k),  p_k = sqrt(x_k-x_i).
+  The arch condition at k is  |p_k - b_k| <= sqrt(2 t_k), which is
+  equivalent to
+      L_k(j) <= x_i <= U_k(j),
+      L_k(j) = x_k - (sqrt(x_j-x_k)+sqrt(2t_k))^2
+      U_k(j) = x_k - max(0, sqrt(x_j-x_k)-sqrt(2t_k))^2.
 
-static int L;              // FFT length (power of two)
-static vector<cd> rt;      // rt[i] = e^{-2*pi*i*i/L}, 0 <= i <= L/2
-static vector<int> rev;
+  * Lower bounds:  since L_k(j) <= x_k, the condition x_i >= L_k(j)
+    for all k in [i,j] is the same as x_i >= max_{k<=j} L_k(j) = M_j.
+  * Upper bounds:  x_i <= U_k(j) is equivalent (for k>=i) to
+    x_j <= C_k(i), where C_k(i)=x_k+(sqrt(x_k-x_i)+sqrt(2t_k))^2.
+    Hence all upper conditions are equivalent to
+    x_j <= D_i = min_{k>=i} C_k(i), which depends only on i.
 
-static void initFFT(int L_) {
-    L = L_;
-    rt.assign((size_t)(L / 2 + 1), cd(1.0, 0.0));
-    for (int i = 0; i <= L / 2; i++) {
-        long double ang = -2.0L * acosl(-1.0L) * (long double)i / (long double)L;
-        rt[(size_t)i] = cd((double)cosl(ang), (double)sinl(ang));
-    }
-    rev.assign((size_t)L, 0);
-    int lg = 0;
-    while ((1 << lg) < L) lg++;
-    if (lg > 0)
-        for (int i = 0; i < L; i++)
-            rev[(size_t)i] = (rev[(size_t)(i >> 1)] >> 1) | ((i & 1) << (lg - 1));
+  Therefore edge (i,j) is legal iff
+       x_i >= M_j   and   x_j <= D_i.
+  M_j is computed with a max-Li-Chao (prefix), D_i with a min-Li-Chao
+  (suffix), both batched on a segment tree over indices.  Afterwards the
+  DP is a standard CHT DP with the two independent restrictions.
+*/
+
+static const long long INFLL = (long long)4e18;
+static const double INFDB = 1e18;
+static const double EPS = 1e-7;
+
+int n;
+long long h, alpha, bet;
+vector<int> xs;        // x coordinates
+vector<int> tt;        // t_i = h - y_i
+vector<double> ss;     // sqrt(2*t_i)
+
+vector<vector<int>> qs;   // query lists attached to segment tree nodes
+
+void addQuery(int node, int l, int r, int ql, int qr, int id) {
+    if (qr < l || r < ql) return;
+    if (ql <= l && r <= qr) { qs[node].push_back(id); return; }
+    int mid = (l + r) >> 1;
+    addQuery(node << 1, l, mid, ql, qr, id);
+    addQuery(node << 1 | 1, mid + 1, r, ql, qr, id);
 }
 
-static void fft(vector<cd>& a, bool inv) {
-    for (int i = 0; i < L; i++)
-        if (i < rev[(size_t)i]) swap(a[(size_t)i], a[(size_t)rev[(size_t)i]]);
-    for (int len = 2; len <= L; len <<= 1) {
-        int half = len >> 1, stride = L / len;
-        for (int i = 0; i < L; i += len) {
-            for (int j = 0; j < half; j++) {
-                cd w = rt[(size_t)(j * stride)];
-                if (inv) w = conj(w);
-                cd u = a[(size_t)(i + j)];
-                cd v = a[(size_t)(i + j + half)] * w;
-                a[(size_t)(i + j)] = u + v;
-                a[(size_t)(i + j + half)] = u - v;
-            }
+/* ---------------- Li Chao: minimum of C_k(u), valid u<=x_k --------------- */
+struct LiChaoC {
+    const vector<int>* crd;
+    vector<int> tr;
+    inline double val(int id, int u) const {
+        double p = sqrt((double)xs[id] - u) + ss[id];
+        return (double)xs[id] + p * p;
+    }
+    void init(const vector<int>& c) {
+        crd = &c;
+        tr.assign(4 * (int)c.size() + 4, -1);
+    }
+    void add(int v, int l, int r, int id) {
+        int &cur = tr[v];
+        if (cur == -1) { cur = id; return; }
+        int mid = (l + r) >> 1;
+        int um = (*crd)[mid], ul = (*crd)[l];
+        bool midBetter  = val(id, um) < val(cur, um);
+        bool leftBetter = val(id, ul) < val(cur, ul);
+        if (midBetter) swap(cur, id);
+        if (l == r) return;
+        if (leftBetter != midBetter) add(v << 1, l, mid, id);
+        else                         add(v << 1 | 1, mid + 1, r, id);
+    }
+    double query(int v, int l, int r, int u) const {
+        double res = INFDB;
+        if (tr[v] != -1) res = val(tr[v], u);
+        if (l == r) return res;
+        int mid = (l + r) >> 1;
+        if (u <= (*crd)[mid]) return min(res, query(v << 1, l, mid, u));
+        return min(res, query(v << 1 | 1, mid + 1, r, u));
+    }
+};
+
+/* ---------------- Li Chao: maximum of L_k(u), valid u>=x_k --------------- */
+struct LiChaoL {
+    const vector<int>* crd;
+    vector<int> tr;
+    inline double val(int id, int u) const {
+        double p = sqrt((double)u - xs[id]) + ss[id];
+        return (double)xs[id] - p * p;
+    }
+    void init(const vector<int>& c) {
+        crd = &c;
+        tr.assign(4 * (int)c.size() + 4, -1);
+    }
+    void add(int v, int l, int r, int id) {
+        int &cur = tr[v];
+        if (cur == -1) { cur = id; return; }
+        int mid = (l + r) >> 1;
+        int um = (*crd)[mid], ul = (*crd)[l];
+        bool midBetter  = val(id, um) > val(cur, um);
+        bool leftBetter = val(id, ul) > val(cur, ul);
+        if (midBetter) swap(cur, id);
+        if (l == r) return;
+        if (leftBetter != midBetter) add(v << 1, l, mid, id);
+        else                         add(v << 1 | 1, mid + 1, r, id);
+    }
+    double query(int v, int l, int r, int u) const {
+        double res = -INFDB;
+        if (tr[v] != -1) res = val(tr[v], u);
+        if (l == r) return res;
+        int mid = (l + r) >> 1;
+        if (u <= (*crd)[mid]) return max(res, query(v << 1, l, mid, u));
+        return max(res, query(v << 1 | 1, mid + 1, r, u));
+    }
+};
+
+/* ---------------- Li Chao: DP lines b + m*u, minimum (exact) ------------ */
+struct LiChaoDP {
+    const vector<int>* crd;
+    const vector<long long> *mm, *bb;
+    vector<int> tr;
+    inline long long val(int id, int u) const {
+        return (*bb)[id] + (*mm)[id] * (long long)u;
+    }
+    void init(const vector<int>& c, const vector<long long>& m,
+              const vector<long long>& b) {
+        crd = &c; mm = &m; bb = &b;
+        tr.assign(4 * (int)c.size() + 4, -1);
+    }
+    void add(int v, int l, int r, int id) {
+        int &cur = tr[v];
+        if (cur == -1) { cur = id; return; }
+        int mid = (l + r) >> 1;
+        int um = (*crd)[mid], ul = (*crd)[l];
+        bool midBetter  = val(id, um) < val(cur, um);
+        bool leftBetter = val(id, ul) < val(cur, ul);
+        if (midBetter) swap(cur, id);
+        if (l == r) return;
+        if (leftBetter != midBetter) add(v << 1, l, mid, id);
+        else                         add(v << 1 | 1, mid + 1, r, id);
+    }
+    long long query(int v, int l, int r, int u) const {
+        long long res = INFLL;
+        if (tr[v] != -1) res = val(tr[v], u);
+        if (l == r) return res;
+        int mid = (l + r) >> 1;
+        if (u <= (*crd)[mid]) return min(res, query(v << 1, l, mid, u));
+        return min(res, query(v << 1 | 1, mid + 1, r, u));
+    }
+};
+
+vector<double> Dval, Mval;
+
+void processD(int v, int l, int r) {
+    if (!qs[v].empty()) {
+        vector<int> coords;
+        coords.reserve(qs[v].size());
+        for (int id : qs[v]) coords.push_back(xs[id]);
+        sort(coords.begin(), coords.end());
+        coords.erase(unique(coords.begin(), coords.end()), coords.end());
+        LiChaoC lc;
+        lc.init(coords);
+        int m = (int)coords.size();
+        for (int k = l; k <= r; ++k) lc.add(1, 0, m - 1, k);
+        for (int id : qs[v]) {
+            double cur = lc.query(1, 0, m - 1, xs[id]);
+            if (cur < Dval[id]) Dval[id] = cur;
         }
     }
-    if (inv) {
-        double invL = 1.0 / (double)L;
-        for (auto& z : a) z *= invL;
+    if (l < r) {
+        int mid = (l + r) >> 1;
+        processD(v << 1, l, mid);
+        processD(v << 1 | 1, mid + 1, r);
+    }
+}
+
+void processM(int v, int l, int r) {
+    if (!qs[v].empty()) {
+        vector<int> coords;
+        coords.reserve(qs[v].size());
+        for (int id : qs[v]) coords.push_back(xs[id]);
+        sort(coords.begin(), coords.end());
+        coords.erase(unique(coords.begin(), coords.end()), coords.end());
+        LiChaoL lc;
+        lc.init(coords);
+        int m = (int)coords.size();
+        for (int k = l; k <= r; ++k) lc.add(1, 0, m - 1, k);
+        for (int id : qs[v]) {
+            double cur = lc.query(1, 0, m - 1, xs[id]);
+            if (cur > Mval[id]) Mval[id] = cur;
+        }
+    }
+    if (l < r) {
+        int mid = (l + r) >> 1;
+        processM(v << 1, l, mid);
+        processM(v << 1 | 1, mid + 1, r);
+    }
+}
+
+vector<int> segL, segR;
+vector<int> Rreach;              // last j with edge(i,j) upper-valid
+
+void collectDP(int v, int l, int r, vector<vector<int>>& byR) {
+    if (!qs[v].empty()) {
+        segL[v] = l; segR[v] = r;
+        byR[r].push_back(v);     // all its lines are known at time r
+    }
+    if (l < r) {
+        int mid = (l + r) >> 1;
+        collectDP(v << 1, l, mid, byR);
+        collectDP(v << 1 | 1, mid + 1, r, byR);
+    }
+}
+
+void processDPNode(int v, vector<long long>& dp, vector<long long>& contrib,
+                   const vector<long long>& lm, const vector<long long>& lbv) {
+    int L = segL[v], R = segR[v];
+    vector<int> lines;
+    lines.reserve(R - L + 1);
+    for (int i = L; i <= R; ++i)
+        if (dp[i] < INFLL) lines.push_back(i);
+    if (lines.empty()) return;
+
+    sort(lines.begin(), lines.end(), [&](int a, int b) {
+        if (Rreach[a] != Rreach[b]) return Rreach[a] > Rreach[b];
+        return a > b;
+    });
+
+    vector<int> coords;
+    coords.reserve(qs[v].size());
+    for (int j : qs[v]) coords.push_back(xs[j]);
+    sort(coords.begin(), coords.end());
+    coords.erase(unique(coords.begin(), coords.end()), coords.end());
+
+    LiChaoDP lc;
+    lc.init(coords, lm, lbv);
+    int qn = (int)coords.size();
+    int ptr = 0, sz = (int)lines.size();
+
+    // qs[v] is in increasing j; process decreasing j, adding lines as R_i>=j.
+    for (int qi = (int)qs[v].size() - 1; qi >= 0; --qi) {
+        int j = qs[v][qi];
+        while (ptr < sz && Rreach[lines[ptr]] >= j) {
+            lc.add(1, 0, qn - 1, lines[ptr]);
+            ++ptr;
+        }
+        if (ptr == 0) continue;
+        long long cur = lc.query(1, 0, qn - 1, xs[j]);
+        if (cur < contrib[j]) contrib[j] = cur;
     }
 }
 
 int main() {
-    int n, k;
-    if (scanf("%d %d", &n, &k) != 2) return 0;
-    vector<long long> f((size_t)n);
-    for (int i = 0; i < n; i++)
-        if (scanf("%lld", &f[(size_t)i]) != 1) return 0;
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
-    // ---- G_t = sum_{s != k} f_s * w^{s*t} via Bluestein ----
-    int need = max(1, 2 * n - 1);
-    int Lsz = 1;
-    while (Lsz < need) Lsz <<= 1;
-    initFFT(Lsz);
+    int alphai, betai;
+    if (!(cin >> n >> h >> alphai >> betai)) return 0;
+    alpha = alphai; bet = betai;
 
-    const long double PI = acosl(-1.0L);
-    vector<cd> chirp((size_t)n);                       // e^{-i*pi*s^2/n}
-    vector<cd> A((size_t)Lsz, cd(0.0, 0.0)), B((size_t)Lsz, cd(0.0, 0.0));
-    for (int s = 0; s < n; s++) {
-        long long sq = (long long)s * (long long)s % (2LL * n);
-        long double ang = -PI * (long double)sq / (long double)n;
-        long double c = cosl(ang), si = sinl(ang);
-        chirp[(size_t)s] = cd((double)c, (double)si);
-        B[(size_t)s] = cd((double)c, -(double)si);     // e^{+i*pi*s^2/n}
-    }
-    for (int j = 1; j < n; j++) B[(size_t)(Lsz - j)] = B[(size_t)j];  // B[-j] = B[j]
+    xs.resize(n);
+    vector<long long> yin(n);
+    for (int i = 0; i < n; ++i) cin >> xs[i] >> yin[i];
 
-    for (int s = 0; s < n; s++) {
-        if (s == k) continue;                          // f_k is the free choice
-        long long val = f[(size_t)s];
-        if (val == 0) continue;
-        A[(size_t)s] = (double)val * chirp[(size_t)s];
+    tt.resize(n);
+    ss.resize(n);
+    for (int i = 0; i < n; ++i) {
+        tt[i] = (int)(h - yin[i]);
+        ss[i] = sqrt(2.0 * (double)tt[i]);
     }
 
-    fft(A, false);
-    fft(B, false);
-    for (int i = 0; i < Lsz; i++) A[(size_t)i] *= B[(size_t)i];
-    fft(A, true);
+    int N4 = 4 * n + 5;
+    qs.assign(N4, {});
 
-    // ---- line representation of |x + w_t|^2 = x^2 + slope_t*x + icept_t ----
-    vector<double> slope((size_t)n), icept((size_t)n);
-    double M = 0.0;                                    // max_t |w_t|
-    for (int t = 0; t < n; t++) {
-        cd G = chirp[(size_t)t] * A[(size_t)t];        // G_t
-        long long r = ((long long)k * t) % n;          // u_t = e^{-2*pi*i*r/n}
-        long double ang = 2.0L * PI * (long double)r / (long double)n;
-        cd uc((double)cosl(ang), (double)sinl(ang));   // conj(u_t)
-        cd w = G * uc;
-        double a = w.real(), b = w.imag();
-        slope[(size_t)t] = 2.0 * a;
-        icept[(size_t)t] = a * a + b * b;
-        double len = sqrt(a * a + b * b);
-        if (len > M) M = len;
+    /* ---------- D_i = min_{k>=i} C_k(x_i) ---------- */
+    Dval.assign(n, INFDB);
+    for (int i = 0; i + 1 < n; ++i)
+        addQuery(1, 0, n - 1, i + 1, n - 1, i);
+    processD(1, 0, n - 1);
+
+    Rreach.assign(n, n - 1);
+    for (int i = 0; i < n; ++i) {
+        double d = Dval[i];
+        double own = (double)xs[i] + 2.0 * (double)tt[i];
+        if (own < d) d = own;
+        int r = (int)(upper_bound(xs.begin(), xs.end(), d + EPS) - xs.begin()) - 1;
+        if (r < i) r = i;
+        if (r > n - 1) r = n - 1;
+        Rreach[i] = r;
     }
 
-    // Any |x| > 2M gives value >= |x| - M > M = value at x = 0, so the
-    // optimum lies in [-2M, 2M].
-    long long X = (long long)(2.0 * M) + 3;
+    for (auto& v : qs) v.clear();
 
-    const double* SL = slope.data();
-    const double* IC = icept.data();
+    /* ---------- M_j = max_{k<=j} L_k(x_j) ---------- */
+    Mval.assign(n, -INFDB);
+    for (int j = 0; j < n; ++j)
+        addQuery(1, 0, n - 1, 0, j, j);
+    processM(1, 0, n - 1);
 
-    // binary search on the (monotone) difference-free convex objective:
-    // F(x) = x^2 + max_t (slope_t * x + icept_t)
-    auto F = [&](long long x) -> double {
-        double xd = (double)x;
-        double best = -1e300;
-        for (int t = 0; t < n; t++) {
-            double v = SL[t] * xd + IC[t];
-            if (v > best) best = v;
+    vector<int> lowIdx(n);
+    for (int j = 0; j < n; ++j) {
+        int p = (int)(lower_bound(xs.begin(), xs.end(), Mval[j] - EPS) - xs.begin());
+        if (p < 0) p = 0;
+        if (p > j) p = j;
+        lowIdx[j] = p;
+    }
+
+    for (auto& v : qs) v.clear();
+
+    /* ---------- DP ---------- */
+    vector<long long> dp(n, INFLL), contrib(n, INFLL);
+    vector<long long> lm(n, 0), lb(n, 0);
+
+    if (n == 1) {
+        cout << (long long)alpha * tt[0] << '\n';
+        return 0;
+    }
+
+    for (int j = 1; j < n; ++j) {
+        int lo = lowIdx[j], hi = j - 1;
+        if (lo <= hi) addQuery(1, 0, n - 1, lo, hi, j);
+    }
+
+    segL.assign(N4, 0); segR.assign(N4, 0);
+    vector<vector<int>> byR(n);
+    collectDP(1, 0, n - 1, byR);
+
+    dp[0] = alpha * (long long)tt[0];
+    lm[0] = -2LL * bet * xs[0];
+    lb[0] = dp[0] + bet * 1LL * xs[0] * xs[0];
+
+    for (int j = 1; j < n; ++j) {
+        for (int v : byR[j - 1]) processDPNode(v, dp, contrib, lm, lb);
+        if (contrib[j] < INFLL) {
+            long long xx = xs[j];
+            dp[j] = alpha * (long long)tt[j] + bet * xx * xx + contrib[j];
+            lm[j] = -2LL * bet * xx;
+            lb[j] = dp[j] + bet * xx * xx;
         }
-        return xd * xd + best;
-    };
-
-    long long lo = -X, hi = X;                         // integer ternary search
-    while (hi - lo > 3) {
-        long long m1 = lo + (hi - lo) / 3;
-        long long m2 = hi - (hi - lo) / 3;
-        if (F(m1) < F(m2)) hi = m2;
-        else lo = m1;
-    }
-    double bestVal = 1e300;
-    for (long long x = lo - 2; x <= hi + 2; x++) {
-        double v = F(x);
-        if (v < bestVal) bestVal = v;
     }
 
-    double ans = (bestVal > 0.0) ? sqrt(bestVal) : 0.0;
-    printf("%.15f\n", ans);
+    if (dp[n - 1] >= INFLL) cout << "impossible\n";
+    else cout << dp[n - 1] << '\n';
     return 0;
 }

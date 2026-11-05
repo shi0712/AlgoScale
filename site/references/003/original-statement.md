@@ -1,39 +1,24 @@
-# 3. Years
-
 ## Problem Description
 
-Let $G$ be a connected, simple, weighted undirected graph with vertices $1,\ldots,n$ and edges $(u_i,v_i,w_i)$.
+Start with an array $A=(a_1,\ldots,a_n)$ whose entries are in $[1,m]$. The following operation may be repeated any number of times, including zero:
 
-Independently for every undirected edge, construct a directed graph $G'$ by choosing one of these four equally likely outcomes:
+1. Choose an index $s$ whose entry is a **strict prefix maximum**: $a_s>a_j$ for every $j<s$. The first entry always qualifies.
+2. If $a_s\ne1$, append $a_s-1$ to the end of the array.
+3. Delete the first $s$ entries.
 
-- Keep both arcs $u_i\to v_i$ and $v_i\to u_i$.
-- Keep only $u_i\to v_i$.
-- Keep only $v_i\to u_i$.
-- Keep neither arc.
-
-Every retained arc has weight $w_i$.
-
-An **outward spanning arborescence** is a set of $n-1$ directed edges for which some root can reach every vertex using only those edges. The root may be any vertex. Its weight is the sum of its edges' weights.
-
-Compute the probability that $G'$ has an outward spanning arborescence and that the minimum weight of such an arborescence equals the weight of a minimum spanning tree of $G$. Report the probability modulo $10^9+7$.
+Count the distinct **nonempty** arrays obtainable this way, including the original array. Two arrays are distinct if their lengths differ or some corresponding entries differ. Return the count modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-Read an unused integer $c$ followed by the number of cases $T$. Ignore $c$.
-
-Each case starts with $n,m$, followed by $m$ lines. Line $i$ contains $u_i,v_i,w_i$.
+Read an unused integer $c$ followed by the number of cases $T$. Ignore $c$. Each case contains a line with $n,m$, then a line with $a_1,\ldots,a_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print one modular probability per case. If the reduced exact probability is $a/b$, output the unique $x$ with
-
-$$0\le x<10^9+7,\qquad bx\equiv a\pmod{10^9+7}.$$
-
-The denominator is guaranteed not to be divisible by $10^9+7$.
+For every case, print the number of reachable nonempty arrays modulo $998244353$.
 
 ## Examples
 
@@ -41,30 +26,27 @@ Input:
 
 ```text
 0 1
-2 1
+3 2
 1 2 1
 ```
 
 Output:
 
 ```text
-750000006
+4
 ```
 
 ## Explanation / Notes
 
-There is only one undirected edge. The condition holds whenever at least one directed arc remains, which occurs with probability $3/4$. Its representation modulo $10^9+7$ is `750000006`.
+The reachable nonempty arrays are $[1,2,1]$, $[2,1]$, $[1,1]$, and $[1]$. The original array is included because zero operations are allowed.
 
 ## Constraints
 
-- $1\le T\le5$.
-- $2\le n\le15$.
-- $n-1\le m\le n(n-1)/2$.
-- $1\le u_i<v_i\le n$.
-- $1\le w_i\le m$; all weights are integers.
-- All unordered endpoint pairs are distinct; there are no loops or parallel edges.
-- $G$ is connected.
-- The $m$ random edge outcomes are independent, with probability $1/4$ for each of the four outcomes.
+- $1\le T\le10$.
+- $1\le n,m\le2500$.
+- $1\le a_i\le m$, with integer entries.
+- $c$ is an unused integer and does not affect the requested result.
+- Only nonempty resulting arrays are counted.
 
-- Time limit: 3 seconds.
+- Time limit: 4 seconds.
 - Memory limit: 524288 KiB (512 MiB).

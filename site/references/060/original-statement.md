@@ -1,58 +1,61 @@
-# 60. Las Vegas
-
 ## Problem Description
 
-There are $n$ casinos and $m+1$ players. You are player $m+1$. The other players have already placed their dice: $a_{i,j}$ is player $j$'s dice count at casino $i$. Choose a nonnegative integer $b_i$ giving your dice count at each casino.
+There are $n$ items. Item $i$ has base power $p_i$ and bonus values $w_{i,1},\ldots,w_{i,p_i}$. Choose an ordering in which to process all items. A total base-power allowance of $k$ determines how much of each item is upgraded.
 
-A casino is resolved independently:
+Before an item of base power $p_i$ is processed, let $s$ be the sum of the base powers of all earlier items. Its bonus is:
 
-1. Every dice count shared by at least two players is cancelled: all dice belonging to those players at this casino are removed.
-2. Among the remaining dice, the player with the largest positive count wins. If no dice remain, nobody wins.
+- $w_{i,p_i}$ if $s+p_i\le k$;
+- $0$ if $s\ge k$;
+- $w_{i,k-s}$ otherwise.
 
-Let $w_j$ be the number of casinos won by player $j$. Your placement must satisfy $w_{m+1}\ge w_j$ for every other player, so a tie for the most casino wins is sufficient. Minimize $\sum_{i=1}^{n}b_i$ and output an optimal placement.
+Maximize the sum of the bonuses by choosing the processing order. The base powers themselves are not part of the requested answer.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $T$.
+The first line contains $n$ and $k$.
 
-For each test case, read $n,m$, followed by $n$ rows of $m$ integers. Entry $a_{i,j}$ describes the existing dice of player $j$ at casino $i$.
+Each of the next $n$ lines starts with $p_i$, followed by exactly $p_i$ integers $w_{i,1},\ldots,w_{i,p_i}$.
 
 ## Output Format
 
 Write to standard output.
 
-For each test case, print $n$ integers $b_1,\ldots,b_n$ describing a minimum-total placement. Each output count must be between $0$ and $10^9$. An optimal placement within this range always exists. Any optimal placement is accepted.
+Print one integer: the maximum total bonus power.
 
 ## Examples
 
 Input:
 
 ```text
-1
-1 4
-20 0 20 0
+4 5
+2 1 3
+2 1 1
+2 3 1
+2 1 3
 ```
 
 Output:
 
 ```text
-0
+9
 ```
 
 ## Explanation / Notes
 
-The two existing counts of 20 cancel one another. Every remaining count is zero, so nobody wins the casino. Placing zero dice leaves every player with zero wins and meets the requirement with the minimum possible total.
+Bonus values need not increase with the upgraded amount. In particular, it is possible to have $w_{i,a}>w_{i,b}$ even when $a<b$.
+
+For the example, process items 1 and 4 first, then item 3. Their bonuses are $3$, $3$, and $3$ respectively: four base-power units are fully upgraded before one unit of item 3 is upgraded. Item 2 receives no bonus. The total is $9$.
 
 ## Constraints
 
-- $1\le T\le100$.
-- $1\le n,m\le50$ in each test case.
-- $0\le a_{i,j}\le10^8$; all input values are integers.
-- At most **three test cases** have $n>20$ **or** $m>20$.
-- Each chosen value must satisfy $0\le b_i\le10^9$.
-- A feasible optimal answer exists within the permitted output range.
-- Zero dice do not constitute a winning positive count.
-- A tie in the number of casino wins is allowed; ties in dice counts within one casino cause cancellation instead.
-- Time limit: **3 seconds**. Memory limit: **1024 MB**.
+- $1\le n\le3000$.
+- $0\le k\le3000$.
+- $1\le p_i\le10$ for every item.
+- $1\le w_{i,j}\le10^5$ for every $1\le j\le p_i$.
+- All input values are integers.
+- There is no monotonicity guarantee for $w_{i,1},\ldots,w_{i,p_i}$.
+- Every item is processed exactly once, but its position in the order is freely chosen.
+- There is one test instance per input.
+- Time limit: **1 second**. Memory limit: **1024 MB**.

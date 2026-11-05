@@ -1,70 +1,60 @@
-# 53. Edge Coloring Problem
-
 ## Problem Description
 
-A simple undirected graph has $N$ vertices, each of degree exactly $N-3$. Its adjacency matrix is supplied as binary strings.
+Start with an unrooted tree $G=(V,E)$. A path is a sequence of distinct vertices joined by consecutive edges. A diameter is a path with the greatest possible number of vertices.
 
-Assign a positive integer color to every edge so that any two edges sharing a vertex have different colors. The edge chromatic number is the smallest possible maximum color in such an assignment.
+While the tree contains more than one vertex, choose any current diameter $d_1,\ldots,d_k$, listed from one endpoint to the other, and fold it by merging symmetric vertices. Define
 
-Find this minimum number $C$ and produce an edge coloring that attains it.
+$$f(v)=\begin{cases}
+d_{\min(i,k-i+1)},&v=d_i\text{ for some }1\le i\le k,\\
+v,&v\text{ is not on the chosen diameter}.
+\end{cases}$$
+
+The resulting vertex set is $V'=\{f(v):v\in V\}$. Each old edge $\{u,v\}$ becomes $\{f(u),f(v)\}$ unless its endpoints coincide; such loops disappear. If multiple edges become the same unordered pair, retain one copy.
+
+The resulting graph is again a tree. Repeat until only one vertex remains. Find the maximum possible number of folds over all valid choices of diameters.
 
 ## Input Format
 
 Read from standard input.
 
-Read $N$, followed by $N$ binary strings $S_1,\ldots,S_N$, each of length $N$. Character $j$ of $S_i$ is `1` precisely when edge $\{i,j\}$ exists.
+The first line contains the test-case count $T$. For each case, read $N$, followed by $N-1$ lines containing edge endpoints $x,y$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $C$, followed by an $N\times N$ integer matrix $c$.
-
-- If edge $\{i,j\}$ exists, $c_{i,j}=c_{j,i}$ is its assigned positive color, at most $C$.
-- If the edge does not exist, print $c_{i,j}=-1$.
-- Every diagonal entry must be $-1$.
-
-Any optimal valid coloring is accepted.
+Print one integer per case: the maximum number of folds before the tree becomes a single vertex.
 
 ## Examples
 
 Input:
 
 ```text
-5
-01001
-10100
-01010
-00101
-10010
+1
+1
 ```
 
 Output:
 
 ```text
-3
--1 2 -1 -1 1
-2 -1 3 -1 -1
--1 3 -1 1 -1
--1 -1 1 -1 3
-1 -1 -1 3 -1
+0
 ```
 
 ## Explanation / Notes
 
-The example graph is a cycle of length 5. Its edges cannot alternate between only two colors around the odd cycle. The displayed coloring uses three colors and is optimal.
+The example tree has one vertex, so no fold is permitted and the answer is 0.
 
-Colors belong to edges, not to vertices. Nonedges must be represented by $-1$, rather than by color zero.
+For larger trees, the chosen path must be a diameter of the **current** tree at each step. The goal is to maximize the number of operations.
 
 ## Constraints
 
-- There is one input instance.
-- $4\le N\le300$.
-- Each adjacency row has exactly $N$ characters, each `0` or `1`.
-- The graph is simple and undirected: the matrix is symmetric and its diagonal is zero.
-- Every vertex has degree exactly $N-3$.
-- Consequently, the number of edges is exactly $N(N-3)/2$.
-- All actual edge colors must be positive integers, with distinct colors on edges incident to a common vertex.
-- The reported $C$ must be minimal; a proper coloring using more than the optimal number is insufficient.
+- $1\le T\le3\times10^3$.
+- $1\le N\le5\times10^4$ for each case.
+- $\sum N\le5\times10^4$ across all test cases.
+- Every edge satisfies $1\le x,y\le N$ and $x\ne y$.
+- The $N-1$ edges form a tree.
+- A fold is permitted only while the current vertex count exceeds 1.
+- Off-diameter vertices are not directly identified with other vertices, although their incident edges follow the specified endpoint mapping.
+- Loops are removed and parallel edges are merged after every fold; the result is guaranteed to remain a tree.
 - Time limit: 3 seconds.
-- Memory limit: 1024 MB.
+- Memory limit: 512 MB.

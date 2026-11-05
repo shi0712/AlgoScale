@@ -1,56 +1,51 @@
-# 83. Exchanging Kubic
-
 ## Problem Description
 
 This is an interactive problem.
 
-For a sequence $A=(A_1,A_2,\ldots,A_n)$, let $MSS(A)$ denote its maximum subarray sum. The empty subarray is allowed, so
+Menji is lost, and everyone misses him. Your task is to find him.
 
-$$
-MSS(A)=\max\left(0,\max_{1\le i\le j\le n}\sum_{k=i}^{j}A_k\right).
-$$
+There is a known rooted binary tree $T$. Every edge has length $1$, and Menji is hiding at an unknown vertex $X$.
 
-For example, $MSS([-2,1,4,-3,5])=7$, while $MSS([-5])=0$ and $MSS([-1,-2])=0$.
+You may send a signal from a chosen vertex $u$ with a chosen strength $k$. If the distance between $u$ and $X$ is at most $k$, Menji receives the signal and sends one back; otherwise, you receive nothing.
 
-Professor Kubic has a hidden integer sequence $a_1,a_2,\ldots,a_n$. You may ask for the maximum subarray sum of any contiguous interval of this sequence.
-
-Your task is to report a sequence $b_1,b_2,\ldots,b_n$ such that
-
-$$
-MSS(a_l,a_{l+1},\ldots,a_r)=MSS(b_l,b_{l+1},\ldots,b_r)
-$$
-
-for every subarray $[l,r]$.
+Determine the hidden vertex using the allowed number of signals.
 
 ## Input Format
 
 Read from standard input.
 
-First read the integer $T$, the number of test cases. At the beginning of each test case, read the integer $n$. The hidden sequence itself is not supplied.
+First read the integer $T$, the number of test cases.
 
-After every valid query, read one integer: the maximum subarray sum of the queried interval.
+For each test case:
+
+- Read the integer $n$, the number of vertices.
+- Read $n-1$ integers $f_{a_2},f_{a_3},\ldots,f_{a_n}$, where $f_{a_i}$ is the parent of vertex $i$. The tree is rooted at vertex $1$.
+
+After every valid signal query, read one integer $o$. A response of `1` means that $\operatorname{dist}(u,X)\le k$; a response of `0` means that $\operatorname{dist}(u,X)>k$.
 
 ## Output Format
 
 Write to standard output.
 
-To query an interval, print:
+To send a signal from vertex $u$ with strength $k$, print:
 
 ```text
-? l r
+? u k
 ```
 
-where $l$ and $r$ are valid interval endpoints. End the line and flush the output before reading the response.
+End the line and flush the output before reading the response.
 
-To answer a test case, print:
+To report Menji's position, print:
 
 ```text
-! b_1 b_2 ... b_n
+! u
 ```
 
-The final answer does not count as a query. After printing it, continue with the next test case or terminate the program if all test cases are complete.
+Then continue with the next test case, or terminate if all test cases are complete. Reporting an answer does not count as sending a signal.
 
-Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, `flush(output)` in Pascal, and `sys.stdout.flush()` in Python. Failing to flush a query may cause an idleness or time-limit verdict.
+The interactor is **adaptive**: the hidden position may change in response to your queries, provided that it remains consistent with the tree and every previous response.
+
+Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, and `sys.stdout.flush()` in Python.
 
 ## Examples
 
@@ -59,35 +54,37 @@ The table shows one possible complete interaction in chronological order. A blan
 | Judge sends | Program sends |
 | --- | --- |
 | `2` | |
-| `3` | |
-| | `? 1 1` |
+| `7` | |
+| `1 1 2 2 3 3` | |
+| | `? 2 1` |
 | `1` | |
-| | `? 2 2` |
+| | `? 3 2` |
 | `0` | |
-| | `? 3 3` |
+| | `? 4 0` |
+| `0` | |
+| | `! 5` |
+| `7` | |
+| `1 1 2 2 3 3` | |
+| | `? 2 1` |
+| `0` | |
+| | `? 3 0` |
 | `1` | |
-| | `! 1 -1 1` |
-| `5` | |
-| | `? 1 3` |
-| `4` | |
-| | `? 3 5` |
-| `5` | |
-| | `! 2 -1 3 -4 5` |
+| | `! 3` |
 
 ## Explanation / Notes
 
-The hidden sequence for every test case is fixed before the interaction begins. The interactor is **non-adaptive**: it does not change the hidden values in response to your queries.
-
-The transcript above is only an example. The judge responses depend on the hidden sequences and are not ordinary batch input that can be read in advance.
+The transcript is only an example. Because the interactor is adaptive, replies may depend on the complete interaction history.
 
 ## Constraints
 
-- $1\le T\le10^4$.
-- $1\le n\le2000$ in each test case.
-- Across all test cases, $\sum n\le10^4$.
-- $-10^9\le a_i\le10^9$.
-- Every query satisfies $1\le l\le r\le n$.
-- At most $2n$ queries may be issued in each test case.
-- Every reported value satisfies $-10^{15}\le b_i\le10^{15}$.
-- The interactor is non-adaptive.
+- $1\le T\le100$.
+- $2\le n\le3\times10^4$ in each test case.
+- Across all test cases, $\sum n\le3\times10^4$.
+- For every $i$, $1\le f_{a_i}<i$.
+- The given rooted tree is binary: no vertex has more than two children.
+- Every signal query satisfies $1\le u\le n$ and $0\le k\le n$.
+- Every query response belongs to $\{0,1\}$.
+- At most $40$ signals may be sent in each test case.
+- Reporting the answer does not consume the signal budget.
+- The interactor is adaptive but must remain consistent with all previous responses.
 - Time limit: **1 second**. Memory limit: **1024 MB**.

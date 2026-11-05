@@ -1072,31 +1072,67 @@ struct Factorials{
     }
 };
 
-int main(){
-    ios::sync_with_stdio(false);cin.tie(nullptr);
-    int n,p;if(!(cin>>n>>p))return 0;
-    PolyOps op(p);Factorials fac(n+1,p);
-    vector<Poly> stir(n+1,Poly(n+1)),eu(n+1);stir[0][0]=1;eu[0]={1};
-    for(int j=1;j<=n;++j){
-        for(int i=1;i<=j;++i)stir[j][i]=op.minus(stir[j-1][i-1],(i64)(j-1)*stir[j-1][i]%p);
-        eu[j].resize(j);for(int k=0;k<j;++k){
-            i64 x=k<(int)eu[j-1].size()?(i64)(k+1)*eu[j-1][k]:0;
-            if(k)x+=(i64)(j-k)*eu[j-1][k-1];eu[j][k]=x%p;
+constexpr int MOD=1000000007;
+struct PairPoly{
+    int s;Poly p,q;
+    explicit PairPoly(int n=0):s(n),p((n+1)*(n+1)),q((n+1)*(n+1)){}
+};
+struct Solver{
+    int n;PolyOps op{MOD};Factorials fac;vector<vector<int>> children,dp;vector<int> size,order;
+    explicit Solver(int n_):n(n_),fac(n_+2,MOD),children(n_),dp(n_),size(n_,1){}
+    PairPoly color(int v){
+        int s=size[v];PairPoly a(s);a.p[0]=1;Poly c(s+1);
+        for(int r=1;r<=s;++r){
+            int falling=(i64)fac.f[s]*fac.invf[s-r]%MOD;
+            for(int j=1;j<=r;++j){
+                int x=(i64)falling*fac.f[r-1]%MOD*fac.invf[j-1]%MOD*fac.invf[r-j]%MOD*fac.invf[j]%MOD;
+                a.p[r*(s+1)+j]=((r-j)&1)&&x?MOD-x:x;
+            }
+            for(int j=r-1;j>=1;--j)c[j]=op.minus(c[j-1],c[j]);
+            c[0]=op.minus((i64)dp[v][r]*fac.f[s-r]%MOD,c[0]);
+            for(int j=0;j<r;++j)a.q[r*(s+1)+j]=(i64)c[j]*fac.invf[s-r]%MOD*fac.invf[j]%MOD;
+        }return a;
+    }
+    Poly pack(const Poly&a,int s,int w){
+        Poly b(s*(w+1)+s+1);
+        for(int i=0;i<=s;++i)for(int j=0;j<=i;++j)b[i*(w+1)+j]=a[i*(s+1)+j];return b;
+    }
+    PairPoly merge(const PairPoly&a,const PairPoly&b){
+        int w=a.s+b.s;auto ap=pack(a.p,a.s,w),aq=pack(a.q,a.s,w),bp=pack(b.p,b.s,w),bq=pack(b.q,b.s,w);
+        PairPoly c;c.s=w;c.p=op.mul(ap,bp);c.q=op.add(op.mul(aq,bp),op.mul(ap,bq));
+        c.p.resize((w+1)*(w+1));c.q.resize((w+1)*(w+1));return c;
+    }
+    Poly transform(const Poly&a,int row,int stride){
+        Poly u(row+1),v(fac.invf.begin(),fac.invf.begin()+row+1);
+        for(int r=0;r<=row;++r)u[row-r]=(i64)a[row*stride+r]*fac.f[r]%MOD*fac.f[r]%MOD;
+        Poly w=op.mul(u,v),ret(row+1);
+        for(int m=0;m<=row;++m)ret[m]=(i64)w[row-m]*fac.invf[m]%MOD;return ret;
+    }
+    void solve_node(int u){
+        int H=-1;for(int v:children[u]){size[u]+=size[v];if(H<0||size[v]>size[H])H=v;}
+        if(H<0){dp[u]={0,1};return;}
+        vector<unique_ptr<PairPoly>> parts;
+        priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>> pq;
+        auto insert=[&](PairPoly a){int s=a.s,id=parts.size();parts.push_back(make_unique<PairPoly>(move(a)));pq.push({s,id});};
+        PairPoly own(1);own.p[0]=own.p[3]=own.q[2]=1;insert(move(own));
+        for(int v:children[u])if(v!=H)insert(color(v));
+        while(pq.size()>1){int a=pq.top().second;pq.pop();int b=pq.top().second;pq.pop();auto c=merge(*parts[a],*parts[b]);parts[a].reset();parts[b].reset();insert(move(c));}
+        auto light=move(parts[pq.top().second]);int b=light->s,h=size[H];dp[u].assign(size[u]+1,0);
+        Poly G(h+1);for(int t=1;t<=h;++t)G[t]=(i64)dp[H][t]*fac.f[h-t]%MOD;
+        for(int j=0;j<=b;++j){
+            Poly E=transform(light->q,j,b+1);
+            for(int m=0;m<=min(h,j+1);++m){int y=op.plus(m<=j?E[m]:0,m?E[m-1]:0);int x=(i64)y*fac.f[h]%MOD*fac.invf[h-m]%MOD;dp[u][j+m]=op.plus(dp[u][j+m],x);}
+            Poly X=transform(light->p,j,b+1);if((int)X.size()>h+1)X.resize(h+1);op.trim(X);
+            if(X.empty())continue;
+            Poly c=op.mul(X,G);
+            for(int R=1;R<=h&&R<(int)c.size();++R)dp[u][j+R]=op.plus(dp[u][j+R],(i64)c[R]*fac.invf[h-R]%MOD);
         }
     }
-    vector<Poly> rows(n,Poly(n+1));
-    for(int i=0;i<=n;++i){
-        int d=n-i;Poly u(d+1),v(fac.invf.begin(),fac.invf.begin()+d+1);
-        for(int j=i;j<=n;++j){
-            int b=(i64)fac.f[n]*fac.invf[j]%p*fac.invf[n-j]%p*stir[j][i]%p*fac.invf[j]%p;
-            u[d-(j-i)]=(i64)b*fac.f[j-i]%p;
-        }
-        Poly w=op.mul(u,v),shifted(d+1);
-        for(int k=0;k<=d;++k){int x=(i64)w[d-k]*fac.invf[k]%p;shifted[k]=(k&1)&&x?p-x:x;}
-        Poly di=op.mul(eu[i],shifted);for(int a=0;a<n&&a<(int)di.size();++a)rows[a][i]=di[a];
+    int run(const vector<vector<int>>&adj){
+        vector<int> parent(n,-1);order={0};parent[0]=0;
+        for(size_t i=0;i<order.size();++i){int u=order[i];for(int v:adj[u])if(v!=parent[u]){parent[v]=u;children[u].push_back(v);order.push_back(v);}}
+        for(auto it=order.rbegin();it!=order.rend();++it)solve_node(*it);
+        return dp[0][n];
     }
-    vector<Poly>().swap(stir);vector<Poly>().swap(eu);
-    vector<int> xs(n);iota(xs.begin(),xs.end(),0);ProductTree tree(op,move(xs));tree.prepare();
-    Poly kernel(n);for(int j=0;j<n;++j){int x=(i64)fac.f[n+1]*fac.invf[j]%p*fac.invf[n+1-j]%p;kernel[j]=(j&1)&&x?p-x:x;}
-    for(int a=0;a<n;++a){Poly c=tree.evaluate(rows[a]),ans=op.mul(c,kernel);for(int k=0;k<n;++k)cout<<ans[k]<<(k+1==n?'\n':' ');}
-}
+};
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<vector<int>> adj(n);for(int i=1,u,v;i<n;++i){cin>>u>>v;--u;--v;adj[u].push_back(v);adj[v].push_back(u);}Solver solver(n);cout<<solver.run(adj)<<'\n';}

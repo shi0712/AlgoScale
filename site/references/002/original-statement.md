@@ -1,33 +1,37 @@
-# 2. Night Sky
-
 ## Problem Description
 
-Given nonnegative integer arrays $A=(a_1,\ldots,a_n)$ and $B=(b_1,\ldots,b_m)$, transform $A$ using either of the following operations while its current length is at least two:
+Let $G$ be a connected, simple, weighted undirected graph with vertices $1,\ldots,n$ and edges $(u_i,v_i,w_i)$.
 
-1. Remove the two leftmost elements and append their bitwise XOR to the right end.
-2. Remove the two rightmost elements and prepend their bitwise XOR to the left end.
+Independently for every undirected edge, construct a directed graph $G'$ by choosing one of these four equally likely outcomes:
 
-Each operation shortens the array by one. Decide whether exactly $n-m$ operations can produce $B$, and, if possible, construct one such sequence of operations.
+- Keep both arcs $u_i\to v_i$ and $v_i\to u_i$.
+- Keep only $u_i\to v_i$.
+- Keep only $v_i\to u_i$.
+- Keep neither arc.
+
+Every retained arc has weight $w_i$.
+
+An **outward spanning arborescence** is a set of $n-1$ directed edges for which some root can reach every vertex using only those edges. The root may be any vertex. Its weight is the sum of its edges' weights.
+
+Compute the probability that $G'$ has an outward spanning arborescence and that the minimum weight of such an arborescence equals the weight of a minimum spanning tree of $G$. Report the probability modulo $10^9+7$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains an unused nonnegative integer $c$ and the number of cases $t$. Read and ignore $c$.
+Read an unused integer $c$ followed by the number of cases $T$. Ignore $c$.
 
-For each case, read:
-
-1. $n,m$.
-2. The $n$ values of $A$.
-3. The $m$ values of $B$.
+Each case starts with $n,m$, followed by $m$ lines. Line $i$ contains $u_i,v_i,w_i$.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print `Yes` or `No` on one line. If the answer is `Yes`, print a second line containing exactly $n-m$ integers, each either `1` or `2`, in execution order. When $n=m$, this second line is empty.
+Print one modular probability per case. If the reduced exact probability is $a/b$, output the unique $x$ with
 
-The operation line is required for every `Yes` answer.
+$$0\le x<10^9+7,\qquad bx\equiv a\pmod{10^9+7}.$$
+
+The denominator is guaranteed not to be divisible by $10^9+7$.
 
 ## Examples
 
@@ -35,30 +39,30 @@ Input:
 
 ```text
 0 1
-3 2
-3 4 2
-6 3
+2 1
+1 2 1
 ```
 
 Output:
 
 ```text
-Yes
-2
+750000006
 ```
 
 ## Explanation / Notes
 
-Applying operation 2 removes the two rightmost values $4,2$ and prepends $4\mathbin{\mathrm{xor}}2=6$. The array changes from $[3,4,2]$ to $[6,3]$, as required.
+There is only one undirected edge. The condition holds whenever at least one directed arc remains, which occurs with probability $3/4$. Its representation modulo $10^9+7$ is `750000006`.
 
 ## Constraints
 
-- $1\le t\le1000$.
-- $1\le m\le n\le250$.
-- $0\le a_i<2^{30}$ for every $1\le i\le n$.
-- $0\le b_i<2^{30}$ for every $1\le i\le m$.
-- All array entries are integers. The upper bound $2^{30}$ is **excluded**.
-- $c$ is a nonnegative integer and does not affect the requested result.
+- $1\le T\le5$.
+- $2\le n\le15$.
+- $n-1\le m\le n(n-1)/2$.
+- $1\le u_i<v_i\le n$.
+- $1\le w_i\le m$; all weights are integers.
+- All unordered endpoint pairs are distinct; there are no loops or parallel edges.
+- $G$ is connected.
+- The $m$ random edge outcomes are independent, with probability $1/4$ for each of the four outcomes.
 
-- Time limit: 1 second.
-- Memory limit: 1048576 KiB (1024 MiB).
+- Time limit: 3 seconds.
+- Memory limit: 524288 KiB (512 MiB).

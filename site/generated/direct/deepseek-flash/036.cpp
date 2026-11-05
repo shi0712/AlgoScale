@@ -1,124 +1,327 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-static constexpr int MOD = 998244353;
+static const int MOD = 998244353;
 
-int modpow(long long a, long long e) {
-    long long r = 1;
-    while (e > 0) {
-        if (e & 1) r = r * a % MOD;
-        a = a * a % MOD;
-        e >>= 1;
-    }
-    return (int)r;
+struct Mat {
+    int a, b, c, d;
+};
+
+static inline Mat identityMat() {
+    return {1, 0, 0, 1};
 }
+
+static inline Mat mulMat(const Mat& x, const Mat& y) {
+    Mat z;
+    z.a = (1LL * x.a * y.a + 1LL * x.b * y.c) % MOD;
+    z.b = (1LL * x.a * y.b + 1LL * x.b * y.d) % MOD;
+    z.c = (1LL * x.c * y.a + 1LL * x.d * y.c) % MOD;
+    z.d = (1LL * x.c * y.b + 1LL * x.d * y.d) % MOD;
+    return z;
+}
+
+static inline Mat makeLightMat(int S, int A) {
+    // [[S, 0],
+    //  [A, S]]
+    return {S, 0, A, S};
+}
+
+struct SegTree {
+    int n, sz;
+    vector<Mat> tr;
+
+    void init(const vector<Mat>& arr, int m) {
+        n = m;
+        sz = 1;
+        while (sz < n) sz <<= 1;
+        tr.assign(sz << 1, identityMat());
+
+        for (int i = 1; i <= m; ++i) {
+            tr[sz + i - 1] = arr[i];
+        }
+        for (int i = sz - 1; i >= 1; --i) {
+            tr[i] = mulMat(tr[i << 1], tr[i << 1 | 1]);
+        }
+    }
+
+    void update(int pos, const Mat& val) {
+        int p = sz + pos - 1;
+        tr[p] = val;
+        for (p >>= 1; p; p >>= 1) {
+            tr[p] = mulMat(tr[p << 1], tr[p << 1 | 1]);
+        }
+    }
+
+    Mat query(int l, int r) const {
+        if (l > r) return identityMat();
+        int L = sz + l - 1;
+        int R = sz + r - 1;
+
+        Mat left = identityMat();
+        Mat right = identityMat();
+
+        while (L <= R) {
+            if (L & 1) left = mulMat(left, tr[L++]);
+            if (!(R & 1)) right = mulMat(tr[R--], right);
+            L >>= 1;
+            R >>= 1;
+        }
+        return mulMat(left, right);
+    }
+};
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n, m;
-    cin >> n >> m;
+    int n;
+    cin >> n;
 
-    vector<int> a(m), b(m);
-    for (int i = 0; i < m; ++i) cin >> a[i];
-    for (int i = 0; i < m; ++i) cin >> b[i];
+    if (n == 1) {
+        return 0;
+    }
 
-    vector<int> fact(n + 1), invfact(n + 1), inv(n + 1);
+    vector<vector<int>> g(n + 1);
+    for (int i = 1; i < n; ++i) {
+        int u, v;
+        cin >> u >> v;
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
 
-    fact[0] = 1;
+    vector<int> b(n - 1);
+    vector<char> inB(n + 1, false);
+    for (int i = 0; i < n - 1; ++i) {
+        cin >> b[i];
+        inB[b[i]] = true;
+    }
+
+    int root = 1;
+    while (root <= n && inB[root]) ++root;
+    // root is the unique vertex that never appears in b
+
+    // Root the tree at root.
+    vector<int> parent(n + 1, 0);
+    vector<int> order;
+    order.reserve(n);
+
+    vector<int> stk;
+    stk.reserve(n);
+    stk.push_back(root);
+    parent[root] = 0;
+
+    while (!stk.empty()) {
+        int v = stk.back();
+        stk.pop_back();
+        order.push_back(v);
+
+        for (int u : g[v]) {
+            if (u == parent[v]) continue;
+            parent[u] = v;
+            stk.push_back(u);
+        }
+    }
+
+    // Subtree sizes and heavy child.
+    vector<int> sz(n + 1, 0), heavy(n + 1, 0);
+
+    for (int i = n - 1; i >= 0; --i) {
+        int v = order[i];
+        sz[v] = 1;
+
+        int bestSize = 0;
+        for (int u : g[v]) {
+            if (parent[u] == v) {
+                sz[v] += sz[u];
+                if (sz[u] > bestSize) {
+                    bestSize = sz[u];
+                    heavy[v] = u;
+                }
+            }
+        }
+    }
+
+    // Heavy-light decomposition.
+    vector<int> head(n + 1), dfn(n + 1), rev(n + 1), tailPos(n + 1);
+    vector<pair<int, int>> hldStack;
+    hldStack.push_back({root, root});
+
+    int timer = 0;
+
+    while (!hldStack.empty()) {
+        auto [v, h] = hldStack.back();
+        hldStack.pop_back();
+
+        int cur = v;
+        int last = 0;
+
+        while (cur) {
+            head[cur] = h;
+            dfn[cur] = ++timer;
+            rev[timer] = cur;
+            last = cur;
+
+            for (int u : g[cur]) {
+                if (parent[u] == cur && u != heavy[cur]) {
+                    hldStack.push_back({u, u});
+                }
+            }
+
+            cur = heavy[cur];
+        }
+
+        tailPos[h] = dfn[last];
+    }
+
+    vector<char> selected(n + 1, false);
+
+    // Initial DP when every vertex is unselected.
+    // For a node v:
+    //   S[v] = 2 * product S[child], A[v] = product S[child]
+    vector<int> S(n + 1, 0), A(n + 1, 0);
+
+    for (int i = n - 1; i >= 0; --i) {
+        int v = order[i];
+
+        long long prod = 1;
+        for (int u : g[v]) {
+            if (parent[u] == v) {
+                prod = prod * S[u] % MOD;
+            }
+        }
+
+        S[v] = 2LL * prod % MOD;
+        A[v] = prod;
+    }
+
+    // Build light-child segment tree.
+    int lightCnt = 0;
+    vector<int> lightPos(n + 1, 0), L(n + 1), R(n + 1);
+    vector<Mat> lightArr(1, identityMat());
+
+    for (int v = 1; v <= n; ++v) {
+        L[v] = lightCnt + 1;
+
+        for (int u : g[v]) {
+            if (parent[u] == v && u != heavy[v]) {
+                lightPos[u] = ++lightCnt;
+                lightArr.push_back(makeLightMat(S[u], A[u]));
+            }
+        }
+
+        R[v] = lightCnt;
+    }
+
+    SegTree lightSeg;
+    lightSeg.init(lightArr, lightCnt);
+
+    // Build initial heavy-path segment tree.
+    vector<Mat> heavyArr(n + 1, identityMat());
+
+    for (int v = 1; v <= n; ++v) {
+        int P0 = 1, Q0 = 0;
+
+        if (L[v] <= R[v]) {
+            Mat m = lightSeg.query(L[v], R[v]);
+            P0 = m.a;
+            Q0 = m.c;
+        }
+
+        Mat hMat;
+        if (!selected[v]) {
+            hMat = {2LL * P0 % MOD, 0, P0, 0};
+        } else {
+            hMat = {
+                (P0 + 2LL * Q0) % MOD,
+                2LL * P0 % MOD,
+                Q0,
+                P0
+            };
+        }
+
+        heavyArr[dfn[v]] = hMat;
+    }
+
+    SegTree heavySeg;
+    heavySeg.init(heavyArr, n);
+
+    // Powers of inverse of 2.
+    vector<int> invPow2(n + 1);
+    invPow2[0] = 1;
+    const int inv2 = (MOD + 1) / 2;
+
     for (int i = 1; i <= n; ++i) {
-        fact[i] = 1LL * fact[i - 1] * i % MOD;
+        invPow2[i] = 1LL * invPow2[i - 1] * inv2 % MOD;
     }
 
-    invfact[n] = modpow(fact[n], MOD - 2);
-    for (int i = n; i >= 1; --i) {
-        invfact[i - 1] = 1LL * invfact[i] * i % MOD;
-    }
+    int unselectedEdges = n - 1;
 
-    inv[1] = 1;
-    for (int i = 2; i <= n; ++i) {
-        inv[i] = MOD - 1LL * (MOD / i) * inv[MOD % i] % MOD;
-    }
+    auto recalcH = [&](int v) {
+        int P0 = 1, Q0 = 0;
 
-    auto C = [&](int N, int K) -> int {
-        if (K < 0 || K > N) return 0;
-        return 1LL * fact[N] * invfact[K] % MOD * invfact[N - K] % MOD;
+        if (L[v] <= R[v]) {
+            Mat m = lightSeg.query(L[v], R[v]);
+            P0 = m.a;
+            Q0 = m.c;
+        }
+
+        Mat hMat;
+
+        if (!selected[v]) {
+            hMat = {2LL * P0 % MOD, 0, P0, 0};
+        } else {
+            hMat = {
+                (P0 + 2LL * Q0) % MOD,
+                2LL * P0 % MOD,
+                Q0,
+                P0
+            };
+        }
+
+        heavySeg.update(dfn[v], hMat);
     };
 
-    vector<int> poly(1, 1);
-
-    for (int i = 0; i < m; ++i) {
-        if (b[i] == 0) continue;
-
-        int ai = a[i], bi = b[i];
-        vector<int> f(ai + 1, 0);
-
-        for (int j = bi; j <= ai; ++j) {
-            int cb = C(ai, j);
-            int shift = ai - j;
-
-            for (int l = 0; l <= j; ++l) {
-                int term = 1LL * cb * C(j, l) % MOD;
-                if (l & 1) {
-                    term = (term == 0 ? 0 : MOD - term);
-                }
-
-                int idx = shift + l;
-                f[idx] += term;
-                if (f[idx] >= MOD) f[idx] -= MOD;
+    for (int x : b) {
+        // Remove edges whose both endpoints were unselected.
+        for (int u : g[x]) {
+            if (!selected[u]) {
+                --unselectedEdges;
             }
         }
 
-        vector<int> np(poly.size() + f.size() - 1, 0);
+        selected[x] = true;
+        recalcH(x);
 
-        for (int u = 0; u < (int)poly.size(); ++u) {
-            if (poly[u] == 0) continue;
-            for (int v = 0; v < (int)f.size(); ++v) {
-                if (f[v] == 0) continue;
-                np[u + v] = (np[u + v] + 1LL * poly[u] * f[v]) % MOD;
+        int cur = x;
+        int tauPar = 0;
+
+        while (true) {
+            int h = head[cur];
+
+            Mat prod = heavySeg.query(dfn[h], tailPos[h]);
+
+            int newS = prod.a; // first column of prod
+            int newA = prod.c;
+
+            S[h] = newS;
+            A[h] = newA;
+
+            if (h == root) {
+                tauPar = newA;
+                break;
             }
+
+            int p = parent[h];
+
+            lightSeg.update(lightPos[h], makeLightMat(newS, newA));
+            recalcH(p);
+
+            cur = p;
         }
 
-        poly.swap(np);
+        int ans = 1LL * tauPar * invPow2[unselectedEdges] % MOD;
+        cout << ans << '\n';
     }
 
-    int expectedMax = 0;
-
-    for (int k = 1; k < (int)poly.size(); ++k) {
-        int sub = 1LL * poly[k] * inv[k] % MOD;
-        expectedMax -= sub;
-        if (expectedMax < 0) expectedMax += MOD;
-    }
-
-    vector<int> harmonic(n + 1, 0);
-    for (int i = 1; i <= n; ++i) {
-        harmonic[i] = harmonic[i - 1] + inv[i];
-        if (harmonic[i] >= MOD) harmonic[i] -= MOD;
-    }
-
-    long long answer = 0;
-    int totalTarget = 0;
-
-    for (int i = 0; i < m; ++i) {
-        totalTarget += b[i];
-
-        int expectedTi = 0;
-        if (b[i] > 0) {
-            expectedTi = harmonic[a[i]] - harmonic[a[i] - b[i]];
-            if (expectedTi < 0) expectedTi += MOD;
-        }
-
-        int diff = expectedMax - expectedTi;
-        if (diff < 0) diff += MOD;
-
-        answer += 1LL * (a[i] - b[i]) * diff % MOD;
-        answer %= MOD;
-    }
-
-    answer += totalTarget;
-    answer %= MOD;
-
-    cout << answer << '\n';
     return 0;
 }

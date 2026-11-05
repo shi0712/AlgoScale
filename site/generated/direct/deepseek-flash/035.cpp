@@ -1,158 +1,124 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-int n;
-int w[20][20];
-int adjMask[20];
-double ansValue = 0.0;
+static constexpr int MOD = 998244353;
 
-void solveClique(const vector<int>& verts) {
-    int k = (int)verts.size();
-    if (k < 2) return;
-
-    double a[20][21];
-
-    for (int i = 0; i < k; ++i) {
-        int vi = verts[i];
-        for (int j = 0; j < k; ++j) {
-            a[i][j] = (double)w[vi][verts[j]];
-        }
-        a[i][k] = 1.0;
+int modpow(long long a, long long e) {
+    long long r = 1;
+    while (e > 0) {
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
+        e >>= 1;
     }
-
-    // Gaussian elimination
-    for (int col = 0; col < k; ++col) {
-        int piv = col;
-        double best = fabs(a[col][col]);
-
-        for (int r = col + 1; r < k; ++r) {
-            double v = fabs(a[r][col]);
-            if (v > best) {
-                best = v;
-                piv = r;
-            }
-        }
-
-        if (best < 1e-12) return;
-
-        if (piv != col) {
-            for (int j = col; j <= k; ++j) {
-                swap(a[col][j], a[piv][j]);
-            }
-        }
-
-        double pivot = a[col][col];
-
-        for (int r = col + 1; r < k; ++r) {
-            double factor = a[r][col] / pivot;
-            if (fabs(factor) < 1e-18) continue;
-            a[r][col] = 0.0;
-            for (int j = col + 1; j <= k; ++j) {
-                a[r][j] -= factor * a[col][j];
-            }
-        }
-    }
-
-    double y[20];
-    double sum = 0.0;
-
-    for (int i = k - 1; i >= 0; --i) {
-        double val = a[i][k];
-        for (int j = i + 1; j < k; ++j) {
-            val -= a[i][j] * y[j];
-        }
-        val /= a[i][i];
-
-        if (val < -1e-9) return;
-        if (val < 0.0) val = 0.0;
-
-        y[i] = val;
-        sum += val;
-    }
-
-    if (sum <= 1e-15) return;
-
-    double cur = 0.5 / sum;
-    if (cur > ansValue) ansValue = cur;
-}
-
-void dfs(int mask, int allowed, vector<int>& verts) {
-    int U = mask | allowed;
-    int m = __builtin_popcount((unsigned)U);
-
-    if (m < 2) return;
-
-    int arr[20], cnt = 0;
-    int tmp = U;
-    while (tmp) {
-        int v = __builtin_ctz((unsigned)tmp);
-        tmp &= tmp - 1;
-        arr[cnt++] = v;
-    }
-
-    int maxW = 0;
-    for (int i = 0; i < cnt; ++i) {
-        int vi = arr[i];
-        for (int j = i + 1; j < cnt; ++j) {
-            maxW = max(maxW, w[vi][arr[j]]);
-        }
-    }
-
-    if (maxW == 0) return;
-
-    double upperBound = 1.0 * maxW * (1.0 - 1.0 / m) * 0.5;
-    if (upperBound <= ansValue + 1e-12) return;
-
-    if ((int)verts.size() >= 2) {
-        solveClique(verts);
-    }
-
-    int curAllowed = allowed;
-
-    while (curAllowed) {
-        int v = __builtin_ctz((unsigned)curAllowed);
-        curAllowed &= curAllowed - 1;
-
-        int newAllowed = curAllowed & adjMask[v];
-
-        verts.push_back(v);
-        dfs(mask | (1 << v), newAllowed, verts);
-        verts.pop_back();
-    }
+    return (int)r;
 }
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    cin >> n;
+    int n, m;
+    cin >> n >> m;
 
-    int maxEdge = 0;
+    vector<int> a(m), b(m);
+    for (int i = 0; i < m; ++i) cin >> a[i];
+    for (int i = 0; i < m; ++i) cin >> b[i];
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            cin >> w[i][j];
-            if (i < j) maxEdge = max(maxEdge, w[i][j]);
-        }
+    vector<int> fact(n + 1), invfact(n + 1), inv(n + 1);
+
+    fact[0] = 1;
+    for (int i = 1; i <= n; ++i) {
+        fact[i] = 1LL * fact[i - 1] * i % MOD;
     }
 
-    for (int i = 0; i < n; ++i) {
-        adjMask[i] = 0;
-        for (int j = 0; j < n; ++j) {
-            if (i != j && w[i][j] > 0) {
-                adjMask[i] |= (1 << j);
+    invfact[n] = modpow(fact[n], MOD - 2);
+    for (int i = n; i >= 1; --i) {
+        invfact[i - 1] = 1LL * invfact[i] * i % MOD;
+    }
+
+    inv[1] = 1;
+    for (int i = 2; i <= n; ++i) {
+        inv[i] = MOD - 1LL * (MOD / i) * inv[MOD % i] % MOD;
+    }
+
+    auto C = [&](int N, int K) -> int {
+        if (K < 0 || K > N) return 0;
+        return 1LL * fact[N] * invfact[K] % MOD * invfact[N - K] % MOD;
+    };
+
+    vector<int> poly(1, 1);
+
+    for (int i = 0; i < m; ++i) {
+        if (b[i] == 0) continue;
+
+        int ai = a[i], bi = b[i];
+        vector<int> f(ai + 1, 0);
+
+        for (int j = bi; j <= ai; ++j) {
+            int cb = C(ai, j);
+            int shift = ai - j;
+
+            for (int l = 0; l <= j; ++l) {
+                int term = 1LL * cb * C(j, l) % MOD;
+                if (l & 1) {
+                    term = (term == 0 ? 0 : MOD - term);
+                }
+
+                int idx = shift + l;
+                f[idx] += term;
+                if (f[idx] >= MOD) f[idx] -= MOD;
             }
         }
+
+        vector<int> np(poly.size() + f.size() - 1, 0);
+
+        for (int u = 0; u < (int)poly.size(); ++u) {
+            if (poly[u] == 0) continue;
+            for (int v = 0; v < (int)f.size(); ++v) {
+                if (f[v] == 0) continue;
+                np[u + v] = (np[u + v] + 1LL * poly[u] * f[v]) % MOD;
+            }
+        }
+
+        poly.swap(np);
     }
 
-    ansValue = maxEdge * 0.25;
+    int expectedMax = 0;
 
-    vector<int> verts;
-    verts.reserve(n);
+    for (int k = 1; k < (int)poly.size(); ++k) {
+        int sub = 1LL * poly[k] * inv[k] % MOD;
+        expectedMax -= sub;
+        if (expectedMax < 0) expectedMax += MOD;
+    }
 
-    dfs(0, (1 << n) - 1, verts);
+    vector<int> harmonic(n + 1, 0);
+    for (int i = 1; i <= n; ++i) {
+        harmonic[i] = harmonic[i - 1] + inv[i];
+        if (harmonic[i] >= MOD) harmonic[i] -= MOD;
+    }
 
-    cout << fixed << setprecision(12) << ansValue << '\n';
+    long long answer = 0;
+    int totalTarget = 0;
 
+    for (int i = 0; i < m; ++i) {
+        totalTarget += b[i];
+
+        int expectedTi = 0;
+        if (b[i] > 0) {
+            expectedTi = harmonic[a[i]] - harmonic[a[i] - b[i]];
+            if (expectedTi < 0) expectedTi += MOD;
+        }
+
+        int diff = expectedMax - expectedTi;
+        if (diff < 0) diff += MOD;
+
+        answer += 1LL * (a[i] - b[i]) * diff % MOD;
+        answer %= MOD;
+    }
+
+    answer += totalTarget;
+    answer %= MOD;
+
+    cout << answer << '\n';
     return 0;
 }

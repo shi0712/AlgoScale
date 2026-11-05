@@ -1,119 +1,73 @@
+// Standard solution: the O(n^2) weighted DP discussed in the conversation.
+// No answer table. C++17, standard input/output.
 #include <bits/stdc++.h>
-using namespace std;
-
-using LD = long double;
-static const int MAXN = 20;
-
-int n;
-int w[MAXN][MAXN];
-int idv[MAXN];
-uint64_t adjMask[MAXN];
-LD L[MAXN][MAXN];
-LD invD[MAXN];
-LD pvec[MAXN], qvec[MAXN], zvec[MAXN];
-LD answer = 0;
-
-inline bool feasible(int k) {
-    LD y[MAXN];
-    for (int i = k - 1; i >= 0; --i) {
-        LD cur = qvec[i];
-        for (int j = i + 1; j < k; ++j) cur -= L[j][i] * y[j];
-        // Mathematically y_i >= 0 is required. A tiny tolerance only absorbs
-        // roundoff near a lower-dimensional optimum.
-        if (cur < -1e-18L) return false;
-        y[i] = cur;
-    }
-    return true;
+namespace collection_dp {
+using i64 = long long;
+constexpr int MOD = 998244353;
+int power(int a, int b) {
+    int r = 1;
+    for (; b; b >>= 1, a = static_cast<i64>(a) * a % MOD)
+        if (b & 1) r = static_cast<i64>(r) * a % MOD;
+    return r;
 }
-
-void dfs(int k, uint64_t cand, LD t, LD invBase) {
-    if (0.5L / t > answer) {
-        if (feasible(k)) answer = 0.5L / t;
-    }
-
-    while (cand) {
-        int v = __builtin_ctzll(cand);
-        cand &= cand - 1;
-        idv[k] = v;
-
-        // z = L^{-1} b, where b_i = w[idv[i]][v].
-        for (int i = 0; i < k; ++i) {
-            LD cur = (LD)w[idv[i]][v];
-            for (int j = 0; j < i; ++j) cur -= L[i][j] * zvec[j];
-            zvec[i] = cur;
-        }
-
-        // The first D block is [[0,a],[a,0]].
-        L[k][0] = zvec[1] * invBase;
-        L[k][1] = zvec[0] * invBase;
-        for (int i = 2; i < k; ++i) L[k][i] = zvec[i] * invD[i];
-
-        LD s = 0;
-        for (int i = 0; i < k; ++i) s -= zvec[i] * L[k][i];
-
-        // Every prefix of a minimum-support optimum is strictly conditionally
-        // negative definite, so each scalar pivot after the 2x2 base is < 0.
-        if (!(s < 0)) continue;
-        invD[k] = 1.0L / s;
-
-        LD pk = 1.0L;
-        for (int i = 0; i < k; ++i) pk -= L[k][i] * pvec[i];
-        pvec[k] = pk;
-        qvec[k] = pk * invD[k];
-
-        LD nt = t + pk * qvec[k];
-        if (!(nt > 0)) continue;
-
-        uint64_t child = cand & adjMask[v];
-        dfs(k + 1, child, nt, invBase);
-    }
+inline void add(int &a, int b) {
+    a += b;  // a+b < 2*MOD < INT_MAX.
+    if (a >= MOD) a -= MOD;
 }
+int solve(int n, const std::vector<int>& a, const std::vector<int>& b) {
+    const int m = static_cast<int>(a.size());
+    std::vector<int> fac(n + 1, 1), ifac(n + 1, 1);
+    for (int j = 1; j <= n; ++j) fac[j] = static_cast<i64>(fac[j-1]) * j % MOD;
+    ifac[n] = power(fac[n], MOD - 2);
+    for (int j = n; j >= 1; --j) ifac[j-1] = static_cast<i64>(ifac[j]) * j % MOD;
 
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    if (!(cin >> n)) return 0;
-    for (int i = 0; i < n; ++i)
-        for (int j = 0; j < n; ++j)
-            cin >> w[i][j];
-
-    for (int i = 0; i < n; ++i) {
-        uint64_t m = 0;
-        for (int j = 0; j < n; ++j)
-            if (i != j && w[i][j] > 0) m |= 1ULL << j;
-        adjMask[i] = m;
-    }
-
-    // Supports of size 2.
-    for (int i = 0; i < n; ++i)
-        for (int j = i + 1; j < n; ++j)
-            answer = max(answer, (LD)w[i][j] * 0.25L);
-
-    if (n >= 2) {
-        const uint64_t ALL = (1ULL << n) - 1;
-        for (int i = 0; i < n; ++i) {
-            uint64_t higher = ALL & ~((1ULL << (i + 1)) - 1);
-            uint64_t cand = adjMask[i] & higher;
-            while (cand) {
-                int j = __builtin_ctzll(cand);
-                cand &= cand - 1;
-
-                idv[0] = i;
-                idv[1] = j;
-                L[1][0] = 0;
-                pvec[0] = pvec[1] = 1;
-
-                LD invBase = 1.0L / (LD)w[i][j];
-                qvec[0] = qvec[1] = invBase;
-                LD t = 2.0L * invBase;
-
-                uint64_t child = cand & adjMask[j];
-                if (child) dfs(2, child, t, invBase);
+    using State = std::array<int, 2>;
+    std::vector<State> f(n + 1), g(n + 1), nf(n + 1), ng(n + 1);
+    f[0][0] = 1;
+    int s = 0;
+    for (int i = 0; i < m; ++i) {
+        std::fill(nf.begin(), nf.end(), State{0, 0});
+        std::fill(ng.begin(), ng.end(), State{0, 0});
+        for (int x = 0; x <= a[i]; ++x) {
+            const int z = static_cast<i64>(ifac[x]) * ifac[a[i]-x] % MOD;
+            const int bad = (x < b[i]);
+            const int remaining = a[i] - std::min(x, b[i]);
+            for (int j = 0; j <= s; ++j) {
+                for (int o = 0; o < 2; ++o) {
+                    const int no = o | bad;
+                    const int df = static_cast<i64>(f[j][o]) * z % MOD;
+                    // Reduce before multiplying by z: all i64 products are < MOD^2.
+                    const int dg = (g[j][o] + static_cast<i64>(f[j][o]) * remaining) % MOD
+                                   * static_cast<i64>(z) % MOD;
+                    add(nf[j+x][no], df);
+                    add(ng[j+x][no], dg);
+                }
             }
         }
+        f.swap(nf);
+        g.swap(ng);
+        s += a[i];
     }
-
-    cout << fixed << setprecision(12) << answer << '\n';
-    return 0;
+    int ans = 0;
+    // j == n must be excluded: g[n][1] == 0, and (n-j-1)! is undefined.
+    for (int j = 0; j < n; ++j) {
+        const int term = static_cast<i64>(g[j][1]) * fac[j] % MOD * fac[n-j-1] % MOD;
+        add(ans, term);
+    }
+    ans = static_cast<i64>(ans) * ifac[n] % MOD;
+    for (int ai : a) ans = static_cast<i64>(ans) * fac[ai] % MOD;
+    return ans;
 }
+} // namespace collection_dp
+#ifndef COLLECTION_LIBRARY
+int main() {
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+    int n, m;
+    if (!(std::cin >> n >> m)) return 1;
+    std::vector<int> a(m), b(m);
+    for (int& x : a) if (!(std::cin >> x)) return 1;
+    for (int& x : b) if (!(std::cin >> x)) return 1;
+    std::cout << collection_dp::solve(n, a, b) << '\n';
+}
+#endif

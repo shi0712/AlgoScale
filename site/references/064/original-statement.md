@@ -1,58 +1,55 @@
-# 64. Under the Epilogue
-
 ## Problem Description
 
-There are $n$ positions numbered $1$ through $n$. Position $i$ has an interval $[a_i,b_i]$, and from $i$ you may move to any position in that interval.
+An $n\times m$ board contains `*`, `+`, and `.` cells. Place as many pairwise disjoint trominoes as possible. Each tromino consists of a center cell and two distinct cells sharing edges with that center.
 
-Choose a starting position $u$, make any finite number of allowed moves, and finish at $u$. Taking zero moves is allowed. Let $S$ be the set of positions visited at least once, including the starting position.
+- An L-shaped tromino uses two perpendicular neighbors; its center must contain `*` or `+`.
+- An I-shaped tromino uses two opposite neighbors; its center must contain `+`.
+- Both non-center cells must contain `.`.
 
-Count the distinct sets $S$ that can be obtained in this way, modulo $998244353$. Different walks or starting positions that produce the same set contribute only once.
+No cell may belong to more than one tromino. Output a board showing a placement with the maximum possible number of trominoes.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n$. The next $n$ lines contain $a_i,b_i$ for positions $i=1,\ldots,n$.
+The first line contains $n,m$. Each of the next $n$ lines contains $m$ board characters.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of distinct achievable visited-position sets modulo $998244353$.
+Print $n$ lines of $m$ characters. Replace the three cells of each chosen tromino by the same lowercase English letter. Edge-adjacent cells belonging to different trominoes must receive different letters. A cell not covered by a tromino must retain its original character.
+
+Any optimal placement and valid lettering are accepted. Do not print the number of trominoes separately.
 
 ## Examples
 
 Input:
 
 ```text
-5
-1 2
-2 5
-3 4
-2 5
-4 5
+2 2
+*.
+..
 ```
 
 Output:
 
 ```text
-12
+aa
+a.
 ```
 
 ## Explanation / Notes
 
-The required walk is closed: reaching some other position without returning to the chosen start is insufficient. A zero-move walk gives the singleton set containing its start. No empty visited set is possible.
-
-The interval condition describes directed moves; a move from $i$ to $j$ does not by itself guarantee that $j$ can move directly back to $i$.
+The letters identify trominoes in the output; they are not part of the original board. Different trominoes may reuse a letter when no cells from the two trominoes share an edge. A `*` center permits only an L, while a `+` center permits either shape.
 
 ## Constraints
 
-- $1\le n\le50$.
-- For every $i$, $1\le a_i\le i\le b_i\le n$.
-- All input values are integers.
-- Interval endpoints are inclusive.
-- Every position belongs to its own permitted destination interval.
-- Walk length has no stated finite upper bound; the object being counted is the visited set, not the walk.
-- Modulus: $998244353$.
-- There is one instance per input.
-- Time limit: **2 seconds**. Memory limit: **1024 MB**.
+- $2\le n,m\le100$.
+- Every input row has exactly $m$ characters, each one `*`, `+`, or `.`.
+- Each tromino occupies exactly three distinct grid cells.
+- The two non-center cells must have been `.` in the input.
+- Trominoes may not overlap; edge contact between different trominoes is allowed subject to different output letters.
+- Output labels use only lowercase English letters `a`–`z`.
+- There is one board per input.
+- Time limit: **2 seconds**. Memory limit: **256 MiB**.

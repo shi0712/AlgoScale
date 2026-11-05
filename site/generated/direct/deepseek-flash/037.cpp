@@ -1,327 +1,220 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-static const int MOD = 998244353;
+const long double PI = acosl(-1.0L);
 
-struct Mat {
-    int a, b, c, d;
+struct C {
+    long double x, y;
+    C() : x(0), y(0) {}
+    C(long double _x, long double _y) : x(_x), y(_y) {}
 };
 
-static inline Mat identityMat() {
-    return {1, 0, 0, 1};
+inline C operator+(const C& a, const C& b) {
+    return C(a.x + b.x, a.y + b.y);
 }
 
-static inline Mat mulMat(const Mat& x, const Mat& y) {
-    Mat z;
-    z.a = (1LL * x.a * y.a + 1LL * x.b * y.c) % MOD;
-    z.b = (1LL * x.a * y.b + 1LL * x.b * y.d) % MOD;
-    z.c = (1LL * x.c * y.a + 1LL * x.d * y.c) % MOD;
-    z.d = (1LL * x.c * y.b + 1LL * x.d * y.d) % MOD;
-    return z;
+inline C operator-(const C& a, const C& b) {
+    return C(a.x - b.x, a.y - b.y);
 }
 
-static inline Mat makeLightMat(int S, int A) {
-    // [[S, 0],
-    //  [A, S]]
-    return {S, 0, A, S};
+inline C operator*(const C& a, const C& b) {
+    return C(
+        a.x * b.x - a.y * b.y,
+        a.x * b.y + a.y * b.x
+    );
 }
 
-struct SegTree {
-    int n, sz;
-    vector<Mat> tr;
+void fft(
+    vector<C>& a,
+    bool invert,
+    const vector<C>& roots,
+    const vector<C>& rootsInv,
+    const vector<int>& rev
+) {
+    int n = (int)a.size();
 
-    void init(const vector<Mat>& arr, int m) {
-        n = m;
-        sz = 1;
-        while (sz < n) sz <<= 1;
-        tr.assign(sz << 1, identityMat());
+    for (int i = 0; i < n; ++i) {
+        if (i < rev[i]) swap(a[i], a[rev[i]]);
+    }
 
-        for (int i = 1; i <= m; ++i) {
-            tr[sz + i - 1] = arr[i];
-        }
-        for (int i = sz - 1; i >= 1; --i) {
-            tr[i] = mulMat(tr[i << 1], tr[i << 1 | 1]);
+    const vector<C>& rt = invert ? rootsInv : roots;
+
+    for (int len = 2; len <= n; len <<= 1) {
+        int half = len >> 1;
+        int step = n / len;
+
+        for (int i = 0; i < n; i += len) {
+            for (int j = 0; j < half; ++j) {
+                C w = rt[j * step];
+                C u = a[i + j];
+                C v = a[i + j + half] * w;
+
+                a[i + j] = u + v;
+                a[i + j + half] = u - v;
+            }
         }
     }
 
-    void update(int pos, const Mat& val) {
-        int p = sz + pos - 1;
-        tr[p] = val;
-        for (p >>= 1; p; p >>= 1) {
-            tr[p] = mulMat(tr[p << 1], tr[p << 1 | 1]);
+    if (invert) {
+        long double invN = 1.0L / n;
+        for (C& z : a) {
+            z.x *= invN;
+            z.y *= invN;
         }
     }
-
-    Mat query(int l, int r) const {
-        if (l > r) return identityMat();
-        int L = sz + l - 1;
-        int R = sz + r - 1;
-
-        Mat left = identityMat();
-        Mat right = identityMat();
-
-        while (L <= R) {
-            if (L & 1) left = mulMat(left, tr[L++]);
-            if (!(R & 1)) right = mulMat(tr[R--], right);
-            L >>= 1;
-            R >>= 1;
-        }
-        return mulMat(left, right);
-    }
-};
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n;
-    cin >> n;
+    int n, k;
+    cin >> n >> k;
 
-    if (n == 1) {
-        return 0;
+    vector<int> f(n);
+    for (int i = 0; i < n; ++i) cin >> f[i];
+
+    int period = 2 * n;
+
+    vector<long double> chirpC(period), chirpS(period);
+    for (int r = 0; r < period; ++r) {
+        long double ang = PI * (long double)r / n;
+        chirpC[r] = cosl(ang);
+        chirpS[r] = sinl(ang);
     }
 
-    vector<vector<int>> g(n + 1);
-    for (int i = 1; i < n; ++i) {
-        int u, v;
-        cin >> u >> v;
-        g[u].push_back(v);
-        g[v].push_back(u);
+    vector<long double> rotC(n), rotS(n);
+    for (int r = 0; r < n; ++r) {
+        long double ang = 2.0L * PI * (long double)r / n;
+        rotC[r] = cosl(ang);
+        rotS[r] = sinl(ang);
     }
 
-    vector<int> b(n - 1);
-    vector<char> inB(n + 1, false);
-    for (int i = 0; i < n - 1; ++i) {
-        cin >> b[i];
-        inB[b[i]] = true;
-    }
+    int M = 1;
+    while (M < 2 * n - 1) M <<= 1;
 
-    int root = 1;
-    while (root <= n && inB[root]) ++root;
-    // root is the unique vertex that never appears in b
+    vector<int> rev(M);
+    if (M > 1) {
+        int lg = 0;
+        while ((1 << lg) < M) ++lg;
 
-    // Root the tree at root.
-    vector<int> parent(n + 1, 0);
-    vector<int> order;
-    order.reserve(n);
-
-    vector<int> stk;
-    stk.reserve(n);
-    stk.push_back(root);
-    parent[root] = 0;
-
-    while (!stk.empty()) {
-        int v = stk.back();
-        stk.pop_back();
-        order.push_back(v);
-
-        for (int u : g[v]) {
-            if (u == parent[v]) continue;
-            parent[u] = v;
-            stk.push_back(u);
+        rev[0] = 0;
+        for (int i = 1; i < M; ++i) {
+            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (lg - 1));
         }
     }
 
-    // Subtree sizes and heavy child.
-    vector<int> sz(n + 1, 0), heavy(n + 1, 0);
+    vector<C> roots(M / 2), rootsInv(M / 2);
+    for (int i = 0; i < M / 2; ++i) {
+        long double ang = -2.0L * PI * (long double)i / M;
+        long double c = cosl(ang);
+        long double s = sinl(ang);
 
-    for (int i = n - 1; i >= 0; --i) {
-        int v = order[i];
-        sz[v] = 1;
-
-        int bestSize = 0;
-        for (int u : g[v]) {
-            if (parent[u] == v) {
-                sz[v] += sz[u];
-                if (sz[u] > bestSize) {
-                    bestSize = sz[u];
-                    heavy[v] = u;
-                }
-            }
-        }
+        roots[i] = C(c, s);
+        rootsInv[i] = C(c, -s);
     }
 
-    // Heavy-light decomposition.
-    vector<int> head(n + 1), dfn(n + 1), rev(n + 1), tailPos(n + 1);
-    vector<pair<int, int>> hldStack;
-    hldStack.push_back({root, root});
+    vector<C> A(M), B(M);
 
-    int timer = 0;
+    for (int j = 0; j < n; ++j) {
+        long double val = (j == k ? 0.0L : (long double)f[j]);
 
-    while (!hldStack.empty()) {
-        auto [v, h] = hldStack.back();
-        hldStack.pop_back();
+        long long rem = (1LL * j * j) % period;
+        long double c = chirpC[rem];
+        long double s = chirpS[rem];
 
-        int cur = v;
-        int last = 0;
-
-        while (cur) {
-            head[cur] = h;
-            dfn[cur] = ++timer;
-            rev[timer] = cur;
-            last = cur;
-
-            for (int u : g[cur]) {
-                if (parent[u] == cur && u != heavy[cur]) {
-                    hldStack.push_back({u, u});
-                }
-            }
-
-            cur = heavy[cur];
-        }
-
-        tailPos[h] = dfn[last];
+        A[j] = C(val * c, -val * s);
     }
 
-    vector<char> selected(n + 1, false);
+    for (int d = -(n - 1); d <= n - 1; ++d) {
+        int idx = (n - 1) + d;
 
-    // Initial DP when every vertex is unselected.
-    // For a node v:
-    //   S[v] = 2 * product S[child], A[v] = product S[child]
-    vector<int> S(n + 1, 0), A(n + 1, 0);
+        long long dd = (d < 0 ? -(long long)d : (long long)d);
+        long long rem = (dd * dd) % period;
 
-    for (int i = n - 1; i >= 0; --i) {
-        int v = order[i];
-
-        long long prod = 1;
-        for (int u : g[v]) {
-            if (parent[u] == v) {
-                prod = prod * S[u] % MOD;
-            }
-        }
-
-        S[v] = 2LL * prod % MOD;
-        A[v] = prod;
+        B[idx] = C(chirpC[rem], chirpS[rem]);
     }
 
-    // Build light-child segment tree.
-    int lightCnt = 0;
-    vector<int> lightPos(n + 1, 0), L(n + 1), R(n + 1);
-    vector<Mat> lightArr(1, identityMat());
+    fft(A, false, roots, rootsInv, rev);
+    fft(B, false, roots, rootsInv, rev);
 
-    for (int v = 1; v <= n; ++v) {
-        L[v] = lightCnt + 1;
-
-        for (int u : g[v]) {
-            if (parent[u] == v && u != heavy[v]) {
-                lightPos[u] = ++lightCnt;
-                lightArr.push_back(makeLightMat(S[u], A[u]));
-            }
-        }
-
-        R[v] = lightCnt;
+    for (int i = 0; i < M; ++i) {
+        A[i] = A[i] * B[i];
     }
 
-    SegTree lightSeg;
-    lightSeg.init(lightArr, lightCnt);
+    fft(A, true, roots, rootsInv, rev);
 
-    // Build initial heavy-path segment tree.
-    vector<Mat> heavyArr(n + 1, identityMat());
+    vector<long double> a(n), b2(n);
 
-    for (int v = 1; v <= n; ++v) {
-        int P0 = 1, Q0 = 0;
+    long double minA = 1e100L;
+    long double maxA = -1e100L;
 
-        if (L[v] <= R[v]) {
-            Mat m = lightSeg.query(L[v], R[v]);
-            P0 = m.a;
-            Q0 = m.c;
-        }
+    for (int t = 0; t < n; ++t) {
+        C conv = A[t + n - 1];
 
-        Mat hMat;
-        if (!selected[v]) {
-            hMat = {2LL * P0 % MOD, 0, P0, 0};
-        } else {
-            hMat = {
-                (P0 + 2LL * Q0) % MOD,
-                2LL * P0 % MOD,
-                Q0,
-                P0
-            };
-        }
+        long long rem = (1LL * t * t) % period;
+        C phase(chirpC[rem], -chirpS[rem]);
 
-        heavyArr[dfn[v]] = hMat;
+        C F = conv * phase;
+
+        int r = (int)((1LL * k * t) % n);
+        C rot(rotC[r], rotS[r]);
+
+        C q = F * rot;
+
+        long double x = -q.x;
+        long double y = q.y;
+
+        a[t] = x;
+        b2[t] = y * y;
+
+        minA = min(minA, x);
+        maxA = max(maxA, x);
     }
 
-    SegTree heavySeg;
-    heavySeg.init(heavyArr, n);
+    auto value2 = [&](long double x) {
+        long double res = 0.0L;
 
-    // Powers of inverse of 2.
-    vector<int> invPow2(n + 1);
-    invPow2[0] = 1;
-    const int inv2 = (MOD + 1) / 2;
-
-    for (int i = 1; i <= n; ++i) {
-        invPow2[i] = 1LL * invPow2[i - 1] * inv2 % MOD;
-    }
-
-    int unselectedEdges = n - 1;
-
-    auto recalcH = [&](int v) {
-        int P0 = 1, Q0 = 0;
-
-        if (L[v] <= R[v]) {
-            Mat m = lightSeg.query(L[v], R[v]);
-            P0 = m.a;
-            Q0 = m.c;
+        for (int i = 0; i < n; ++i) {
+            long double d = a[i] - x;
+            long double v = d * d + b2[i];
+            if (v > res) res = v;
         }
 
-        Mat hMat;
-
-        if (!selected[v]) {
-            hMat = {2LL * P0 % MOD, 0, P0, 0};
-        } else {
-            hMat = {
-                (P0 + 2LL * Q0) % MOD,
-                2LL * P0 % MOD,
-                Q0,
-                P0
-            };
-        }
-
-        heavySeg.update(dfn[v], hMat);
+        return res;
     };
 
-    for (int x : b) {
-        // Remove edges whose both endpoints were unselected.
-        for (int u : g[x]) {
-            if (!selected[u]) {
-                --unselectedEdges;
-            }
+    long double lo = minA;
+    long double hi = maxA;
+
+    for (int it = 0; it < 100; ++it) {
+        long double third = (hi - lo) / 3.0L;
+        long double m1 = lo + third;
+        long double m2 = hi - third;
+
+        long double v1 = value2(m1);
+        long double v2 = value2(m2);
+
+        if (v1 < v2) {
+            hi = m2;
+        } else {
+            lo = m1;
         }
-
-        selected[x] = true;
-        recalcH(x);
-
-        int cur = x;
-        int tauPar = 0;
-
-        while (true) {
-            int h = head[cur];
-
-            Mat prod = heavySeg.query(dfn[h], tailPos[h]);
-
-            int newS = prod.a; // first column of prod
-            int newA = prod.c;
-
-            S[h] = newS;
-            A[h] = newA;
-
-            if (h == root) {
-                tauPar = newA;
-                break;
-            }
-
-            int p = parent[h];
-
-            lightSeg.update(lightPos[h], makeLightMat(newS, newA));
-            recalcH(p);
-
-            cur = p;
-        }
-
-        int ans = 1LL * tauPar * invPow2[unselectedEdges] % MOD;
-        cout << ans << '\n';
     }
+
+    long double mid = (lo + hi) / 2.0L;
+    long long base = (long long)floorl(mid);
+
+    long double best = 1e100L;
+
+    for (long long x = base - 10; x <= base + 10; ++x) {
+        long double cur = value2((long double)x);
+        if (cur < best) best = cur;
+    }
+
+    long double ans = sqrtl(best);
+
+    cout << fixed << setprecision(15) << ans << '\n';
 
     return 0;
 }

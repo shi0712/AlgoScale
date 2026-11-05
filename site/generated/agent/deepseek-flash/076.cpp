@@ -1,394 +1,174 @@
-// Grid Toll
-//
-// Objective (as evidenced by the samples): increase edge weights (only up) so that
-// the shortest path from column 1 to column m becomes exactly D+k, minimising the
-// TOTAL AMOUNT of increase (sum over edges of newWeight - oldWeight).  Print that
-// minimum total plus the resulting weights.
-//
-// Solution outline
-// ----------------
-// Let target = D + k.  We need w' >= w with dist_{w'}(source set -> sink set) == target
-// and sum(w'-w) minimal.
-//
-// LP duality (path packing): the minimum total increase equals
-//      max over families of edge-disjoint source-sink paths of  sum_P (target - len(P))
-// which is a min-cost flow: send flow from a super source to each column-1 cell,
-// from each column-m cell to a super sink (arc into the sink costs -target), grid
-// arcs have capacity 1 and cost = weight.  Augment while the shortest path is negative.
-//
-// Reconstruction of the weights uses the primal (potential) formulation
-//      min sum_e max(0, |p(u)-p(v)| - w_e)   s.t.  p = 0 on used sources,
-//                                                 p = target on used sinks,
-//                                                 p <= 0 on unused sources,
-//                                                 p >= target on unused sinks.
-// This is a system of difference constraints on the residual graph of the optimal
-// flow; any feasible solution costs exactly the optimum:
-//   * unused edge  -> both residual directions -> |dp| <= w      (no increase)
-//   * used edge u->v -> residual arc v->u of cost -w -> p(v) >= p(u)+w, and the
-//     cost telescopes along each packed path to (target - len(P)).
-// Then w'_e = max(w_e, |p(u)-p(v)|) satisfies every path length >= p(t)-p(s) >= target,
-// and the total increase is exactly the optimum, hence the new shortest path is target.
-
 #include <bits/stdc++.h>
 using namespace std;
+using ll = long long;
+static const int INF = 100000000;
 
-typedef long long ll;
-static const ll INF = (ll)4e18;
+int n;
+vector<int> a;
+int Amax;
+ll baseCost;
 
-/* ------------------------------------------------------------------ */
-/* fast input / output                                                 */
-/* ------------------------------------------------------------------ */
-static char *ibuf;
-static size_t ipos = 0, ilen = 0;
-static inline int gc() {
-    if (ipos == ilen) {
-        ilen = fread(ibuf, 1, 1 << 16, stdin);
-        ipos = 0;
-        if (ilen == 0) return -1;
-    }
-    return ibuf[ipos++];
-}
-static inline ll readInt() {
-    int c = gc();
-    while (c != -1 && (c < '0' || c > '9') && c != '-') c = gc();
-    int sgn = 1;
-    if (c == '-') { sgn = -1; c = gc(); }
-    ll x = 0;
-    while (c >= '0' && c <= '9') { x = x * 10 + (c - '0'); c = gc(); }
-    return x * sgn;
-}
-static char *obuf;
-static size_t opos = 0;
-static inline void flushOut() { fwrite(obuf, 1, opos, stdout); opos = 0; }
-static inline void wc(char c) {
-    if (opos == (1 << 16)) flushOut();
-    obuf[opos++] = c;
-}
-static inline void writeInt(ll x) {
-    if (x < 0) { wc('-'); x = -x; }
-    char tmp[24];
-    int n = 0;
-    do { tmp[n++] = char('0' + x % 10); x /= 10; } while (x);
-    while (n) wc(tmp[--n]);
+int sz;
+vector<int> tr;   // 4 ints per node: m00,m01,m10,m11  (min-plus 2x2)
+
+static inline void pull(int p){
+    int* c = &tr[(size_t)p*4];
+    const int* L = &tr[(size_t)(2*p)*4];
+    const int* R = &tr[(size_t)(2*p+1)*4];
+    int l0=L[0],l1=L[1],l2=L[2],l3=L[3],r0=R[0],r1=R[1],r2=R[2],r3=R[3];
+    int x0,y0;
+    x0=l0+r0; y0=l1+r2; c[0]=x0<y0?x0:y0;
+    x0=l0+r1; y0=l1+r3; c[1]=x0<y0?x0:y0;
+    x0=l2+r0; y0=l3+r2; c[2]=x0<y0?x0:y0;
+    x0=l2+r1; y0=l3+r3; c[3]=x0<y0?x0:y0;
 }
 
-/* ------------------------------------------------------------------ */
-/* min cost flow                                                       */
-/* ------------------------------------------------------------------ */
-/* radix heap: monotone integer priority queue, keys must be non-negative
-   and extracted in non-decreasing order (Dijkstra). */
-struct RadixHeap {
-    vector<pair<ll, int>> b[65];
-    ll last = 0;
-    int sz = 0;
-    void clear() {
-        for (int i = 0; i < 65; i++) b[i].clear();
-        last = 0; sz = 0;
-    }
-    static int bucket(ll key, ll last) {
-        if (key == last) return 0;
-        return 64 - __builtin_clzll((unsigned long long)(key ^ last));
-    }
-    void push(ll key, int val) {
-        b[bucket(key, last)].push_back({key, val});
-        sz++;
-    }
-    pair<ll, int> pop() {
-        if (b[0].empty()) {
-            int i = 1;
-            while (b[i].empty()) i++;
-            ll mn = b[i][0].first;
-            for (auto &p : b[i]) if (p.first < mn) mn = p.first;
-            last = mn;
-            for (auto &p : b[i]) b[bucket(p.first, last)].push_back(p);
-            b[i].clear();
+int main(){
+    int T; if(scanf("%d",&T)!=1) return 0;
+    while(T--){
+        int m;
+        if(scanf("%d %d",&n,&m)!=2) return 0;
+        a.assign(n,0);
+        for(int i=0;i<n;i++) if(scanf("%d",&a[i])!=1) return 0;
+        Amax = 0; for(int x:a) Amax = x>Amax?x:Amax;
+        baseCost = 0;
+        for(int i=1;i<n;i++) if(a[i-1]>a[i]) baseCost += a[i-1]-a[i];
+        if(m==1 || n==1){
+            printf("%lld\n", (ll)((Amax>a[0])?(Amax-a[0]):0) + baseCost);
+            continue;
         }
-        auto p = b[0].back();
-        b[0].pop_back();
-        sz--;
-        return p;
-    }
-};
+        vector<int> vals(a);
+        sort(vals.begin(), vals.end());
+        vals.erase(unique(vals.begin(), vals.end()), vals.end());
+        if((int)vals.size()<=2){ printf("0\n"); continue; }
 
-struct Arc { int to, rev; ll cap, cost; };
-struct MCF {
-    int N;
-    vector<vector<Arc>> g;
-    MCF(int n) : N(n), g(n) {}
-    void add(int u, int v, ll cap, ll cost) {
-        g[u].push_back({v, (int)g[v].size(), cap, cost});
-        g[v].push_back({u, (int)g[u].size() - 1, 0, -cost});
-    }
-};
+        ll best = (ll)((Amax>a[0])?(Amax-a[0]):0) + baseCost;   // D=0
 
-int main() {
-    ibuf = (char *)malloc(1 << 16);
-    obuf = (char *)malloc(1 << 16);
-
-    int Tc = (int)readInt();
-    while (Tc-- > 0) {
-        int n = (int)readInt(), m = (int)readInt();
-        ll K = readInt();
-        vector<vector<ll>> H(n, vector<ll>(m - 1)), V(n - 1, vector<ll>(m));
-        for (int r = 0; r < n; r++)
-            for (int j = 0; j < m - 1; j++) H[r][j] = readInt();
-        for (int r = 0; r + 1 < n; r++)
-            for (int j = 0; j < m; j++) V[r][j] = readInt();
-
-        const int N = n * m;
-        const int S = N, T = N + 1;
-
-        /* ---- shortest distances from column 1 (Dijkstra) ---- */
-        vector<ll> d(N, INF);
+        // ---------- family I : q = Amax (D = Amax - V) ----------
         {
-            RadixHeap pq;
-            auto relax = [&](int u, int v, ll w) {
-                if (d[v] > d[u] + w) { d[v] = d[u] + w; pq.push(d[v], v); }
-            };
-            for (int r = 0; r < n; r++) { d[r * m] = 0; pq.push(0, r * m); }
-            while (pq.sz) {
-                auto [du, u] = pq.pop();
-                if (du != d[u]) continue;
-                int r = u / m, c = u % m;
-                if (c + 1 < m) relax(u, u + 1, H[r][c]);
-                if (c > 0) relax(u, u - 1, H[r][c - 1]);
-                if (r + 1 < n) relax(u, u + m, V[r][c]);
-                if (r > 0) relax(u, u - m, V[r - 1][c]);
+            int Vlist[2100]; int cnt=0;
+            Vlist[cnt++]=0;
+            for(int v: vals) Vlist[cnt++]=v;
+            for(int k=0;k<cnt;k++){
+                int V = Vlist[k];
+                if((ll)V - a[0] >= best) continue;
+                int D = Amax - V;
+                int dp0 = (a[0]<=V)?0:INF;
+                int dp1 = D;
+                for(int i=1;i<n;i++){
+                    int ai=a[i], r=ai-a[i-1];
+                    int al = (D>r)?(D-r):0;
+                    int dr = (r<0)?-r:0;
+                    int be = (D<dr)?D:dr;
+                    int t = dp0+al; int n1 = dp1<t?dp1:t;
+                    int n0;
+                    if(ai<=V){ t=dp1-be; n0 = dp0<t?dp0:t; }
+                    else n0 = INF;
+                    dp0=n0; dp1=n1;
+                }
+                int phi = dp0<dp1?dp0:dp1;
+                ll tot = (ll)V - a[0] + baseCost + phi;
+                if(tot<best) best=tot;
             }
         }
-        ll D = INF;
-        for (int r = 0; r < n; r++) D = min(D, d[r * m + m - 1]);
-        const ll target = D + K;
 
-        /* ---- build flow network ---- */
-        MCF mcf(N + 2);
-        for (int r = 0; r < n; r++) mcf.add(S, r * m, (ll)1e9, 0);
-        for (int r = 0; r < n; r++) mcf.add(r * m + m - 1, T, (ll)1e9, -target);
+        // ---------- family II : D in breakpoints ----------
+        vector<int> cand;
+        cand.push_back(0);
+        for(int i=1;i<n;i++){ int d = a[i]-a[i-1]; cand.push_back(d<0?-d:d); }
+        cand.push_back(Amax - vals[0]);
+        sort(cand.begin(), cand.end());
+        cand.erase(unique(cand.begin(),cand.end()),cand.end());
 
-        const int EH = n * (m - 1), EV = (n - 1) * m;
-        vector<int> hA(EH), hB(EH), hIAB(EH), hIBA(EH);
-        vector<int> vA(EV), vB(EV), vIAB(EV), vIBA(EV);
-        auto addEdge = [&](int a, int b, ll w, int &iAB, int &iBA) {
-            iAB = (int)mcf.g[a].size();
-            mcf.add(a, b, 1, w);
-            iBA = (int)mcf.g[b].size();
-            mcf.add(b, a, 1, w);
-        };
-        for (int r = 0; r < n; r++)
-            for (int j = 0; j < m - 1; j++) {
-                int id = r * (m - 1) + j;
-                hA[id] = r * m + j; hB[id] = r * m + j + 1;
-                addEdge(hA[id], hB[id], H[r][j], hIAB[id], hIBA[id]);
+        // lower bounds via unconstrained optimum (V = Amax)
+        vector<pair<int,int>> tasks;   // (lowerbound, D)
+        tasks.reserve(cand.size());
+        for(int D : cand){
+            int Tv = Amax - D; if(Tv<0) Tv=0;
+            if((ll)Tv - a[0] >= best) continue;
+            // unconstrained DP (all positions may be 0)
+            int dp0=0, dp1=D;
+            for(int i=1;i<n;i++){
+                int r=a[i]-a[i-1];
+                int al = (D>r)?(D-r):0;
+                int dr = (r<0)?-r:0;
+                int be = (D<dr)?D:dr;
+                int t = dp0+al; int n1 = dp1<t?dp1:t;
+                t = dp1-be;     int n0 = dp0<t?dp0:t;
+                dp0=n0; dp1=n1;
             }
-        for (int r = 0; r + 1 < n; r++)
-            for (int j = 0; j < m; j++) {
-                int id = r * m + j;
-                vA[id] = r * m + j; vB[id] = (r + 1) * m + j;
-                addEdge(vA[id], vB[id], V[r][j], vIAB[id], vIBA[id]);
-            }
-
-        /* ---- live-arc masks ----
-           Every cap is either 0 or positive, and only the arcs on augmented paths
-           ever change it, so a 64-bit mask per vertex lets Dijkstra touch exactly
-           the arcs with positive residual capacity.  A grid vertex has at most four
-           incident grid edges (two entries each) plus one source/sink arc. */
-        vector<unsigned long long> live(N + 2, 0);
-        vector<char> masked(N + 2, 0);
-        for (int v = 0; v <= T; v++) {
-            if ((int)mcf.g[v].size() > 64) continue;   // S and T: plain scan
-            masked[v] = 1;
-            for (int i = 0; i < (int)mcf.g[v].size(); i++)
-                if (mcf.g[v][i].cap > 0) live[v] |= 1ULL << i;
+            int phiM = dp0<dp1?dp0:dp1;
+            int lb = (int)((ll)Tv - a[0] + baseCost + phiM);   // valid lower bound of any (V,D) cost
+            if((ll)lb < best) tasks.push_back(make_pair(lb, D));
         }
+        sort(tasks.begin(), tasks.end());
 
-        /* ---- successive shortest paths (Johnson potentials) ---- */
-        vector<ll> pot(N + 2, INF);
-        for (int v = 0; v < N; v++) pot[v] = d[v];
-        pot[S] = 0;
-        pot[T] = D - target;                 // shortest distance to T initially
+        vector<int> ord(n);
+        for(int i=0;i<n;i++) ord[i]=i;
+        sort(ord.begin(), ord.end(), [](int x,int y){ return a[x]<a[y]; });
 
-        ll totalCost = 0;
-        vector<ll> dist(N + 2);
-        vector<int> cur(N + 2);
-        vector<char> onStk(N + 2);
-        // blocking flow on the zero-reduced-cost subgraph (primal-dual phases)
-        function<ll(int)> dfs = [&](int u) -> ll {
-            auto &gu = mcf.g[u];
-            while (cur[u] < (int)gu.size()) {
-                int i = cur[u];
-                Arc &e = gu[i];
-                if (e.cap <= 0 || e.cost + pot[u] - pot[e.to] != 0) { cur[u]++; continue; }
-                if (e.to == T) {
-                    e.cap -= 1;
-                    if (e.cap <= 0 && masked[u]) live[u] &= ~(1ULL << i);
-                    mcf.g[T][e.rev].cap += 1;
-                    if (masked[T]) live[T] |= 1ULL << e.rev;
-                    return 1;
-                }
-                if (onStk[e.to]) { cur[u]++; continue; }
-                onStk[e.to] = 1;
-                ll got = dfs(e.to);
-                onStk[e.to] = 0;
-                if (got > 0) {
-                    e.cap -= got;
-                    if (e.cap <= 0 && masked[u]) live[u] &= ~(1ULL << i);
-                    mcf.g[e.to][e.rev].cap += got;
-                    if (masked[e.to]) live[e.to] |= 1ULL << e.rev;
-                    return got;
-                }
-                cur[u]++;
+        int leaves = n-1;
+        sz = 1; while(sz<leaves) sz <<= 1;
+        tr.assign((size_t)2*sz*4, 0);
+        for(int j=0;j<sz;j++){ int* p=&tr[(size_t)(sz+j)*4]; p[0]=0;p[1]=INF;p[2]=INF;p[3]=0; }
+        for(int p=sz-1;p>=1;p--) pull(p);
+
+        vector<int> alpha_(n,0), beta_(n,0);
+
+        for(size_t ti=0; ti<tasks.size(); ++ti){
+            if((ll)tasks[ti].first >= best) break;   // remaining bounds are >= this one
+            int D = tasks[ti].second;
+            int T = Amax - D; if(T<0) T=0;
+            if((ll)T - a[0] >= best) continue;
+            for(int i=1;i<n;i++){
+                int r=a[i]-a[i-1];
+                alpha_[i] = (D>r)?(D-r):0;
+                int dr = (r<0)?-r:0;
+                beta_[i]  = (D<dr)?D:dr;
             }
-            return 0;
-        };
-        RadixHeap pq;
-        vector<char> settled(N + 2, 0);
-        vector<int> ord;                     // vertices settled in this phase
-        while (true) {
-            fill(dist.begin(), dist.end(), INF);
-            ord.clear();
-            pq.clear();
-            dist[S] = 0; pq.push(0, S);
-            while (pq.sz) {
-                auto [du, u] = pq.pop();
-                if (settled[u] || du != dist[u]) continue;
-                settled[u] = 1;
-                ord.push_back(u);
-                if (u == T) break;           // only what is closer than T matters
-                const ll pu = pot[u] + du;
-                auto &gu = mcf.g[u];
-                if (masked[u]) {
-                    unsigned long long msk = live[u];
-                    while (msk) {
-                        int i = __builtin_ctzll(msk);
-                        msk &= msk - 1;
-                        const Arc &e = gu[i];
-                        ll nd = pu + e.cost - pot[e.to];
-                        if (dist[e.to] > nd) {
-                            dist[e.to] = nd;
-                            pq.push(nd, e.to);
-                        }
+            for(int i=1;i<n;i++){
+                int* p=&tr[(size_t)(sz+i-1)*4];
+                p[1]=alpha_[i];
+                if(a[i]>T){ p[0]=INF; p[2]=INF; p[3]=0; }
+                else { p[0]=0; p[2]=-beta_[i]; p[3]=0; }
+            }
+            for(int p=sz-1;p>=1;p--) pull(p);
+            int restricted0 = (a[0] > T);
+
+            int nextord = 0;
+            while(nextord<n && a[ord[nextord]]<=T) nextord++;
+            int V = T;
+            while(true){
+                if((ll)V - a[0] >= best) break;
+                const int* P = &tr[4];
+                int init1 = D;
+                int m0 = init1+P[2];
+                { int t=init1+P[3]; if(t<m0) m0=t; }
+                if(!restricted0){
+                    if(P[0]<m0) m0=P[0];
+                    { int t=P[1]; if(t<m0) m0=t; }
+                }
+                ll tot = (ll)V - a[0] + baseCost + m0;
+                if(tot<best) best=tot;
+                if(nextord>=n) break;
+                int nv = a[ord[nextord]];
+                if((ll)nv - a[0] >= best) break;
+                while(nextord<n && a[ord[nextord]]==nv){
+                    int pos = ord[nextord];
+                    if(pos==0) restricted0 = 0;
+                    else {
+                        int idx = sz + pos - 1;
+                        int* p=&tr[(size_t)idx*4];
+                        p[0]=0; p[2]=-beta_[pos];
+                        idx >>= 1;
+                        while(idx>=1){ pull(idx); idx >>= 1; }
                     }
-                } else {
-                    for (int i = 0; i < (int)gu.size(); i++) {
-                        const Arc &e = gu[i];
-                        if (e.cap <= 0) continue;
-                        ll nd = pu + e.cost - pot[e.to];
-                        if (dist[e.to] > nd) {
-                            dist[e.to] = nd;
-                            pq.push(nd, e.to);
-                        }
-                    }
+                    nextord++;
                 }
-            }
-            if (!settled[T]) break;          // T not reachable
-            ll dT = dist[T];
-            ll actual = dT + pot[T] - pot[S];
-            if (actual >= 0) break;          // no profitable augmenting path left
-            // Johnson update.  Vertices that were not settled would all receive the
-            // same shift dT, which cancels in every reduced cost, so it is skipped.
-            for (int v : ord) { pot[v] += dist[v] - dT; settled[v] = 0; }
-            ll unitCost = pot[T] - pot[S];
-            // push a blocking flow through zero reduced cost arcs
-            fill(cur.begin(), cur.end(), 0);
-            fill(onStk.begin(), onStk.end(), 0);
-            onStk[S] = 1;
-            ll pushed = 0;
-            while (ll got = dfs(S)) pushed += got;
-            onStk[S] = 0;
-            totalCost += unitCost * pushed;
-        }
-        ll answer = -totalCost;
-
-        /* ---- which cells are endpoints of the packing? ---- */
-        vector<char> srcUsed(n, 0), snkUsed(n, 0);
-        for (int r = 0; r < n; r++) {
-            // arcs S->s were added first, in row order
-            if (mcf.g[S][r].cap < (ll)1e9) srcUsed[r] = 1;
-            int t = r * m + m - 1;
-            for (const Arc &e : mcf.g[t])
-                if (e.to == T && e.cap < (ll)1e9) { snkUsed[r] = 1; break; }
-        }
-
-        /* ---- difference constraint system on the residual graph ---- */
-        const int R = N;                     // virtual root, p(R) = 0
-        vector<vector<pair<int, ll>>> cg(N + 1);
-        auto addArc = [&](int u, int v, ll c) { cg[u].push_back({v, c}); };
-
-        for (int r = 0; r < n; r++)
-            for (int j = 0; j < m - 1; j++) {
-                int id = r * (m - 1) + j, a = hA[id], b = hB[id];
-                ll w = H[r][j];
-                int f = (mcf.g[a][hIAB[id]].cap == 0) ? 1
-                      : (mcf.g[b][hIBA[id]].cap == 0) ? 2 : 0;
-                if (f == 1) addArc(b, a, -w);          // used a->b : p(a) <= p(b) - w
-                else if (f == 2) addArc(a, b, -w);     // used b->a
-                else { addArc(a, b, w); addArc(b, a, w); }
-            }
-        for (int r = 0; r + 1 < n; r++)
-            for (int j = 0; j < m; j++) {
-                int id = r * m + j, a = vA[id], b = vB[id];
-                ll w = V[r][j];
-                int f = (mcf.g[a][vIAB[id]].cap == 0) ? 1
-                      : (mcf.g[b][vIBA[id]].cap == 0) ? 2 : 0;
-                if (f == 1) addArc(b, a, -w);
-                else if (f == 2) addArc(a, b, -w);
-                else { addArc(a, b, w); addArc(b, a, w); }
-            }
-        for (int r = 0; r < n; r++) {
-            int s = r * m, t = r * m + m - 1;
-            if (srcUsed[r]) { addArc(R, s, 0); addArc(s, R, 0); }
-            else addArc(R, s, 0);                          // p(s) <= 0
-            if (snkUsed[r]) { addArc(R, t, target); addArc(t, R, -target); }
-            else addArc(t, R, -target);                    // p(t) >= target
-        }
-
-        /* ---- shortest paths from R (SPFA) ---- */
-        vector<ll> p(N + 1, INF);
-        vector<char> inq(N + 1, 0);
-        {
-            deque<int> q;
-            p[R] = 0; q.push_back(R); inq[R] = 1;
-            while (!q.empty()) {
-                int u = q.front(); q.pop_front(); inq[u] = 0;
-                for (auto [v, c] : cg[u]) {
-                    if (p[u] + c < p[v]) {
-                        p[v] = p[u] + c;
-                        if (!inq[v]) {
-                            inq[v] = 1;
-                            // SLF heuristic
-                            if (!q.empty() && p[v] < p[q.front()]) q.push_front(v);
-                            else q.push_back(v);
-                        }
-                    }
-                }
+                V = nv;
             }
         }
-
-        /* ---- produce new weights ---- */
-        for (int r = 0; r < n; r++)
-            for (int j = 0; j < m - 1; j++) {
-                int id = r * (m - 1) + j;
-                ll diff = p[hA[id]] - p[hB[id]];
-                if (diff < 0) diff = -diff;
-                if (diff > H[r][j]) H[r][j] = diff;
-            }
-        for (int r = 0; r + 1 < n; r++)
-            for (int j = 0; j < m; j++) {
-                int id = r * m + j;
-                ll diff = p[vA[id]] - p[vB[id]];
-                if (diff < 0) diff = -diff;
-                if (diff > V[r][j]) V[r][j] = diff;
-            }
-
-        /* ---- output ---- */
-        writeInt(answer); wc('\n');
-        for (int r = 0; r < n; r++) {
-            for (int j = 0; j < m - 1; j++) { writeInt(H[r][j]); wc(j + 1 == m - 1 ? '\n' : ' '); }
-        }
-        for (int r = 0; r + 1 < n; r++) {
-            for (int j = 0; j < m; j++) { writeInt(V[r][j]); wc(j + 1 == m ? '\n' : ' '); }
-        }
+        printf("%lld\n", best);
     }
-    flushOut();
     return 0;
 }

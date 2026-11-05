@@ -1,73 +1,54 @@
-# 56. Bitaro the Brave 3
-
 ## Problem Description
 
-A battle lasts until time $T$. Choose an integer difficulty $\ell$ between $1$ and $L$. There are $N$ monsters. Monster $i$ appears at time $S_i$, has strength $P_i$, and starts with $\ell H_i$ hit points.
+A deck contains $2n$ cards. Its ranks are $1,\ldots,n$, each occurring exactly twice. Process the cards in their given order, placing each card on top of one of at most **260 stacks**.
 
-An attack occupies one second and removes one hit point from a monster that has already appeared. A monster with zero hit points is defeated and cannot be attacked again. You may perform attacks any number of times before the battle ends.
+After all cards have been placed, the stacks must allow complete removal of every card using this operation: choose two different nonempty stacks whose top cards have equal rank, and remove both top cards simultaneously.
 
-Let $h_i$ be monster $i$'s remaining hit points immediately after time $T$. The final penalty is
-
-$$\sum_{i=1}^{N} h_iP_i.$$
-
-For each of $Q$ thresholds $M_j$, find the greatest difficulty for which some attack schedule gives a penalty at most $M_j$. Report zero if even difficulty $1$ is impossible.
+Output a stack assignment that makes complete removal possible. You need not output the removal sequence.
 
 ## Input Format
 
 Read from standard input.
 
-- The first line contains $N$, $L$, and $T$.
-- Each of the next $N$ lines contains $S_i$, $H_i$, and $P_i$.
-- The next line contains $Q$.
-- Each of the next $Q$ lines contains one threshold $M_j$.
+The first line contains $n$. The second line contains the $2n$ ranks $a_1,\ldots,a_{2n}$, in processing order.
 
 ## Output Format
 
 Write to standard output.
 
-Print $Q$ lines. Line $j$ contains the maximum feasible difficulty in $[1,L]$ for threshold $M_j$, or `0` if there is none.
+Print $2n$ integers $c_1,\ldots,c_{2n}$. Card $i$ is pushed onto stack $c_i$, where $1\le c_i\le260$.
+
+Any valid assignment is accepted. Unused stacks are allowed.
 
 ## Examples
 
 Input:
 
 ```text
-2 2 10
-0 9 2
-8 5 1
-1
-20
+3
+1 2 3 1 3 2
 ```
 
 Output:
 
 ```text
-1
+1 1 1 2 2 3
 ```
 
 ## Explanation / Notes
 
-At difficulty $1$, attack monster 1 eight times during $[0, 8]$, monster 2 once during $[8, 9]$, and monster 1 once during $[9, 10]$. The remaining hit points are 0 and 4, giving a penalty of 4, which meets the threshold 20.
+The shown sample assignment produces stacks $[1,2,3]$, $[1,3]$, and $[2]$, listed from bottom to top. The other 257 stacks are empty. Remove rank 3 from stacks 1 and 2, rank 2 from stacks 1 and 3, and finally rank 1 from stacks 1 and 2.
 
-At difficulty $2$, the minimum penalty is 26: attacking monster 1 throughout the ten seconds leaves 8 and 10 hit points, giving $8\cdot 2+10\cdot 1=26$. Difficulty 2 therefore fails the threshold, so the answer is 1.
+The deck is generated randomly as specified below. You do not need to minimize the number of stacks; using at most 260 is sufficient.
 
 ## Constraints
 
-All input values are integers. There is one battle description per input.
-
-| Parameter or guarantee | Bound |
-| --- | --- |
-| Number of monsters | $1\le N\le6000$ |
-| Maximum difficulty | $1\le L\le10^7$ |
-| Battle duration | $1\le T\le10^{18}$ |
-| Appearance times | $0\le S_i<T$ |
-| Base hit points | $H_i\ge1$ |
-| Strengths | $P_i\ge1$ |
-| Weighted total at difficulty 1 | $\sum_{i=1}^{N}H_iP_i\le10^{11}$ |
-| Number of queries | $1\le Q\le10^6$ |
-| Thresholds | $0\le M_j\le10^{18}$ |
-| Threshold ordering | $M_1<M_2<\cdots<M_Q$ |
-
-$H_i$ and $P_i$ are positive and satisfy the weighted-total bound above. Appearance times need not be sorted.
-
-Time limit: **2 seconds**. Memory limit: **1024 MB**.
+- $1\le n\le5\times10^5$.
+- There are exactly $2n$ input cards.
+- $1\le a_i\le n$, with integer ranks.
+- Each rank in $\{1,\ldots,n\}$ occurs exactly twice.
+- Each input deck is selected **uniformly at random** from all length-$2n$ sequences satisfying the multiplicity condition.
+- The test set consists of exactly 50 instances, including the sample. Each run receives one instance.
+- Every output stack index must satisfy $1\le c_i\le260$.
+- A removal must use two **different** stacks.
+- Time limit: **3 seconds**. Memory limit: **512 MB**.

@@ -1,179 +1,437 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-static const long long INF64 = (long long)4e18;
+static constexpr int MOD = 998244353;
+static constexpr int PRIMITIVE_ROOT = 3;
 
-struct LiChaoRange {
-    int n, mode;
-    vector<int> line;
-    vector<int> *x, *p;
-
-    LiChaoRange() {}
-    LiChaoRange(int _n, int _mode, vector<int>* _x, vector<int>* _p)
-        : n(_n), mode(_mode), x(_x), p(_p) {
-        line.assign(4 * n + 10, -1);
+int mod_pow(long long a, long long e) {
+    long long r = 1;
+    while (e) {
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
+        e >>= 1;
     }
+    return (int)r;
+}
 
-    void reset() {
-        fill(line.begin(), line.end(), -1);
-    }
+void ntt(vector<int>& a, bool invert) {
+    int n = (int)a.size();
 
-    double evalD(int id, int pos) {
-        int xi = (*x)[id], xq = (*x)[pos], pi = (*p)[id];
-        if (mode == 0) {
-            double d = (double)xi - xq;
-            if (d < 0 && d > -1e-9) d = 0;
-            return 2.0 * xi + 2.0 * pi + 2.0 * sqrt(2.0 * pi * d);
-        } else {
-            double d = (double)xq - xi;
-            if (d < 0 && d > -1e-9) d = 0;
-            return -2.0 * xi + 2.0 * pi + 2.0 * sqrt(2.0 * pi * d);
+    for (int i = 1, j = 0; i < n; i++) {
+        int bit = n >> 1;
+        while (j & bit) {
+            j ^= bit;
+            bit >>= 1;
         }
+        j ^= bit;
+        if (i < j) swap(a[i], a[j]);
     }
 
-    long double evalL(int id, int pos) {
-        int xi = (*x)[id], xq = (*x)[pos], pi = (*p)[id];
-        if (mode == 0) {
-            long double d = (long double)xi - xq;
-            if (d < 0) d = 0;
-            return 2.0L * xi + 2.0L * pi + 2.0L * sqrtl(2.0L * pi * d);
-        } else {
-            long double d = (long double)xq - xi;
-            if (d < 0) d = 0;
-            return -2.0L * xi + 2.0L * pi + 2.0L * sqrtl(2.0L * pi * d);
-        }
-    }
+    for (int len = 2; len <= n; len <<= 1) {
+        int wlen = mod_pow(PRIMITIVE_ROOT, (MOD - 1) / len);
+        if (invert) wlen = mod_pow(wlen, MOD - 2);
 
-    void addLine(int node, int l, int r, int id) {
-        int cur = line[node];
-        if (cur == -1) {
-            line[node] = id;
-            return;
-        }
+        for (int i = 0; i < n; i += len) {
+            long long w = 1;
+            int half = len >> 1;
+            for (int j = 0; j < half; j++) {
+                int u = a[i + j];
+                int v = (int)(w * a[i + j + half] % MOD);
 
-        int mid = (l + r) >> 1;
-        bool betterMid = evalD(id, mid) < evalD(cur, mid);
-        if (betterMid) {
-            swap(line[node], id);
-        }
+                int x = u + v;
+                if (x >= MOD) x -= MOD;
 
-        if (l == r) return;
+                int y = u - v;
+                if (y < 0) y += MOD;
 
-        if (evalD(id, l) < evalD(line[node], l)) {
-            addLine(node << 1, l, mid, id);
-        } else if (evalD(id, r) < evalD(line[node], r)) {
-            addLine(node << 1 | 1, mid + 1, r, id);
-        }
-    }
+                a[i + j] = x;
+                a[i + j + half] = y;
 
-    void insertRange(int node, int l, int r, int ql, int qr, int id) {
-        if (ql <= l && r <= qr) {
-            addLine(node, l, r, id);
-            return;
-        }
-        int mid = (l + r) >> 1;
-        if (ql <= mid) insertRange(node << 1, l, mid, ql, qr, id);
-        if (qr > mid) insertRange(node << 1 | 1, mid + 1, r, ql, qr, id);
-    }
-
-    void insert(int ql, int qr, int id) {
-        if (ql > qr) return;
-        insertRange(1, 1, n, ql, qr, id);
-    }
-
-    long double query(int pos) {
-        long double ans = 1e100L;
-        int node = 1, l = 1, r = n;
-
-        while (true) {
-            if (line[node] != -1) {
-                long double v = evalL(line[node], pos);
-                if (v < ans) ans = v;
+                w = w * wlen % MOD;
             }
-            if (l == r) break;
+        }
+    }
 
-            int mid = (l + r) >> 1;
-            if (pos <= mid) {
-                node <<= 1;
-                r = mid;
+    if (invert) {
+        int inv_n = mod_pow(n, MOD - 2);
+        for (int& x : a) x = (long long)x * inv_n % MOD;
+    }
+}
+
+vector<int> convolution(const vector<int>& a, const vector<int>& b, int limit) {
+    if (a.empty() || b.empty() || limit <= 0) return {};
+
+    int out_len = min((int)a.size() + (int)b.size() - 1, limit);
+    if (out_len <= 0) return {};
+
+    if (a.size() == 1) {
+        vector<int> res(out_len);
+        long long c = a[0];
+        for (int i = 0; i < out_len; i++) res[i] = c * b[i] % MOD;
+        return res;
+    }
+
+    if (b.size() == 1) {
+        vector<int> res(out_len);
+        long long c = b[0];
+        for (int i = 0; i < out_len; i++) res[i] = c * a[i] % MOD;
+        return res;
+    }
+
+    int full = (int)a.size() + (int)b.size() - 1;
+
+    if (min(a.size(), b.size()) <= 32 || full <= 256) {
+        vector<int> res(out_len, 0);
+
+        for (int i = 0; i < (int)a.size() && i < out_len; i++) {
+            if (a[i] == 0) continue;
+            long long ai = a[i];
+            int max_j = min((int)b.size(), out_len - i);
+
+            for (int j = 0; j < max_j; j++) {
+                res[i + j] = (res[i + j] + ai * b[j]) % MOD;
+            }
+        }
+
+        return res;
+    }
+
+    int n = 1;
+    while (n < full) n <<= 1;
+
+    vector<int> fa(a.begin(), a.end());
+    vector<int> fb(b.begin(), b.end());
+    fa.resize(n);
+    fb.resize(n);
+
+    ntt(fa, false);
+    ntt(fb, false);
+
+    for (int i = 0; i < n; i++) {
+        fa[i] = (long long)fa[i] * fb[i] % MOD;
+    }
+
+    ntt(fa, true);
+    fa.resize(out_len);
+
+    return fa;
+}
+
+struct Solver {
+    int n;
+    vector<unsigned long long> a, b;
+    vector<int> fact, invfact;
+
+    Solver(int n_) : n(n_) {
+        a.resize(n);
+        b.resize(n);
+
+        fact.assign(n + 1, 1);
+        invfact.assign(n + 1, 1);
+
+        for (int i = 1; i <= n; i++) {
+            fact[i] = (long long)fact[i - 1] * i % MOD;
+        }
+
+        invfact[n] = mod_pow(fact[n], MOD - 2);
+
+        for (int i = n; i >= 1; i--) {
+            invfact[i - 1] = (long long)invfact[i] * i % MOD;
+        }
+    }
+
+    vector<int> multiply_poly(const vector<int>& x, const vector<int>& y, int limit) {
+        return convolution(x, y, limit);
+    }
+
+    vector<int> complete_poly(int L, int R) {
+        int m = min(L, R);
+        vector<int> res(m + 1);
+
+        long long base = (long long)fact[L] * fact[R] % MOD;
+
+        for (int i = 0; i <= m; i++) {
+            long long v = base;
+            v = v * invfact[i] % MOD;
+            v = v * invfact[L - i] % MOD;
+            v = v * invfact[R - i] % MOD;
+            res[i] = (int)v;
+        }
+
+        return res;
+    }
+
+    // Given the matching polynomial h of forbidden edges,
+    // return the matching polynomial of complete bipartite graph minus forbidden edges.
+    vector<int> complement_from_forbidden(const vector<int>& h, int L, int R) {
+        int m = min(L, R);
+
+        int d = min((int)h.size() - 1, m);
+        if (d < 0) d = 0;
+
+        vector<int> A(d + 1);
+        for (int q = 0; q <= d; q++) {
+            long long v = h[q];
+            v = v * fact[L - q] % MOD;
+            v = v * fact[R - q] % MOD;
+            if (q & 1) v = (MOD - v) % MOD;
+            A[q] = (int)v;
+        }
+
+        vector<int> B(m + 1);
+        for (int i = 0; i <= m; i++) B[i] = invfact[i];
+
+        vector<int> conv = convolution(A, B, m + 1);
+
+        vector<int> res(m + 1);
+
+        for (int x = 0; x <= m; x++) {
+            long long v = (x < (int)conv.size() ? conv[x] : 0);
+            v = v * invfact[L - x] % MOD;
+            v = v * invfact[R - x] % MOD;
+            res[x] = (int)v;
+        }
+
+        return res;
+    }
+
+    // H on bits [0..p], where K has highest bit p equal to 1.
+    // It is assumed that all higher bits are already equal / ignored.
+    vector<int> solve_Hcluster(const vector<int>& A, const vector<int>& B, int p, unsigned long long K) {
+        if (A.empty() || B.empty()) return {1};
+
+        vector<int> A0, A1, B0, B1;
+        A0.reserve(A.size());
+        A1.reserve(A.size());
+        B0.reserve(B.size());
+        B1.reserve(B.size());
+
+        for (int idx : A) {
+            if ((a[idx] >> p) & 1ULL) A1.push_back(idx);
+            else A0.push_back(idx);
+        }
+
+        for (int idx : B) {
+            if ((b[idx] >> p) & 1ULL) B1.push_back(idx);
+            else B0.push_back(idx);
+        }
+
+        unsigned long long Klow = K ^ (1ULL << p);
+
+        vector<int> g0 = solve_G(A0, B1, p - 1, Klow);
+        vector<int> g1 = solve_G(A1, B0, p - 1, Klow);
+
+        int m = min((int)A.size(), (int)B.size());
+        vector<int> forbidden_g = multiply_poly(g0, g1, m + 1);
+
+        return complement_from_forbidden(forbidden_g, (int)A.size(), (int)B.size());
+    }
+
+    // Matching polynomial of edges a xor b >= K on bits [0..P].
+    vector<int> solve_G(const vector<int>& A, const vector<int>& B, int P, unsigned long long K) {
+        if (A.empty() || B.empty()) return {1};
+
+        if (K == 0) {
+            return complete_poly((int)A.size(), (int)B.size());
+        }
+
+        int p = 63 - __builtin_clzll(K);
+
+        if (p == P) {
+            int bitA = -1;
+            bool uniA = true;
+
+            for (int idx : A) {
+                int v = (int)((a[idx] >> p) & 1ULL);
+                if (bitA == -1) bitA = v;
+                else if (bitA != v) {
+                    uniA = false;
+                    break;
+                }
+            }
+
+            int bitB = -1;
+            bool uniB = true;
+
+            for (int idx : B) {
+                int v = (int)((b[idx] >> p) & 1ULL);
+                if (bitB == -1) bitB = v;
+                else if (bitB != v) {
+                    uniB = false;
+                    break;
+                }
+            }
+
+            unsigned long long Klow = K ^ (1ULL << p);
+
+            if (uniA && uniB) {
+                if (bitA != bitB) {
+                    return solve_G(A, B, p - 1, Klow);
+                } else {
+                    return {1};
+                }
+            }
+
+            if (uniA) {
+                int need = bitA ^ 1;
+
+                vector<int> Bsub;
+                Bsub.reserve(B.size());
+
+                for (int idx : B) {
+                    if (((b[idx] >> p) & 1ULL) == need) {
+                        Bsub.push_back(idx);
+                    }
+                }
+
+                if (Bsub.empty()) return {1};
+
+                return solve_G(A, Bsub, p - 1, Klow);
+            }
+
+            if (uniB) {
+                int need = bitB ^ 1;
+
+                vector<int> Asub;
+                Asub.reserve(A.size());
+
+                for (int idx : A) {
+                    if (((a[idx] >> p) & 1ULL) == need) {
+                        Asub.push_back(idx);
+                    }
+                }
+
+                if (Asub.empty()) return {1};
+
+                return solve_G(Asub, B, p - 1, Klow);
+            }
+
+            vector<int> A0, A1, B0, B1;
+            A0.reserve(A.size());
+            A1.reserve(A.size());
+            B0.reserve(B.size());
+            B1.reserve(B.size());
+
+            for (int idx : A) {
+                if ((a[idx] >> p) & 1ULL) A1.push_back(idx);
+                else A0.push_back(idx);
+            }
+
+            for (int idx : B) {
+                if ((b[idx] >> p) & 1ULL) B1.push_back(idx);
+                else B0.push_back(idx);
+            }
+
+            vector<int> g0 = solve_G(A0, B1, p - 1, Klow);
+            vector<int> g1 = solve_G(A1, B0, p - 1, Klow);
+
+            int m = min((int)A.size(), (int)B.size());
+            return multiply_poly(g0, g1, m + 1);
+        }
+
+        // P > p. The bits P .. p+1 of K are zero.
+        int diff = P - p;
+        unsigned long long mask = (1ULL << diff) - 1;
+
+        auto get_key = [&](unsigned long long v) -> unsigned long long {
+            return (v >> (p + 1)) & mask;
+        };
+
+        bool uni_key_A = true;
+        unsigned long long key_A = 0;
+
+        if (!A.empty()) {
+            key_A = get_key(a[A[0]]);
+            for (int idx : A) {
+                if (get_key(a[idx]) != key_A) {
+                    uni_key_A = false;
+                    break;
+                }
+            }
+        }
+
+        bool uni_key_B = true;
+        unsigned long long key_B = 0;
+
+        if (!B.empty()) {
+            key_B = get_key(b[B[0]]);
+            for (int idx : B) {
+                if (get_key(b[idx]) != key_B) {
+                    uni_key_B = false;
+                    break;
+                }
+            }
+        }
+
+        if (uni_key_A && uni_key_B) {
+            if (key_A == key_B) {
+                return solve_G(A, B, p, K);
             } else {
-                node = node << 1 | 1;
-                l = mid + 1;
+                return complete_poly((int)A.size(), (int)B.size());
             }
         }
-        return ans;
-    }
-};
 
-struct BlockLiChao {
-    int Xmax;
-    int beta;
-    vector<int> line;
-    vector<int> *x;
-    vector<long long> *dp;
+        unordered_map<unsigned long long, int> mp;
+        mp.reserve((size_t)A.size() * 2 + 10);
 
-    BlockLiChao() {}
-    BlockLiChao(int _Xmax, int _beta, vector<int>* _x, vector<long long>* _dp)
-        : Xmax(_Xmax), beta(_beta), x(_x), dp(_dp) {
-        line.assign(4 * (Xmax + 5), -1);
-    }
+        vector<vector<int>> Ag, Bg;
 
-    void reset() {
-        fill(line.begin(), line.end(), -1);
-    }
+        for (int idx : A) {
+            unsigned long long key = get_key(a[idx]);
 
-    long long eval(int id, int xq) {
-        long long diff = (long long)xq - (*x)[id];
-        __int128 val = (__int128)(*dp)[id] + (__int128)beta * diff * diff;
-        if (val > INF64) return INF64;
-        return (long long)val;
-    }
-
-    void addLine(int node, int l, int r, int id) {
-        int cur = line[node];
-        if (cur == -1) {
-            line[node] = id;
-            return;
-        }
-
-        int mid = (l + r) >> 1;
-        if (eval(id, mid) < eval(cur, mid)) {
-            swap(line[node], id);
-        }
-
-        if (l == r) return;
-
-        if (eval(id, l) < eval(line[node], l)) {
-            addLine(node << 1, l, mid, id);
-        } else if (eval(id, r) < eval(line[node], r)) {
-            addLine(node << 1 | 1, mid + 1, r, id);
-        }
-    }
-
-    void addLine(int id) {
-        addLine(1, 0, Xmax, id);
-    }
-
-    long long query(int xq) {
-        long long ans = INF64;
-        int node = 1, l = 0, r = Xmax;
-
-        while (true) {
-            if (line[node] != -1) {
-                ans = min(ans, eval(line[node], xq));
-            }
-            if (l == r) break;
-
-            int mid = (l + r) >> 1;
-            if (xq <= mid) {
-                node <<= 1;
-                r = mid;
+            auto it = mp.find(key);
+            if (it == mp.end()) {
+                int id = (int)Ag.size();
+                mp[key] = id;
+                Ag.push_back({});
+                Bg.push_back({});
+                Ag[id].push_back(idx);
             } else {
-                node = node << 1 | 1;
-                l = mid + 1;
+                Ag[it->second].push_back(idx);
             }
         }
-        return ans;
+
+        for (int idx : B) {
+            unsigned long long key = get_key(b[idx]);
+
+            auto it = mp.find(key);
+            if (it != mp.end()) {
+                Bg[it->second].push_back(idx);
+            }
+        }
+
+        int common_count = 0;
+        int only_id = -1;
+
+        for (int id = 0; id < (int)Ag.size(); id++) {
+            if (!Ag[id].empty() && !Bg[id].empty()) {
+                common_count++;
+                only_id = id;
+            }
+        }
+
+        if (common_count == 0) {
+            return complete_poly((int)A.size(), (int)B.size());
+        }
+
+        if (common_count == 1 &&
+            (int)Ag[only_id].size() == (int)A.size() &&
+            (int)Bg[only_id].size() == (int)B.size()) {
+            return solve_G(A, B, p, K);
+        }
+
+        int m = min((int)A.size(), (int)B.size());
+
+        vector<int> h_total = {1};
+
+        for (int id = 0; id < (int)Ag.size(); id++) {
+            if (Ag[id].empty() || Bg[id].empty()) continue;
+
+            vector<int> hc = solve_Hcluster(Ag[id], Bg[id], p, K);
+            h_total = multiply_poly(h_total, hc, m + 1);
+        }
+
+        return complement_from_forbidden(h_total, (int)A.size(), (int)B.size());
     }
 };
 
@@ -181,141 +439,34 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n, h, alpha, beta;
-    cin >> n >> h >> alpha >> beta;
+    int n;
+    unsigned long long k;
 
-    vector<int> x(n + 5), y(n + 5), p(n + 5);
-    for (int i = 1; i <= n; ++i) {
-        cin >> x[i] >> y[i];
-        p[i] = h - y[i];
+    cin >> n >> k;
+
+    Solver solver(n);
+
+    for (int i = 0; i < n; i++) {
+        cin >> solver.a[i];
     }
 
-    vector<int> R(n + 5), L(n + 5);
-
-    // Compute R[i]: the largest index j such that x_j <= B_i.
-    {
-        LiChaoRange lc(n, 0, &x, &p);
-
-        for (int i = n; i >= 1; --i) {
-            // Function of point i is valid for query indices 1..i.
-            lc.insert(1, i, i);
-
-            long double minv = lc.query(i);
-            long double Bval = -(long double)x[i] + minv;
-
-            long long bmax = (long long)floorl(Bval + 1e-10L);
-            if (bmax < x[i]) bmax = x[i];
-            if (bmax > 1000000000LL) bmax = 1000000000LL;
-
-            int bm = (int)bmax;
-            R[i] = int(upper_bound(x.begin() + 1, x.begin() + n + 1, bm) - x.begin()) - 1;
-            if (R[i] < i) R[i] = i;
-        }
+    for (int i = 0; i < n; i++) {
+        cin >> solver.b[i];
     }
 
-    // Compute L[j]: the smallest index i such that x_i >= P_j.
-    {
-        LiChaoRange lc(n, 1, &x, &p);
+    vector<int> A(n), B(n);
+    iota(A.begin(), A.end(), 0);
+    iota(B.begin(), B.end(), 0);
 
-        for (int j = 1; j <= n; ++j) {
-            // Function of point j is valid for query indices j..n.
-            lc.insert(j, n, j);
+    vector<int> answer = solver.solve_G(A, B, 59, k);
 
-            long double minv = lc.query(j);
-            long double Pval = -(long double)x[j] - minv;
+    for (int x = 1; x <= n; x++) {
+        if (x < (int)answer.size()) cout << answer[x];
+        else cout << 0;
 
-            long long pceil = (long long)ceill(Pval - 1e-10L);
-            if (pceil < -1000000000LL) pceil = -1000000000LL;
-            if (pceil > 1000000000LL) pceil = 1000000000LL;
-
-            int pc = (int)pceil;
-            L[j] = int(lower_bound(x.begin() + 1, x.begin() + n + 1, pc) - x.begin());
-            if (L[j] < 1) L[j] = 1;
-            if (L[j] > n + 1) L[j] = n + 1;
-        }
+        if (x < n) cout << ' ';
     }
-
-    const int S = 700;
-    int Xmax = x[n];
-
-    vector<long long> dp(n + 5, INF64), best(n + 5, INF64);
-    dp[1] = (long long)alpha * p[1];
-
-    BlockLiChao blc(Xmax, beta, &x, &dp);
-
-    for (int j = 1; j <= n; ++j) {
-        if (j > 1) {
-            long long mincand = best[j];
-
-            int lj = L[j];
-            if (lj < 1) lj = 1;
-
-            int cb = (j - 1) / S;
-            int lb = (lj - 1) / S;
-
-            auto relax = [&](int i) {
-                if (dp[i] >= INF64 / 2) return;
-                if (j <= R[i]) {
-                    long long diff = (long long)x[j] - x[i];
-                    long long val = dp[i] + (long long)beta * diff * diff;
-                    if (val < mincand) mincand = val;
-                }
-            };
-
-            if (lb == cb) {
-                for (int i = lj; i < j; ++i) relax(i);
-            } else {
-                int endLb = min(n, (lb + 1) * S);
-                for (int i = lj; i <= endLb && i < j; ++i) relax(i);
-
-                int startCb = cb * S + 1;
-                for (int i = startCb; i < j; ++i) relax(i);
-            }
-
-            if (mincand >= INF64 / 2) {
-                dp[j] = INF64;
-            } else {
-                dp[j] = mincand + (long long)alpha * p[j];
-            }
-        }
-
-        // When a block is completed, add its contribution to all future queries.
-        if (j % S == 0 && j < n) {
-            int start = j - S + 1;
-            int end = j;
-
-            vector<int> ids;
-            ids.reserve(S);
-            for (int i = start; i <= end; ++i) {
-                if (dp[i] < INF64 / 2) ids.push_back(i);
-            }
-
-            sort(ids.begin(), ids.end(), [&](int a, int b) {
-                return R[a] > R[b];
-            });
-
-            blc.reset();
-
-            int ptr = 0;
-            for (int jj = n; jj > end; --jj) {
-                while (ptr < (int)ids.size() && R[ids[ptr]] >= jj) {
-                    blc.addLine(ids[ptr]);
-                    ++ptr;
-                }
-
-                if (L[jj] <= start) {
-                    long long val = blc.query(x[jj]);
-                    if (val < best[jj]) best[jj] = val;
-                }
-            }
-        }
-    }
-
-    if (dp[n] >= INF64 / 2) {
-        cout << "impossible\n";
-    } else {
-        cout << dp[n] << '\n';
-    }
+    cout << '\n';
 
     return 0;
 }

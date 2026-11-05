@@ -1,238 +1,413 @@
 #include <bits/stdc++.h>
 using namespace std;
-using int64 = long long;
-using Poly = vector<int>;
+using ll = long long;
 
-template<int MOD, int G = 3>
-struct NTT {
-    static int power(int a, int e) {
-        int r = 1;
-        for (; e; e >>= 1, a = (int64)a * a % MOD)
-            if (e & 1) r = (int64)r * a % MOD;
-        return r;
+// 用 AVL 维护带权断点 (位置, 权值)。
+// 允许不同断点具有相同位置。
+struct Profile {
+    struct Node {
+        int l = 0, r = 0, h = 1, sz = 1;
+        int key = 0, lo = 0, hi = 0;
+        int add[2] = {0, 0}, keep[2] = {1, 1};
+        ll val = 0, sum[2] = {0, 0};
+    };
+    vector<Node> t;
+    int used = 0;
+
+    explicit Profile(int n) : t(n + 5) {
+        t[0].h = t[0].sz = 0;
     }
-
-    static void transform(Poly &a, bool inverse) {
-        const int n = (int)a.size();
-        static Poly roots{0, 1};
-        if ((int)roots.size() < n) {
-            int k = __builtin_ctz((unsigned)roots.size());
-            roots.resize(n);
-            while ((1 << k) < n) {
-                int z = power(G, (MOD - 1) >> (k + 1));
-                for (int i = 1 << (k - 1); i < (1 << k); ++i) {
-                    roots[i << 1] = roots[i];
-                    roots[i << 1 | 1] = (int64)roots[i] * z % MOD;
-                }
-                ++k;
-            }
-        }
-        for (int i = 1, j = 0; i < n; ++i) {
-            int bit = n >> 1;
-            for (; j & bit; bit >>= 1) j ^= bit;
-            j ^= bit;
-            if (i < j) swap(a[i], a[j]);
-        }
-        for (int k = 1; k < n; k <<= 1) {
-            for (int i = 0; i < n; i += k << 1) {
-                for (int j = 0; j < k; ++j) {
-                    int u = a[i + j];
-                    int v = (int64)a[i + j + k] * roots[k + j] % MOD;
-                    int x = u + v;
-                    if (x >= MOD) x -= MOD;
-                    int y = u - v;
-                    if (y < 0) y += MOD;
-                    a[i + j] = x;
-                    a[i + j + k] = y;
-                }
-            }
-        }
-        if (inverse) {
-            reverse(a.begin() + 1, a.end());
-            int z = power(n, MOD - 2);
-            for (int &x : a) x = (int64)x * z % MOD;
+    int height(int x) const { return t[x].h; }
+    ll mass(int x, int parity) const { return t[x].sum[parity]; }
+    int make(int key, ll val) {
+        int x = ++used;
+        assert(x < (int)t.size());
+        t[x] = Node();
+        t[x].key = t[x].lo = t[x].hi = key;
+        t[x].val = t[x].sum[key & 1] = val;
+        return x;
+    }
+    void pull(int x) {
+        auto &u = t[x];
+        u.h = max(height(u.l), height(u.r)) + 1;
+        u.sz = t[u.l].sz + t[u.r].sz + 1;
+        for (int b = 0; b < 2; ++b)
+            u.sum[b] = mass(u.l, b) + mass(u.r, b)
+                     + ((u.key & 1) == b ? u.val : 0);
+        u.lo = u.l ? t[u.l].lo : u.key;
+        u.hi = u.r ? t[u.r].hi : u.key;
+    }
+    // 原位置奇偶性为 b 的点：位置加 d[b]，权值乘 k[b]。
+    void apply(int x, int d0, int d1, int k0, int k1) {
+        if (!x) return;
+        auto &u = t[x];
+        int d[2] = {d0, d1}, k[2] = {k0, k1};
+        ll ns[2] = {0, 0};
+        for (int b = 0; b < 2; ++b)
+            ns[(b + d[b]) & 1] += u.sum[b] * k[b];
+        int b = u.key & 1;
+        u.val *= k[b];
+        u.key += d[b];
+        u.lo += d[u.lo & 1];
+        u.hi += d[u.hi & 1];
+        for (int c = 0; c < 2; ++c) {
+            int now = (c + u.add[c]) & 1;
+            u.add[c] += d[now];
+            u.keep[c] *= k[now];
+            u.sum[c] = ns[c];
         }
     }
-
-    static Poly multiply(const Poly &a, const Poly &b, int need) {
-        int len = 1;
-        while (len < (int)a.size() + (int)b.size() - 1) len <<= 1;
-        Poly x(len), y(len);
-        for (int i = 0; i < (int)a.size(); ++i) x[i] = a[i] % MOD;
-        for (int i = 0; i < (int)b.size(); ++i) y[i] = b[i] % MOD;
-        transform(x, false);
-        transform(y, false);
-        for (int i = 0; i < len; ++i) x[i] = (int64)x[i] * y[i] % MOD;
-        transform(x, true);
-        x.resize(need);
+    void push(int x) {
+        auto &u = t[x];
+        if (u.add[0] || u.add[1] || !u.keep[0] || !u.keep[1]) {
+            apply(u.l, u.add[0], u.add[1], u.keep[0], u.keep[1]);
+            apply(u.r, u.add[0], u.add[1], u.keep[0], u.keep[1]);
+            u.add[0] = u.add[1] = 0;
+            u.keep[0] = u.keep[1] = 1;
+        }
+    }
+    void clearParity(int x, int b) {
+        apply(x, 0, 0, b != 0, b != 1);
+    }
+    void roundTo(int x, int b) {
+        // 将位置向上取整到奇偶性 b。
+        apply(x, b == 1, b == 0, 1, 1);
+    }
+    int rotateLeft(int x) {
+        push(x);
+        int y = t[x].r;
+        push(y);
+        t[x].r = t[y].l;
+        t[y].l = x;
+        pull(x); pull(y);
+        return y;
+    }
+    int rotateRight(int x) {
+        push(x);
+        int y = t[x].l;
+        push(y);
+        t[x].l = t[y].r;
+        t[y].r = x;
+        pull(x); pull(y);
+        return y;
+    }
+    int balance(int x) {
+        pull(x);
+        if (height(t[x].l) > height(t[x].r) + 1) {
+            push(t[x].l);
+            int y = t[x].l;
+            if (height(t[y].l) < height(t[y].r))
+                t[x].l = rotateLeft(y);
+            return rotateRight(x);
+        }
+        if (height(t[x].r) > height(t[x].l) + 1) {
+            push(t[x].r);
+            int y = t[x].r;
+            if (height(t[y].r) < height(t[y].l))
+                t[x].r = rotateRight(y);
+            return rotateLeft(x);
+        }
+        return x;
+    }
+    // 按顺序连接 L、单个断点 x、R；x 的标记已经下传。
+    int join(int L, int x, int R) {
+        if (height(L) > height(R) + 1) {
+            push(L);
+            t[L].r = join(t[L].r, x, R);
+            return balance(L);
+        }
+        if (height(R) > height(L) + 1) {
+            push(R);
+            t[R].l = join(L, x, t[R].l);
+            return balance(R);
+        }
+        t[x].l = L; t[x].r = R;
+        pull(x);
+        return x;
+    }
+    int popMax(int x, int &point) {
+        push(x);
+        if (!t[x].r) {
+            point = x;
+            int L = t[x].l;
+            t[x].l = 0;
+            pull(x);
+            return L;
+        }
+        t[x].r = popMax(t[x].r, point);
+        return balance(x);
+    }
+    int concat(int L, int R) {
+        if (!L || !R) return L | R;
+        int x;
+        L = popMax(L, x);
+        return join(L, x, R);
+    }
+    pair<int,int> splitKey(int x, int key) {
+        if (!x) return {0, 0};
+        if (t[x].hi <= key) return {x, 0};
+        if (t[x].lo > key) return {0, x};
+        push(x);
+        int L = t[x].l, R = t[x].r;
+        if (t[x].key <= key) {
+            auto [a, b] = splitKey(R, key);
+            return {join(L, x, a), b};
+        }
+        auto [a, b] = splitKey(L, key);
+        return {a, join(b, x, R)};
+    }
+    // 破坏式合并：合并两棵 AVL 所表示的断点集合。
+    int unite(int a, int b) {
+        if (!a || !b) return a | b;
+        if (t[a].hi <= t[b].lo) return concat(a, b);
+        if (t[b].hi <= t[a].lo) return concat(b, a);
+        if (t[a].sz > t[b].sz) swap(a, b);
+        push(a);
+        int L = t[a].l, R = t[a].r;
+        auto [x, y] = splitKey(b, t[a].key);
+        return join(unite(L, x), a, unite(R, y));
+    }
+    // 从右向左切分：R 恰好包含 need 单位、奇偶性为 b 的权值。
+    // 至多将一个断点拆成两个。
+    pair<int,int> splitMass(int x, int b, ll need) {
+        if (!x || need == 0) return {x, 0};
+        if (need >= mass(x, b)) return {0, x};
+        push(x);
+        int L = t[x].l, R = t[x].r;
+        ll rightMass = mass(R, b);
+        ll own = ((t[x].key & 1) == b ? t[x].val : 0);
+        if (need < rightMass) {
+            auto [a, c] = splitMass(R, b, need);
+            return {join(L, x, a), c};
+        }
+        if (need > rightMass + own) {
+            auto [a, c] = splitMass(L, b, need - rightMass - own);
+            return {a, join(c, x, R)};
+        }
+        if (need == rightMass) return {join(L, x, 0), R};
+        if (need == rightMass + own) return {L, join(0, x, R)};
+        ll take = need - rightMass;
+        int y = make(t[x].key, take);
+        t[x].val -= take;
+        return {join(L, x, 0), join(0, y, R)};
+    }
+    // 将奇偶性 b 的最后若干单位权值移动到位置 +1。
+    int transfer(int x, int b, ll need) {
+        need = min(need, mass(x, b));
+        if (!need) return x;
+        auto [L, R] = splitMass(x, b, need);
+        roundTo(R, b ^ 1);
+        return concat(L, R);
+    }
+    // 删除奇偶性 b 的最后 need 单位权值；保留权值为零的节点。
+    void trim(int x, int b, ll need) {
+        if (!x || !need) return;
+        if (need >= mass(x, b)) {
+            clearParity(x, b);
+            return;
+        }
+        push(x);
+        ll z = mass(t[x].r, b);
+        if (need <= z) {
+            trim(t[x].r, b, need);
+        } else {
+            clearParity(t[x].r, b);
+            need -= z;
+            if ((t[x].key & 1) == b) {
+                ll take = min(need, t[x].val);
+                t[x].val -= take;
+                need -= take;
+            }
+            if (need) trim(t[x].l, b, need);
+        }
+        pull(x);
+    }
+    // 找最大的 k，使奇偶性 b 对应的第 k 项边际收益大于 threshold。
+    int lastPositive(int x, int b, ll threshold) {
+        if (threshold < 0) return INT_MAX;
+        if (mass(x, b) <= threshold) return 0;
+        while (x) {
+            push(x);
+            ll z = mass(t[x].r, b);
+            if (z > threshold) { x = t[x].r; continue; }
+            threshold -= z;
+            if ((t[x].key & 1) == b) {
+                if (t[x].val > threshold) return (t[x].key + 1) / 2;
+                threshold -= t[x].val;
+            }
+            x = t[x].l;
+        }
+        return 0;
+    }
+    int addVertex(int x, ll w, ll p) {
+        ll A = p - w, B = p + w;
+        if (lastPositive(x, 1, A) <= lastPositive(x, 0, B)) {
+            x = transfer(x, 1, A);
+            trim(x, 0, 2 * p);
+        } else {
+            ll take = min(B, mass(x, 0));
+            x = transfer(x, 0, B);
+            if (B > take) x = concat(make(1, B - take), x);
+            trim(x, 1, 2 * p);
+        }
         return x;
     }
 };
 
-struct Solver {
-    static constexpr int M1 = 998244353;
-    static constexpr int M2 = 1004535809;
-    static constexpr int M3 = 469762049;
-    int n, mod;
-    Poly fact, ifact, inv;
-    int inv12, inv123, m1p, m12p;
-
-    static int power(int a, int e, int p) {
-        int r = 1;
-        for (; e; e >>= 1, a = (int64)a * a % p)
-            if (e & 1) r = (int64)r * a % p;
-        return r;
-    }
-
-    int add(int a, int b) const {
-        a += b;
-        if (a >= mod) a -= mod;
-        return a;
-    }
-    int sub(int a, int b) const {
-        a -= b;
-        if (a < 0) a += mod;
-        return a;
-    }
-
-    // Exact convolution modulo the input prime, truncated at x^limit.
-    Poly mul(Poly a, Poly b, int limit) const {
-        a.resize(min((int)a.size(), limit));
-        b.resize(min((int)b.size(), limit));
-        while (!a.empty() && a.back() == 0) a.pop_back();
-        while (!b.empty() && b.back() == 0) b.pop_back();
-        if (a.empty() || b.empty()) return Poly(limit, 0);
-
-        int need = min(limit, (int)a.size() + (int)b.size() - 1);
-        Poly c;
-        if (min(a.size(), b.size()) <= 12) {
-            c.assign(need, 0);
-            for (int i = 0; i < (int)a.size(); ++i)
-                for (int j = 0; j < (int)b.size() && i + j < need; ++j)
-                    c[i + j] = (c[i + j] + (int64)a[i] * b[j]) % mod;
-        } else if (mod == M1) {
-            c = NTT<M1>::multiply(a, b, need);
-        } else if (mod == M2) {
-            c = NTT<M2>::multiply(a, b, need);
-        } else if (mod == M3) {
-            c = NTT<M3>::multiply(a, b, need);
-        } else {
-            Poly a1 = NTT<M1>::multiply(a, b, need);
-            Poly a2 = NTT<M2>::multiply(a, b, need);
-            Poly a3 = NTT<M3>::multiply(a, b, need);
-            c.resize(need);
-            for (int i = 0; i < need; ++i) {
-                // Integer coefficient = a1 + M1*t + M1*M2*u.
-                int64 t = (int64)(a2[i] - a1[i] + M2) * inv12 % M2;
-                int64 r = (a1[i] + (int64)M1 * t) % M3;
-                int64 u = (a3[i] - r + M3) * inv123 % M3;
-                c[i] = (a1[i] % mod + (int64)m1p * (t % mod)
-                        + (int64)m12p * (u % mod)) % mod;
-            }
-        }
-        c.resize(limit, 0);
-        return c;
-    }
-
-    int run(int input_n, int input_mod) {
-        n = input_n;
-        mod = input_mod;
-        fact.assign(n + 1, 1);
-        ifact.assign(n + 1, 1);
-        inv.assign(n + 1, 1);
-        for (int i = 2; i <= n; ++i)
-            inv[i] = mod - (int64)(mod / i) * inv[mod % i] % mod;
-        for (int i = 1; i <= n; ++i) {
-            fact[i] = (int64)fact[i - 1] * i % mod;
-            ifact[i] = (int64)ifact[i - 1] * inv[i] % mod;
-        }
-        inv12 = power(M1, M2 - 2, M2);
-        inv123 = power((int64)M1 * M2 % M3, M3 - 2, M3);
-        m1p = M1 % mod;
-        m12p = (int64)M1 * M2 % mod;
-
-        Poly D(n + 1, 0); // Ordinary coefficients of D(x).
-        for (int m = 1; m < n + 1; ) {
-            int N = min(2 * m, n + 1);
-            int block = N - m;
-
-            // h[r][t] = [x^(r+t) y^r] exp(x + (y-1)D(x)).
-            int rows = (N - 1) / 2;
-            vector<Poly> h(rows + 1);
-            h[0].assign(N, 0);
-            h[0][0] = 1;
-
-            // h[0] = exp(x-D), computed in O(N^2).
-            Poly dg(N, 0);
-            for (int i = 1; i < N; ++i) {
-                int gi = sub(i == 1 ? 1 : 0, D[i]);
-                dg[i] = (int64)i * gi % mod;
-            }
-            for (int t = 1; t < N; ++t) {
-                int value = 0;
-                for (int i = 1; i <= t; ++i)
-                    value = (value + (int64)dg[i] * h[0][t - i]) % mod;
-                h[0][t] = (int64)value * inv[t] % mod;
-            }
-
-            Poly E(N - 1);
-            for (int i = 0; i < N - 1; ++i) E[i] = D[i + 1];
-            for (int r = 1; r <= rows; ++r) {
-                h[r] = mul(h[r - 1], E, N - 2 * r);
-                for (int &x : h[r]) x = (int64)x * inv[r] % mod;
-            }
-
-            // Residual R_s = [y^s](L(H)-1); only s>=m is needed.
-            Poly R(N, 0);
-            for (int r = 0; r <= rows; ++r) {
-                for (int t = 0; t < (int)h[r].size(); ++t) {
-                    int s = t + 2 * r;
-                    R[s] = (R[s] + (int64)fact[t + r] * h[r][t]) % mod;
-                }
-            }
-            R[0] = sub(R[0], 1);
-
-            auto coeffH = [&](int a, int b) -> int {
-                if (b < 0 || b > rows || a < b) return 0;
-                int t = a - b;
-                return t < (int)h[b].size() ? h[b][t] : 0;
-            };
-
-            // Store J_(m+i,m+j) / (m+i)! for j<i.
-            vector<Poly> mat(block, Poly(block, 0));
-            Poly W(fact.begin(), fact.begin() + N);
-            for (int d = 1; d < block; ++d) {
-                Poly Q((d + 1) / 2 + 1, 0);
-                for (int r = 0; r < (int)Q.size(); ++r) {
-                    int a = d - r;
-                    Q[r] = sub(coeffH(a, r - 1), coeffH(a, r));
-                }
-                Poly C = mul(W, Q, N);
-                for (int s = m + d; s < N; ++s)
-                    mat[s - m][s - m - d] = (int64)C[s] * ifact[s] % mod;
-            }
-
-            // The diagonal of J is -s!, so forward substitution suffices.
-            Poly delta(block, 0);
-            for (int i = 0; i < block; ++i) {
-                int value = (int64)R[m + i] * ifact[m + i] % mod;
-                for (int j = 0; j < i; ++j)
-                    value = (value + (int64)mat[i][j] * delta[j]) % mod;
-                delta[i] = value;
-                D[m + i] = value;
-            }
-            m = N;
-        }
-        return (int64)fact[n] * D[n] % mod;
-    }
+struct Info {
+    ll x = 0, y = 0, px = 0, py = 0, best = 0;
 };
+Info combine(const Info &a, const Info &b) {
+    return {
+        a.x + b.x, a.y + b.y,
+        max(a.px, a.x + b.px),
+        max(a.py, a.y + b.py),
+        max({a.best, a.x + a.py + b.px, a.x + a.y + b.best})
+    };
+}
+Info leaf(ll x, ll y) {
+    return {x, y, max(0LL, x), max(0LL, y), max({0LL, x, x + y})};
+}
+struct SegTree {
+    int n;
+    vector<Info> tr;
+    SegTree(const vector<ll> &x, const vector<ll> &y)
+        : n((int)x.size()), tr(4 * n) { build(1, 0, n - 1, x, y); }
+    void build(int u, int l, int r, const vector<ll> &x, const vector<ll> &y) {
+        if (l == r) { tr[u] = leaf(x[l], y[l]); return; }
+        int mid = (l + r) / 2;
+        build(u * 2, l, mid, x, y);
+        build(u * 2 + 1, mid + 1, r, x, y);
+        tr[u] = combine(tr[u * 2], tr[u * 2 + 1]);
+    }
+    void add(int u, int l, int r, int pos, ll dx, ll dy) {
+        if (l == r) { tr[u] = leaf(tr[u].x + dx, tr[u].y + dy); return; }
+        int mid = (l + r) / 2;
+        if (pos <= mid) add(u * 2, l, mid, pos, dx, dy);
+        else add(u * 2 + 1, mid + 1, r, pos, dx, dy);
+        tr[u] = combine(tr[u * 2], tr[u * 2 + 1]);
+    }
+    void add(int pos, ll dx, ll dy) { add(1, 0, n - 1, pos, dx, dy); }
+    const Info &all() const { return tr[1]; }
+};
+struct Event { int id, parity; ll val; };
+
+ll solve(int n, int s, const vector<ll> &w, const vector<ll> &p,
+         const vector<int> &a) {
+    vector<vector<int>> child(n);
+    for (int i = 0; i < n; ++i) child[a[i]].push_back(i);
+    vector<int> seen(n), path;
+    int cur = s;
+    while (!seen[cur]) {
+        seen[cur] = 1;
+        path.push_back(cur);
+        cur = a[cur];
+    }
+    bool onCycle = (cur == s);
+    vector<int> cycle;
+    vector<char> inCycle(n, false);
+    if (onCycle) {
+        cycle = path;
+        reverse(cycle.begin() + 1, cycle.end());
+        for (int v : cycle) inCycle[v] = true;
+    }
+    vector<int> order = onCycle ? cycle : vector<int>{s};
+    for (int j = 0; j < (int)order.size(); ++j)
+        for (int u : child[order[j]])
+            if (!inCycle[u]) order.push_back(u);
+
+    vector<ll> f1(n), f2(n), t1(n), t2(n);
+    for (int j = (int)order.size() - 1; j >= 0; --j) {
+        int v = order[j];
+        for (int u : child[v]) if (!inCycle[u]) {
+            t1[v] += f1[u]; t2[v] += f2[u];
+        }
+        f1[v] = max(0LL, w[v] - p[v] + t1[v]);
+        f2[v] = max(f1[v], -2 * p[v] + t2[v]);
+    }
+    if (!onCycle) return max(w[s] + t1[s], -p[s] + t2[s]);
+    int m = (int)cycle.size();
+    if (m == 1) return w[s] + t1[s]; // 题目不允许自环，保留此分支使实现完整。
+    if (m == 2) {
+        int v = cycle[1];
+        return max({w[s] + t1[s], -p[s] + t2[s],
+                    w[s] + w[v] - p[v] + t1[s] + t1[v]});
+    }
+
+    Profile prof(n);
+    vector<int> root(n);
+    for (int j = (int)order.size() - 1; j >= 0; --j) {
+        int v = order[j], rt = 0;
+        for (int u : child[v]) if (!inCycle[u])
+            rt = prof.unite(rt, root[u]);
+        if (!inCycle[v]) rt = prof.addVertex(rt, w[v], p[v]);
+        root[v] = rt;
+    }
+    vector<vector<Event>> events(n + 3);
+    vector<ll> sa(m), sb(m), firstA(m);
+    int K = 0;
+    auto collect = [&](auto &&self, int x, int id) -> void {
+        if (!x) return;
+        prof.push(x);
+        self(self, prof.t[x].l, id);
+        auto &u = prof.t[x];
+        if (u.val) {
+            int k = (u.key + 1) / 2, b = u.key & 1;
+            events[k].push_back({id, b, u.val});
+            K = max(K, k);
+            if (b) { sa[id] += u.val; if (k == 1) firstA[id] += u.val; }
+            else sb[id] += u.val;
+        }
+        self(self, prof.t[x].r, id);
+    };
+    for (int i = 0; i < m; ++i) collect(collect, root[cycle[i]], i);
+
+    vector<ll> xe(m), ye(m), xo(m), yo(m);
+    for (int i = 0; i < m; ++i) {
+        int v = cycle[i];
+        xe[i] = w[v] - p[v] + sa[i];
+        ye[i] = -w[v] - p[v] + sb[i];
+        xo[i] = ye[i];
+        yo[i] = xe[i] - firstA[i];
+    }
+    const ll NEG = numeric_limits<ll>::lowest() / 4;
+    ll nonempty = NEG, px = 0, py = 0, bestPy = 0;
+    for (int i = 0; i < m; ++i) {
+        px += xe[i]; py += ye[i]; bestPy = max(bestPy, py);
+        nonempty = max(nonempty, px + bestPy);
+    }
+    SegTree even(xe, ye), odd(xo, yo);
+    ll answer = NEG, base = 0;
+    for (int k = 0; k <= K; ++k) {
+        Info e = even.all(), o = odd.all();
+        answer = max(answer, p[s] + base + (k ? e.best : nonempty));
+        answer = max(answer, p[s] + base + e.x + o.best);
+        if (k == K) break;
+        base += e.x + e.y;
+        for (const Event &ev : events[k + 1]) {
+            if (ev.parity) even.add(ev.id, -ev.val, 0);
+            else {
+                even.add(ev.id, 0, -ev.val);
+                odd.add(ev.id, -ev.val, 0);
+            }
+        }
+        for (const Event &ev : events[k + 2])
+            if (ev.parity) odd.add(ev.id, 0, -ev.val);
+    }
+    return answer;
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int n, P;
-    if (!(cin >> n >> P)) return 0;
-    Solver solver;
-    cout << solver.run(n, P) << '\n';
+    int n, s;
+    if (!(cin >> n >> s)) return 0;
+    --s;
+    vector<ll> w(n), p(n);
+    vector<int> a(n);
+    for (ll &x : w) cin >> x;
+    for (ll &x : p) cin >> x;
+    for (int &x : a) { cin >> x; --x; }
+    cout << solve(n, s, w, p, a) << '\n';
     return 0;
 }

@@ -1,51 +1,55 @@
-# 68. Cakes
-
 ## Problem Description
 
-There are $N$ topping types, numbered $0$ through $N-1$, with $a_i$ pieces of type $i$. A cake's tastiness is the largest number of pieces of a single topping type on that cake.
+Choose an $n$-element subset of $\{1,\ldots,m\}$ uniformly at random. Apply these steps:
 
-For each of $Q$ independent requested counts $K_j$, determine whether all available topping pieces can be distributed among exactly $K_j$ nonempty cakes so that every cake has the same tastiness. Cakes may have different total numbers of pieces and different sets of topping types. No piece may be left over.
+1. Sort the selected numbers as $a_1<\cdots<a_n$.
+2. Form $d_1=a_1$ and $d_i=a_i-a_{i-1}$ for $i\ge2$.
+3. Sort the $n$ differences in nondecreasing order, obtaining $b_1,\ldots,b_n$.
+4. Form the final sequence $c_i=\sum_{j=1}^{i}b_j$.
+
+Compute the expected value of every final entry $c_i$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $N,Q$. The second contains $a_0,\ldots,a_{N-1}$. Each of the next $Q$ lines contains one requested cake count $K_j$.
+One line contains the integers $n$ and $m$.
 
 ## Output Format
 
 Write to standard output.
 
-For every query, print `YES` if such a distribution exists, and `NO` otherwise.
+Print $n$ lines. Line $i$ contains the expected value of $c_i$ as a real number. Each answer may have absolute or relative error at most $10^{-6}$.
 
 ## Examples
 
 Input:
 
 ```text
-1 1
-4
-2
+3 5
 ```
 
 Output:
 
 ```text
-YES
+1
+2.3
+4.5
 ```
 
 ## Explanation / Notes
 
-Give each of the two cakes two pieces of the only topping type. Both cakes then have tastiness 2, and all four pieces are used.
+There are ten equally likely three-element subsets of $\{1, 2, 3, 4, 5\}$. Averaging the final sequence over these choices gives $1$, $2.3$, and $4.5$.
 
-Each query starts with the original inventory; it does not consume pieces for subsequent queries.
+The difference sequence contains exactly $n$ terms: it includes the initial gap from zero to $a_1$ but does **not** append a gap from $a_n$ to $m$.
 
 ## Constraints
 
-- $1\le N,Q\le100000$.
-- $1\le a_i\le100000$ for all topping types.
-- $1\le K_j\le10^{18}$ for all queries.
-- All values are integers.
-- Every cake must receive at least one topping piece.
-- All topping pieces must be used exactly once within a scenario.
-- The tastiness must be equal across cakes, but it may differ between scenarios.
+- $1\le n\le50$.
+- $n\le m\le10000$.
+- $n,m$ are integers.
+- The initially selected integers are distinct and belong to $[1,m]$.
+- Every valid $n$-element subset has the same selection probability.
+- Output tolerance: absolute or relative error at most $10^{-6}$ for each of the $n$ expectations.
+- There is one instance per input.
+- Time limit: **1 second**.

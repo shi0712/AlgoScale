@@ -1,51 +1,83 @@
-# 77. Elevator Requests IV
-
 ## Problem Description
 
-An elevator starts at floor `start` at time zero in a building with floors $0,\ldots,n-1$. Each second, it can move one floor upward, move one floor downward, or wait.
+You are given a directed graph. Find the infimum variance among all walks from vertex $1$ to vertex $n$.
 
-There are $m$ requests. Request $i$ specifies arrival time $a_i$ and floor $f_i$. It completes instantly whenever the elevator occupies $f_i$ at time $t\ge a_i$.
+A walk from vertex $1$ to vertex $n$ is a sequence of edges $p=(e_1,e_2,\ldots,e_l)$ such that:
 
-Minimize the time when every request has completed.
+- the starting vertex of $e_1$ is vertex $1$;
+- the ending vertex of $e_l$ is vertex $n$;
+- for every consecutive pair, the ending vertex of $e_i$ is the starting vertex of $e_{i+1}$.
+
+Edges in a walk do not need to be distinct.
+
+The variance of a walk is
+
+$$
+D(p)=\frac{1}{l}\sum_{i=1}^{l}\left(w_{e_i}-\overline{w}\right)^2,
+$$
+
+where
+
+$$
+\overline{w}=\frac{1}{l}\sum_{i=1}^{l}w_{e_i}
+$$
+
+is the average edge weight of the walk.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains three integers $n$, $\texttt{start}$, and $m$: the number of floors, the initial floor, and the number of requests.
+The first line contains two integers $n$ and $m$, the number of vertices and directed edges.
 
-Each of the next $m$ lines contains two integers $a_i$ and $f_i$, describing the arrival time and floor of one request.
+Each of the next $m$ lines contains three integers $x_i$, $y_i$, and $w_i$, describing a directed edge from $x_i$ to $y_i$ with weight $w_i$.
 
 ## Output Format
 
 Write to standard output.
 
-Print one integer: the minimum time by which all requests can be completed.
+Print one real number: the infimum variance among all walks from vertex $1$ to vertex $n$. If no such walk exists, print `-1`.
+
+For a reported value $b$, let
+
+$$
+\varepsilon=\max\{1,b\}\cdot10^{-9}.
+$$
+
+The answer is accepted when both of the following hold:
+
+- for every walk $p$ from vertex $1$ to vertex $n$, $D(p)>b-\varepsilon$;
+- there exists a walk $p_0$ from vertex $1$ to vertex $n$ such that $D(p_0)<b+\varepsilon$.
 
 ## Examples
 
 Input:
 
 ```text
-9 0 2
-0 8
-6 5
+4 4
+1 2 3
+1 3 4
+2 4 5
+3 4 7
 ```
 
 Output:
 
 ```text
-9
+1.000000000000000
 ```
 
 ## Explanation / Notes
 
-Move from floor 0 to floor 5, arriving at time 5. Wait until time 6 to complete the request at floor 5, then continue to floor 8 and finish at time 9. This is the minimum possible completion time.
+The walk $1\to2\to4$ uses edge weights $3$ and $5$. Its average weight is $4$, and its variance is $1$.
+
+Because edges may be repeated, the set of attainable walk variances need not contain its greatest lower bound; therefore the problem asks for the infimum rather than necessarily a minimum.
 
 ## Constraints
 
-- $1\le n\le10^9$.
-- $1\le m\le500$.
-- $0\le a_i\le10^9$.
-- $0\le\texttt{start},f_i\le n-1$.
-- Requests need not be ordered by arrival time, and request times and floors may repeat.
+- $2\le n\le30$.
+- $1\le m\le200$.
+- $1\le x_i,y_i\le n$.
+- $x_i\ne y_i$.
+- $0\le w_i\le20$.
+- The required absolute or relative error is at most $10^{-9}$.

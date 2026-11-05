@@ -1,56 +1,61 @@
-# 41. Panda Preserve
-
 ## Problem Description
 
-A park is the region enclosed by a simple polygon. A receiver is placed at each polygon vertex. All receivers use the same radius $r$, and each covers the disk of radius $r$ centered at its vertex.
+A gallery is a simple polygon containing $m$ cameras. A point is monitored if at least one camera can be joined to it by a line segment lying inside the gallery.
 
-Find the smallest $r$ for which the union of these disks covers the entire park. Coverage includes points inside the polygon, not just its boundary.
+Compute the area of the union of all monitored regions. Regions seen by multiple cameras are counted only once.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by $n$ lines of integer coordinates $x,y$. These are the polygon's vertices in counter-clockwise order; the final vertex is connected back to the first.
+Read $n$, followed by $n$ pairs of coordinates for the polygon vertices in clockwise order. Then read $m$, followed by $m$ pairs of camera coordinates.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum common radius. The allowed absolute or relative error is at most $10^{-6}$.
+Print the monitored area as a real number. For submitted value $a$ and reference value $b$, the acceptance condition is
+
+$$\frac{|a-b|}{\max(1,|b|)}\le10^{-6}.$$
 
 ## Examples
 
 Input:
 
 ```text
-5
+8
 0 0
-170 0
-140 30
-60 30
-0 70
+0 5
+5 5
+5 10
+10 10
+10 5
+50 5
+50 0
+1
+8 7
 ```
 
 Output:
 
 ```text
-50
+79.166666667
 ```
 
 ## Explanation / Notes
 
-Receivers cover circular regions without a line-of-sight restriction. It does not matter if parts of their disks extend outside the park.
-
-For the example, radius 35 leaves some park points uncovered, while radius 50 covers the whole polygon and is optimal.
+The polygon may be non-convex, so a camera does not necessarily see every interior point. Visibility is determined by the whole connecting segment, not solely by the locations of its endpoints. Boundary conventions do not change the requested area.
 
 ## Constraints
 
 - There is one input instance.
-- $3\le n\le2000$.
-- All coordinates are integers and satisfy $|x|,|y|\le10^4$.
-- Vertices are supplied counter-clockwise.
-- All polygon vertices are distinct.
-- Edges do not intersect or touch, except that consecutive edges meet at their shared endpoint; the polygon is simple.
-- Convexity is not guaranteed.
-- Error tolerance: at most $10^{-6}$, absolute or relative.
+- $3\le n\le50$.
+- $1\le m\le50$.
+- Polygon-vertex and camera coordinates are integers satisfying $|x|,|y|\le100$.
+- The polygon is simple and its vertices are listed clockwise.
+- No three consecutive polygon vertices are collinear, including consecutive triples crossing the end of the vertex list.
+- Every camera lies strictly inside the polygon.
+- Camera positions need not be distinct.
+- Error tolerance follows the explicit inequality above, with $10^{-6}$ included.
 - Time limit: 10 seconds.
+- Memory limit: 512 MB.

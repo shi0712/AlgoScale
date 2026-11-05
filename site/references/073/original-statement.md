@@ -1,55 +1,78 @@
-# 73. Two Spanning Trees
-
 ## Problem Description
 
-Two connected simple undirected graphs, $A$ and $B$, each have $n$ vertices and $m$ edges. Their edges are indexed $1$ through $m$; equal indices do not necessarily have equal endpoints in the two graphs.
+Transform one weighted rooted tree into another at minimum cost. The children of every vertex have a fixed left-to-right order. The allowed operations are:
 
-Determine whether there is a set of edge indices that forms a spanning tree in $A$ but does not form a spanning tree in $B$.
+1. **Growing.** Add a new leaf $z$ as a child of $x$, inserting it anywhere in $x$'s ordered child list. If the new edge has weight $w$, the cost is $c_1w$.
+2. **Expansion.** Choose a nonempty consecutive group of children $y_l,\ldots,y_r$ of $x$. Add a new vertex $z$ between $x$ and that group. Replace the group in $x$'s list by $z$, and make $y_l,\ldots,y_r$ the ordered children of $z$. Their incident edge weights remain unchanged. If the new edge $(x,z)$ has weight $w$, the cost is $c_1w$.
+3. **Contraction.** Choose a child $y$ of $x$, delete $y$ and edge $(x,y)$, and splice $y$'s ordered children into $x$'s child list at $y$'s former position. Their incident edge weights remain unchanged. If the removed edge has weight $w$, the cost is $c_2w$.
+4. **Relabeling.** Change an edge weight from $w_1$ to $w_2$, at cost $c_3|w_1-w_2|$.
+
+Two restrictions apply throughout the sequence of operations:
+
+- An edge newly added by growing or expansion cannot later be relabeled.
+- An edge that has been relabeled cannot later be contracted.
+
+The resulting tree must match the target under a vertex bijection preserving the root, child order, and every corresponding edge weight. Vertex names themselves need not match.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $t$.
+The first line contains the cost coefficients $c_1,c_2,c_3$.
 
-Each case begins with $n,m$. Each of the next $m$ lines contains $u_A,v_A,u_B,v_B$. The $i$-th line gives the endpoints of edge $i$ in $A$ and edge $i$ in $B$ respectively.
+Two tree descriptions follow, first the initial tree and then the target tree. Each description begins with its vertex count $n$, followed by $n$ vertex records. A record starts with the number of children $k$, followed by $k$ ordered pairs
+
+```text
+child_1 weight_1 child_2 weight_2 ... child_k weight_k
+```
+
+The listed order is the left-to-right child order. A leaf has a record containing only `0`.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print `YES` if such an index set exists, and `NO` otherwise. You do not need to construct or print the set.
+Print one integer: the minimum total transformation cost.
 
 ## Examples
 
 Input:
 
 ```text
-1
-2 1
-1 2 2 1
+1 1 2
+4
+2 2 5 4 2
+1 3 1
+0
+0
+3
+2 2 1 3 2
+0
+0
 ```
 
 Output:
 
 ```text
-NO
+5
 ```
 
 ## Explanation / Notes
 
-Both graphs consist of the same undirected edge between vertices 1 and 2. Their only spanning tree uses edge 1, so it cannot be a spanning tree in $A$ and fail in $B$.
+In the sample, contract the weight-5 edge from the initial root to its first child. This promotes the weight-1 edge below that child to the root. The root is then incident to two ordered leaf edges of weights 1 and 2, matching the target. The cost is $1\cdot5=5$.
 
-The condition is directional: it specifically requires a spanning tree of the first graph that fails in the second.
+An expansion groups a consecutive interval of children, so it cannot arbitrarily reorder them. Similarly, contraction preserves the order of the promoted children and of the surrounding siblings. A contracted leaf simply disappears.
 
 ## Constraints
 
-- $1\le t\le2500$.
-- $2\le n\le5000$ per case.
-- $n-1\le m\le\min\left(5000,\frac{n(n-1)}2\right)$.
-- Every endpoint lies in $[1,n]$.
-- $u_A\ne v_A$ and $u_B\ne v_B$ for every edge.
-- Both graphs are undirected, connected, and simple: no self-loops or parallel edges.
-- Across all cases, $\sum n\le5000$ and, independently, $\sum m\le5000$.
-- A spanning tree includes every vertex and exactly $n-1$ of the indexed edges.
-- Time limit: **1 second**. Memory limit: **1024 MiB**.
+- $1\le c_1,c_2,c_3\le10^6$; these coefficients are integers.
+- The initial tree has at most **50** vertices.
+- The target tree has at most **2000** vertices.
+- Both inputs are weighted rooted trees with ordered child lists.
+- Each vertex record contains exactly $k$ child/weight pairs after its child count.
+- A tree with $n$ vertices has $n-1$ parent-child edges; each non-root vertex has exactly one parent.
+- Expansion requires $1\le l\le r\le k$ for the selected parent's current child list.
+- Newly introduced growing/expansion edges cannot be relabeled; relabeled edges cannot be contracted.
+- Time limit: **3 seconds**. Memory limit: **1024 MiB**.
+
+An unambiguous numeric range for edge weights and an explicit root-label convention are not specified.

@@ -1,158 +1,424 @@
+// 信标扫描
+//
+// For a fixed landing point Q the cheapest annulus scans exactly the distances
+// [dmin(Q), dmax(Q)]  (r = dmin, R = dmax), so its area is pi*(dmax^2-dmin^2).
+// Answer = pi/Area * ( Integral_rect dmax^2  -  Integral_rect dmin^2 ).
+//
+// Integral of dmin^2  : nearest-point Voronoi diagram (= dual of Delaunay).
+// Integral of dmax^2  : farthest-point Voronoi diagram (= dual of the
+//                       "farthest" Delaunay triangulation of the hull points).
+//
+// Both diagrams are obtained from a triangulation: the Voronoi cell of a site
+// is the intersection of the half planes bounded by the perpendicular
+// bisectors of its Delaunay neighbours.  We never build the cells explicitly;
+// we clip the (convex) query rectangle against those half planes and
+// integrate x^2+y^2 over the resulting convex polygon.
+
 #include <bits/stdc++.h>
 using namespace std;
-using ull = unsigned long long;
-using i128 = __int128_t;
 
-static const ull CAP = 1000000000000000001ULL; // 1e18 + 1 > max k
+typedef long long ll;
+typedef long double ld;
+typedef __int128 i128;
 
-static inline ull mulc(ull a, ull b) {
-    if (a == 0 || b == 0) return 0;
-    i128 r = (i128)a * (i128)b;
-    return r > (i128)CAP ? CAP : (ull)r;
+struct Pt { ll x, y; };
+
+static inline i128 crossP(Pt o, Pt a, Pt b) {
+    return (i128)(a.x - o.x) * (b.y - o.y) - (i128)(a.y - o.y) * (b.x - o.x);
 }
-static inline ull addc(ull a, ull b) {
-    ull s = a + b;
-    return s > CAP ? CAP : s;
+
+// > 0 : p strictly inside circumcircle of the CCW triangle (a,b,c)
+// < 0 : strictly outside, 0 : cocircular
+static inline int incircleSign(Pt a, Pt b, Pt c, Pt p) {
+    i128 ax = a.x - p.x, ay = a.y - p.y;
+    i128 bx = b.x - p.x, by = b.y - p.y;
+    i128 cx = c.x - p.x, cy = c.y - p.y;
+    i128 det = (ax * ax + ay * ay) * (bx * cy - by * cx)
+             - (bx * bx + by * by) * (ax * cy - ay * cx)
+             + (cx * cx + cy * cy) * (ax * by - ay * bx);
+    return (det > 0) - (det < 0);
+}
+
+// ---------------------------------------------------------------------------
+//  Triangulation with adjacency.  nb[k] is the triangle across the directed
+//  edge (v[k], v[k+1]) ;  -1 means "hull boundary".
+// ---------------------------------------------------------------------------
+struct Tri { int v[3]; int nb[3]; };
+
+static vector<Pt> P;                       // all points
+
+struct Delaunay {
+    vector<Tri> TR;
+    vector<char> dead;
+    vector<int> redirect;
+
+    int newTri(int a, int b, int c) {
+        TR.push_back(Tri{{a, b, c}, {-1, -1, -1}});
+        dead.push_back(0); redirect.push_back(-1);
+        return (int)TR.size() - 1;
+    }
+    int findEdge(int t, int a, int b) const {   // index of directed edge (a,b)
+        for (int k = 0; k < 3; k++)
+            if (TR[t].v[k] == a && TR[t].v[(k + 1) % 3] == b) return k;
+        return -1;
+    }
+    int resolve(int t) const {
+        while (t >= 0 && dead[t]) t = redirect[t];
+        return t;
+    }
+
+    // fan triangulation of the convex hull (hv[0..h-1] CCW, h >= 3)
+    void buildFan(const vector<int>& hv) {
+        int h = (int)hv.size();
+        vector<int> ts;
+        ts.reserve(h - 2);
+        for (int k = 1; k <= h - 2; k++)
+            ts.push_back(newTri(hv[0], hv[k], hv[k + 1]));
+        for (int i = 1; i < (int)ts.size(); i++) {
+            TR[ts[i]].nb[0]   = ts[i - 1];
+            TR[ts[i - 1]].nb[2] = ts[i];
+        }
+    }
+
+    void flip(int t, int k) {
+        int nt = TR[t].nb[k];
+        int a = TR[t].v[k], b = TR[t].v[(k + 1) % 3], c = TR[t].v[(k + 2) % 3];
+        int j = findEdge(nt, b, a);
+        int d = TR[nt].v[(j + 2) % 3];
+        int ob = TR[t].nb[(k + 2) % 3];    // across (c,a)
+        int oa = TR[t].nb[(k + 1) % 3];    // across (b,c)
+        int n1 = TR[nt].nb[(j + 1) % 3];   // across (a,d)
+        int n2 = TR[nt].nb[(j + 2) % 3];   // across (d,b)
+        TR[t].v[0] = c; TR[t].v[1] = a; TR[t].v[2] = d;
+        TR[nt].v[0] = c; TR[nt].v[1] = d; TR[nt].v[2] = b;
+        TR[t].nb[0] = ob; TR[t].nb[1] = n1; TR[t].nb[2] = nt;
+        TR[nt].nb[0] = t; TR[nt].nb[1] = n2; TR[nt].nb[2] = oa;
+        if (ob >= 0) { int e = findEdge(ob, a, c); if (e >= 0) TR[ob].nb[e] = t; }
+        if (n1 >= 0) { int e = findEdge(n1, d, a); if (e >= 0) TR[n1].nb[e] = t; }
+        if (n2 >= 0) { int e = findEdge(n2, b, d); if (e >= 0) TR[n2].nb[e] = nt; }
+        if (oa >= 0) { int e = findEdge(oa, c, b); if (e >= 0) TR[oa].nb[e] = nt; }
+    }
+
+    // sgn = +1 : nearest Delaunay (empty circumcircle)
+    // sgn = -1 : farthest Delaunay (circumcircle contains every point)
+    void runStack(vector<pair<int,int>>& st, int sgn) {
+        while (!st.empty()) {
+            int tt = st.back().first, kk = st.back().second;
+            st.pop_back();
+            int nt = TR[tt].nb[kk];
+            if (nt < 0) continue;
+            int a = TR[tt].v[kk], b = TR[tt].v[(kk + 1) % 3], c = TR[tt].v[(kk + 2) % 3];
+            int j = findEdge(nt, b, a);
+            if (j < 0) continue;
+            int d = TR[nt].v[(j + 2) % 3];
+            if (incircleSign(P[a], P[b], P[c], P[d]) * sgn > 0) {
+                flip(tt, kk);
+                st.push_back({tt, 0}); st.push_back({tt, 1});
+                st.push_back({nt, 1}); st.push_back({nt, 2});
+            }
+        }
+    }
+
+    void legalizeAll(int sgn) {
+        vector<pair<int,int>> st;
+        for (int t = 0; t < (int)TR.size(); t++) {
+            if (dead[t]) continue;
+            for (int k = 0; k < 3; k++)
+                if (TR[t].nb[k] >= 0) st.push_back({t, k});
+        }
+        runStack(st, sgn);
+    }
+
+    int locate(int p, int hint) const {
+        int t = resolve(hint);
+        if (t < 0) t = 0;
+        long long guard = 0;
+        while (true) {
+            int moved = -1;
+            for (int k = 0; k < 3; k++) {
+                if (crossP(P[TR[t].v[k]], P[TR[t].v[(k + 1) % 3]], P[p]) < 0) {
+                    moved = k; break;
+                }
+            }
+            if (moved < 0) return t;
+            t = resolve(TR[t].nb[moved]);
+            if (t < 0) return 0;                 // should not happen
+            if (++guard > 20000000LL) return 0;  // safety net
+        }
+    }
+
+    // p strictly inside triangle t
+    int split3(int t, int p, vector<pair<int,int>>& st) {
+        int a = TR[t].v[0], b = TR[t].v[1], c = TR[t].v[2];
+        int n0 = TR[t].nb[0], n1 = TR[t].nb[1], n2 = TR[t].nb[2];
+        int t1 = newTri(a, b, p), t2 = newTri(b, c, p), t3 = newTri(c, a, p);
+        TR[t1].nb[0] = n0; TR[t1].nb[1] = t2; TR[t1].nb[2] = t3;
+        TR[t2].nb[0] = n1; TR[t2].nb[1] = t3; TR[t2].nb[2] = t1;
+        TR[t3].nb[0] = n2; TR[t3].nb[1] = t1; TR[t3].nb[2] = t2;
+        if (n0 >= 0) { int e = findEdge(n0, b, a); if (e >= 0) TR[n0].nb[e] = t1; }
+        if (n1 >= 0) { int e = findEdge(n1, c, b); if (e >= 0) TR[n1].nb[e] = t2; }
+        if (n2 >= 0) { int e = findEdge(n2, a, c); if (e >= 0) TR[n2].nb[e] = t3; }
+        dead[t] = 1; redirect[t] = t1;
+        st.push_back({t1, 0}); st.push_back({t2, 0}); st.push_back({t3, 0});
+        return t1;
+    }
+
+    // p lies on the (interior) edge k of t -> 4 new triangles
+    int split4(int t, int k, int p, vector<pair<int,int>>& st) {
+        int nt = TR[t].nb[k];
+        int a = TR[t].v[k], b = TR[t].v[(k + 1) % 3], c = TR[t].v[(k + 2) % 3];
+        int j = findEdge(nt, b, a);
+        int d = TR[nt].v[(j + 2) % 3];
+        int X = TR[t].nb[(k + 1) % 3];   // across (b,c)
+        int Y = TR[t].nb[(k + 2) % 3];   // across (c,a)
+        int U = TR[nt].nb[(j + 1) % 3];  // across (a,d)
+        int V = TR[nt].nb[(j + 2) % 3];  // across (d,b)
+        int T1 = newTri(a, p, c), T2 = newTri(p, b, c);
+        int T3 = newTri(b, p, d), T4 = newTri(p, a, d);
+        TR[T1].nb[0] = T4; TR[T1].nb[1] = T2; TR[T1].nb[2] = Y;
+        TR[T2].nb[0] = T3; TR[T2].nb[1] = X; TR[T2].nb[2] = T1;
+        TR[T3].nb[0] = T2; TR[T3].nb[1] = T4; TR[T3].nb[2] = V;
+        TR[T4].nb[0] = T1; TR[T4].nb[1] = U; TR[T4].nb[2] = T3;
+        if (X >= 0) { int e = findEdge(X, c, b); if (e >= 0) TR[X].nb[e] = T2; }
+        if (Y >= 0) { int e = findEdge(Y, a, c); if (e >= 0) TR[Y].nb[e] = T1; }
+        if (U >= 0) { int e = findEdge(U, d, a); if (e >= 0) TR[U].nb[e] = T4; }
+        if (V >= 0) { int e = findEdge(V, b, d); if (e >= 0) TR[V].nb[e] = T3; }
+        dead[t] = 1; redirect[t] = T1;
+        dead[nt] = 1; redirect[nt] = T2;
+        st.push_back({T1, 2}); st.push_back({T2, 1});
+        st.push_back({T3, 2}); st.push_back({T4, 1});
+        return T1;
+    }
+
+    // p lies on a hull edge k of t -> 2 new triangles
+    int split2(int t, int k, int p, vector<pair<int,int>>& st) {
+        int a = TR[t].v[k], b = TR[t].v[(k + 1) % 3], c = TR[t].v[(k + 2) % 3];
+        int X = TR[t].nb[(k + 1) % 3];   // across (b,c)
+        int Y = TR[t].nb[(k + 2) % 3];   // across (c,a)
+        int T1 = newTri(a, p, c), T2 = newTri(p, b, c);
+        TR[T1].nb[0] = -1; TR[T1].nb[1] = T2; TR[T1].nb[2] = Y;
+        TR[T2].nb[0] = -1; TR[T2].nb[1] = X; TR[T2].nb[2] = T1;
+        if (X >= 0) { int e = findEdge(X, c, b); if (e >= 0) TR[X].nb[e] = T2; }
+        if (Y >= 0) { int e = findEdge(Y, a, c); if (e >= 0) TR[Y].nb[e] = T1; }
+        dead[t] = 1; redirect[t] = T1;
+        st.push_back({T1, 2}); st.push_back({T2, 1});
+        return T1;
+    }
+
+    int insertPoint(int p, int hint) {
+        vector<pair<int,int>> st;
+        int t = locate(p, hint);
+        int onEdge = -1;
+        for (int q = 0; q < 3; q++)
+            if (crossP(P[TR[t].v[q]], P[TR[t].v[(q + 1) % 3]], P[p]) == 0) { onEdge = q; break; }
+        int res;
+        if (onEdge < 0)                          res = split3(t, p, st);
+        else if (TR[t].nb[onEdge] >= 0)          res = split4(t, onEdge, p, st);
+        else                                     res = split2(t, onEdge, p, st);
+        runStack(st, +1);
+        return res;
+    }
+
+    vector<pair<int,int>> edges() const {
+        vector<pair<int,int>> E;
+        for (int t = 0; t < (int)TR.size(); t++) {
+            if (dead[t]) continue;
+            for (int k = 0; k < 3; k++) {
+                int a = TR[t].v[k], b = TR[t].v[(k + 1) % 3];
+                if (a > b) swap(a, b);
+                E.push_back({a, b});
+            }
+        }
+        sort(E.begin(), E.end());
+        E.erase(unique(E.begin(), E.end()), E.end());
+        return E;
+    }
+};
+
+// ---------------------------------------------------------------------------
+//  Integration of |Q - s|^2 over a convex polygon (CCW, long double coords)
+// ---------------------------------------------------------------------------
+struct FPt { ld x, y; };
+
+static ld triQuadInt(FPt A, FPt B, FPt C, ld sx, ld sy) {
+    ld ux = B.x - A.x, uy = B.y - A.y;
+    ld vx = C.x - A.x, vy = C.y - A.y;
+    ld area2 = ux * vy - uy * vx;
+    if (area2 <= 0) return 0;                 // degenerate / wrong orientation
+    ld area = area2 * 0.5L;
+    ld Ax = A.x, Ay = A.y;
+    // trace of E[Q Q^T] for Q uniform in the triangle
+    ld tr = Ax * Ax + Ay * Ay
+          + (2.0L / 3.0L) * (Ax * ux + Ay * uy + Ax * vx + Ay * vy)
+          + (1.0L / 6.0L) * (ux * ux + uy * uy + vx * vx + vy * vy)
+          + (1.0L / 6.0L) * (ux * vx + uy * vy);
+    ld ex = (A.x + B.x + C.x) / 3.0L;
+    ld ey = (A.y + B.y + C.y) / 3.0L;
+    ld val = tr - 2.0L * (sx * ex + sy * ey) + (sx * sx + sy * sy);
+    return area * val;
+}
+
+static ld polyQuadInt(const vector<FPt>& poly, ld sx, ld sy) {
+    int m = (int)poly.size();
+    if (m < 3) return 0;
+    ld s = 0;
+    for (int i = 1; i + 1 < m; i++) s += triQuadInt(poly[0], poly[i], poly[i + 1], sx, sy);
+    return s;
+}
+
+// keep A*x + B*y <= C
+static void clipHalf(vector<FPt>& poly, ld A, ld B, ld C) {
+    if (poly.empty()) return;
+    vector<FPt> out;
+    int m = (int)poly.size();
+    out.reserve(m + 2);
+    for (int i = 0; i < m; i++) {
+        FPt p1 = poly[i], p2 = poly[(i + 1) % m];
+        ld v1 = A * p1.x + B * p1.y - C;
+        ld v2 = A * p2.x + B * p2.y - C;
+        if (v1 <= 0) out.push_back(p1);
+        if ((v1 < 0 && v2 > 0) || (v1 > 0 && v2 < 0)) {
+            ld t = v1 / (v1 - v2);
+            out.push_back({p1.x + t * (p2.x - p1.x), p1.y + t * (p2.y - p1.y)});
+        }
+    }
+    poly.swap(out);
+}
+
+static ll xl_, yl_, xr_, yr_;
+
+// integral over the rectangle of the cell of site s, given its neighbours
+static ld cellIntegral(int s, const vector<int>& nbr, bool farthest) {
+    vector<FPt> poly = {{(ld)xl_, (ld)yl_}, {(ld)xr_, (ld)yl_},
+                        {(ld)xr_, (ld)yr_}, {(ld)xl_, (ld)yr_}};
+    ld sx = (ld)P[s].x, sy = (ld)P[s].y;
+    ll s2 = P[s].x * P[s].x + P[s].y * P[s].y;
+    for (int j : nbr) {
+        ll A = 2 * (P[j].x - P[s].x);
+        ll B = 2 * (P[j].y - P[s].y);
+        ll C = (P[j].x * P[j].x + P[j].y * P[j].y) - s2;
+        if (!farthest) clipHalf(poly, (ld)A, (ld)B, (ld)C);
+        else           clipHalf(poly, (ld)(-A), (ld)(-B), (ld)(-C));
+        if ((int)poly.size() < 3) return 0;
+    }
+    return polyQuadInt(poly, sx, sy);
 }
 
 int main() {
+    scanf("%lld %lld %lld %lld", &xl_, &yl_, &xr_, &yr_);
     int n;
-    ull k;
-    if (scanf("%d %llu", &n, &k) != 2) return 0;
+    scanf("%d", &n);
+    P.resize(n);
+    for (int i = 0; i < n; i++) scanf("%lld %lld", &P[i].x, &P[i].y);
 
-    // ---------- binomial coefficients (capped) ----------
-    vector<vector<ull>> C(n + 1, vector<ull>(n + 1, 0));
-    for (int S = 0; S <= n; S++) {
-        C[S][0] = 1;
-        for (int m = 1; m <= S; m++) {
-            ull v = C[S - 1][m - 1];
-            if (m <= S - 1) v = addc(v, C[S - 1][m]);
-            C[S][m] = v;
+    // ---------------- convex hull (CCW, no collinear points) ----------------
+    vector<int> ord(n);
+    iota(ord.begin(), ord.end(), 0);
+    sort(ord.begin(), ord.end(), [](int a, int b) {
+        if (P[a].x != P[b].x) return P[a].x < P[b].x;
+        return P[a].y < P[b].y;
+    });
+    vector<int> H;
+    H.reserve(2 * n);
+    for (int i = 0; i < n; i++) {
+        while (H.size() >= 2 && crossP(P[H[H.size() - 2]], P[H[H.size() - 1]], P[ord[i]]) <= 0)
+            H.pop_back();
+        H.push_back(ord[i]);
+    }
+    int lower = (int)H.size();
+    for (int i = n - 2; i >= 0; i--) {
+        while ((int)H.size() > lower &&
+               crossP(P[H[H.size() - 2]], P[H[H.size() - 1]], P[ord[i]]) <= 0)
+            H.pop_back();
+        H.push_back(ord[i]);
+    }
+    H.pop_back();                          // last == first
+    vector<int> hull = H;                  // CCW
+    int h = (int)hull.size();
+
+    ld Imin = 0, Imax = 0;
+
+    if (h == 2) {
+        // ---------------- all points are collinear ----------------
+        Pt d{P[hull[1]].x - P[hull[0]].x, P[hull[1]].y - P[hull[0]].y};
+        vector<int> s2(n);
+        for (int i = 0; i < n; i++) s2[i] = i;
+        sort(s2.begin(), s2.end(), [&](int a, int b) {
+            ll pa = (P[a].x - P[hull[0]].x) * d.x + (P[a].y - P[hull[0]].y) * d.y;
+            ll pb = (P[b].x - P[hull[0]].x) * d.x + (P[b].y - P[hull[0]].y) * d.y;
+            return pa < pb;
+        });
+        for (int i = 0; i < n; i++) {
+            vector<int> nb;
+            if (i > 0) nb.push_back(s2[i - 1]);
+            if (i + 1 < n) nb.push_back(s2[i + 1]);
+            Imin += cellIntegral(s2[i], nb, false);
         }
-    }
-
-    // ---------- Euler zigzag numbers A[m]: #alternating perms of length m
-    // with a fixed starting direction (both directions have equal counts).
-    // U[i][j]: pattern starts with ascent, first element has rank j among i.
-    // D[i][j]: pattern starts with descent,  first element has rank j.
-    vector<ull> A(n + 1, 0);
-    vector<vector<ull>> U(n + 1, vector<ull>(n + 2, 0));
-    vector<vector<ull>> D(n + 1, vector<ull>(n + 2, 0));
-    A[0] = 1;
-    if (n >= 1) {
-        U[1][1] = 1;
-        D[1][1] = 1;
-        A[1] = 1;
-    }
-    for (int i = 2; i <= n; i++) {
-        // U[i][j] = sum_{t=j}^{i-1} D[i-1][t]
-        for (int j = i - 1; j >= 1; j--) U[i][j] = addc(U[i][j + 1], D[i - 1][j]);
-        // D[i][j] = sum_{t=1}^{j-1} U[i-1][t]
-        for (int j = 1; j <= i; j++) D[i][j] = addc(D[i][j - 1], U[i - 1][j - 1]);
-        ull s = 0;
-        for (int j = 1; j <= i; j++) s = addc(s, U[i][j]);
-        A[i] = s;
-    }
-
-    auto w = [&](int S, int m) -> ull {
-        // min( C(S,m) * A[m], CAP )
-        if (m == 0) return 1;
-        if (m < 0 || S < m) return 0;
-        return mulc(C[S][m], A[m]);
-    };
-
-    // total number of valid permutations
-    ull total0 = addc(A[n], A[n]);
-    if (k > total0) {
-        printf("-1\n");
-        return 0;
-    }
-
-    vector<int> T(n + 1, 0); // T[i] = placement time (0 => free/unplaced)
-    vector<int> q(n + 1, 0); // q[index] = value placed there
-    bool validA = true, validB = true;
-
-    vector<int> istart(n + 1), iend(n + 1), isz(n + 1), iidOf(n + 1);
-    vector<ull> S(n + 1), pref(n + 2), suf1(n + 2);
-
-    bool done = false;
-    for (int j = 1; j <= n; j++) {
-        // ---- build maximal free intervals ----
-        int r = 0;
-        for (int i = 1; i <= n;) {
-            if (T[i] != 0) { i++; continue; }
-            int a = i;
-            while (i <= n && T[i] == 0) i++;
-            int b = i - 1;
-            istart[r] = a; iend[r] = b; isz[r] = b - a + 1;
-            for (int t = a; t <= b; t++) iidOf[t] = r;
-            r++;
+        // farthest: only the two extreme points matter
+        for (int e = 0; e < 2; e++) {
+            int s = hull[e], o = hull[1 - e];
+            vector<int> nb{o};
+            Imax += cellIntegral(s, nb, true);
         }
-        // prefix sums of interval sizes
-        {
-            int s = 0;
-            for (int t = 0; t < r; t++) { s += isz[t]; S[t] = (ull)s; }
+    } else {
+        // ---------------- nearest diagram: full Delaunay ----------------
+        Delaunay D;
+        D.buildFan(hull);
+        D.legalizeAll(+1);
+
+        // grid of location hints
+        ll mnx = P[0].x, mxx = P[0].x, mny = P[0].y, mxy = P[0].y;
+        for (int i = 1; i < n; i++) {
+            mnx = min(mnx, P[i].x); mxx = max(mxx, P[i].x);
+            mny = min(mny, P[i].y); mxy = max(mxy, P[i].y);
         }
-        pref[0] = 1;
-        for (int t = 0; t < r; t++) pref[t + 1] = mulc(pref[t], w((int)S[t], isz[t]));
-        suf1[r] = 1;
-        for (int t = r - 1; t >= 0; t--) suf1[t] = mulc(suf1[t + 1], w((int)S[t] - 1, isz[t]));
+        const int G = 128;
+        ll wSpan = mxx - mnx + 1, hSpan = mxy - mny + 1;
+        vector<int> grid((size_t)G * G, -1);
+        auto cellOf = [&](int p) -> size_t {
+            int cx = (int)((P[p].x - mnx) * (ll)G / wSpan);
+            int cy = (int)((P[p].y - mny) * (ll)G / hSpan);
+            cx = max(0, min(G - 1, cx)); cy = max(0, min(G - 1, cy));
+            return (size_t)cy * G + cx;
+        };
 
-        // ---- try candidate indices in increasing order ----
-        int chosen = -1;
-        for (int x = 1; x <= n; x++) {
-            if (T[x] != 0) continue;
-
-            bool lEx = (x > 1), rEx = (x < n);
-            bool lP = lEx && T[x - 1] != 0, lF = lEx && T[x - 1] == 0;
-            bool rP = rEx && T[x + 1] != 0, rF = rEx && T[x + 1] == 0;
-            bool okA = validA, okB = validB;
-            bool hasPlacedNbr = lP || rP;
-            bool hasFreeNbr = lF || rF;
-            int par = x & 1;
-            // pattern A: asc at odd index, desc at even index
-            if (hasPlacedNbr && par != 0) okA = false; // need x even
-            if (hasFreeNbr && par != 1) okA = false;   // need x odd
-            // pattern B: desc at odd index, asc at even index
-            if (hasPlacedNbr && par != 1) okB = false; // need x odd
-            if (hasFreeNbr && par != 0) okB = false;   // need x even
-            if (!okA && !okB) continue;
-
-            int u = iidOf[x];
-            int a = istart[u], b = iend[u], M = isz[u];
-            int before = (u == 0 ? 0 : (int)S[u - 1]); // free slots in earlier intervals
-            ull local;
-            if (M == 1) local = 1;
-            else if (x == a || x == b) local = w((int)S[u] - 1, M - 1);
-            else local = mulc(w(before + (x - a), x - a), w((int)S[u] - 1, b - x));
-
-            ull base = mulc(mulc(pref[u], local), suf1[u + 1]);
-            ull tot = base;
-            if (okA && okB) tot = addc(base, base);
-
-            if (k > tot) {
-                k -= tot;
-            } else {
-                chosen = x;
-                validA = okA;
-                validB = okB;
-                break;
-            }
+        vector<char> onHull(n, 0);
+        for (int v : hull) onHull[v] = 1;
+        vector<int> ord;
+        for (int i = 0; i < n; i++) if (!onHull[i]) ord.push_back(i);
+        { mt19937 rng(1234567u); shuffle(ord.begin(), ord.end(), rng); }
+        int hint = 0;
+        for (int i : ord) {
+            size_t c = cellOf(i);
+            int st = grid[c] >= 0 ? grid[c] : hint;
+            int nt = D.insertPoint(i, st);
+            grid[c] = nt;
+            hint = nt;
+            // refresh the cell of the inserted point (it moved)
+            grid[cellOf(i)] = nt;
         }
+        vector<int> hintUsed; (void)hintUsed;
 
-        if (chosen < 0) { done = true; break; }
-        T[chosen] = j;
-        q[chosen] = j;
+        vector<pair<int,int>> E = D.edges();
+        vector<vector<int>> nbr(n);
+        for (auto& e : E) { nbr[e.first].push_back(e.second); nbr[e.second].push_back(e.first); }
+        for (int i = 0; i < n; i++) Imin += cellIntegral(i, nbr[i], false);
+
+        // ---------------- farthest diagram: on hull points only ----------------
+        Delaunay F;
+        F.buildFan(hull);
+        F.legalizeAll(-1);
+        vector<pair<int,int>> EF = F.edges();
+        vector<vector<int>> nbrF(n);
+        for (auto& e : EF) { nbrF[e.first].push_back(e.second); nbrF[e.second].push_back(e.first); }
+        for (int v : hull) Imax += cellIntegral(v, nbrF[v], true);
     }
 
-    if (done) {
-        printf("-1\n");
-        return 0;
-    }
-
-    // invert: p[q[i]] = i
-    vector<int> p(n + 1, 0);
-    for (int i = 1; i <= n; i++) p[q[i]] = i;
-    for (int i = 1; i <= n; i++) printf("%d%c", p[i], i == n ? '\n' : ' ');
+    ld area = (ld)(xr_ - xl_) * (ld)(yr_ - yl_);
+    ld diff = Imax - Imin;
+    if (diff < 0 && diff > -1e-6L * max((ld)1, fabsl(Imax))) diff = 0;
+    ld ans = acosl(-1.0L) * diff / area;
+    if (ans < 0) ans = 0;
+    printf("%.12Lf\n", ans);
     return 0;
 }

@@ -1,59 +1,48 @@
-# 61. Athlete Welcome Ceremony
-
 ## Problem Description
 
-A row of $n$ positions must be filled with letters `a`, `b`, and `c`, with different letters at every pair of adjacent positions. A given string $s$ fixes some letters; each `?` is a position that must be assigned a letter.
+Initially, $n$ walkers and one torch are on the same bank of a river. A bridge can carry at most $c$ walkers at once. Every crossing, in either direction, requires the torch, so someone must carry it back whenever another outward crossing still needs it.
 
-For each of $Q$ independent plans $(x,y,z)$, count assignments using at most $x$ new `a` letters, $y$ new `b` letters, and $z$ new `c` letters. These limits apply only to the original `?` positions, not to letters already fixed in $s$.
-
-Assignments differ if any position receives a different letter. Copies of the same letter are indistinguishable. Return every count modulo $10^9+7$.
+Walker $i$ takes $t_i$ time to cross. A group crosses together at its slowest member's speed. Find the minimum total time until all walkers have reached the other bank.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n$ and $Q$. The second line contains the length-$n$ string $s$.
-
-Each of the next $Q$ lines contains $x,y,z$ for one plan.
+The first line contains $n$ and $c$. The next line contains $t_1,\ldots,t_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $Q$ lines, each containing the number of valid assignments for the corresponding plan, modulo $1000000007$.
+Print the minimum total crossing time.
 
 ## Examples
 
 Input:
 
 ```text
-6 1
-a?b??c
-2 2 2
+4 2
+1 2 10 5
 ```
 
 Output:
 
 ```text
-3
+17
 ```
 
 ## Explanation / Notes
 
-The three valid strings are `acbabc`, `acbcac`, and `acbcbc`.
-
-Plans give upper bounds, so unused new letters are allowed. The original fixed letters cannot be changed. Every adjacent pair must differ after all question marks have been replaced.
+The walkers with times 1 and 2 cross in 2 time units; the time-1 walker returns; the time-5 and time-10 walkers cross; the time-2 walker returns; then the two fastest cross again. The total is $2+1+10+2+2=17$.
 
 ## Constraints
 
-- $1\le n\le300$.
-- $1\le Q\le10^5$.
-- $|s|=n$ and every character is one of `a`, `b`, `c`, `?`.
-- For every plan, $0\le x,y,z\le300$; these values are integers.
-- $x+y+z$ is at least the number of `?` characters in $s$.
-- Plans are independent and all refer to the same original string.
-- There is no promise that the fixed letters already permit a valid final arrangement; a plan may have answer zero.
-- Arithmetic modulus: $10^9+7$.
-- Time limit: **2.5 seconds**. Memory limit: **1024 MB**.
-
-There is one instance per input.
+- $2\le n\le10^4$.
+- $2\le c\le10^4$.
+- $1\le t_i\le10^9$ for all $i$.
+- All input values are integers.
+- The capacity may exceed $n$.
+- The crossing times need not be sorted or distinct.
+- There is exactly one torch, and every crossing must include it.
+- There is one test instance per input.
+- Time limit: **4 seconds**.

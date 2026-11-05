@@ -1,82 +1,75 @@
-// C++17 implementation of the algorithm discussed at QOJ discussion 2639.
-// Same polynomial/diagonal recurrence; no answer tables.
 #include <bits/stdc++.h>
 using namespace std;
-constexpr int MOD=998244353;
-struct Mint {
-    int v;
-    Mint(long long x=0){x%=MOD;if(x<0)x+=MOD;v=int(x);}
-    Mint& operator+=(Mint b){v+=b.v;if(v>=MOD)v-=MOD;return *this;}
-    Mint& operator-=(Mint b){v-=b.v;if(v<0)v+=MOD;return *this;}
-    Mint& operator*=(Mint b){v=int(1LL*v*b.v%MOD);return *this;}
-    friend Mint operator+(Mint a,Mint b){return a+=b;}
-    friend Mint operator-(Mint a,Mint b){return a-=b;}
-    friend Mint operator*(Mint a,Mint b){return a*=b;}
-    Mint pow(int e)const{Mint a=*this,r=1;for(;e;e>>=1,a*=a)if(e&1)r*=a;return r;}
-};
-void radix(vector<int>& a){
-    vector<int>b(a.size());
-    for(int shift:{0,9}){
-        array<int,512>cnt{};
-        for(int x:a)++cnt[(x>>shift)&511];
-        int s=0;
-        for(int&c:cnt){int z=c;c=s;s+=z;}
-        for(int x:a)b[cnt[(x>>shift)&511]++]=x;
-        a.swap(b);
-    }
-}
-array<int,3> solve(int n,int m,int k,vector<int> pieces){
-    radix(pieces);
-    int K=k+1,lim=max(n+k,m);
-    vector<Mint> fac(lim+1),ifac(lim+1),inv(lim+1);
-    fac[0]=1;
-    for(int i=1;i<=lim;i++)fac[i]=fac[i-1]*i;
-    ifac[lim]=fac[lim].pow(MOD-2);
-    for(int i=lim;i>0;i--)ifac[i-1]=ifac[i]*i;
-    for(int i=1;i<=lim;i++)inv[i]=fac[i-1]*ifac[i];
-    Mint inverse_total=fac[k]*ifac[n+k]*ifac[m];
-    vector<Mint>f(K+2),prev(K+2),nxt(K+2);f[K]=1;
-    int A=0,B=0;
-    for(int at=int(pieces.size())-1;at>=0;){
-        int value=pieces[at]>>1,p=0,q=0;
-        while(at>=0&&(pieces[at]>>1)==value){if(pieces[at]&1)++q;else ++p;--at;}
-        inverse_total*=fac[p]*fac[q];
-        int a=A+K,b=B+1,u=max(p-q,0),v=max(q-p,0);
-        for(int t=0;t<u;t++)for(int i=0;i<=K;i++)f[i]*=Mint(a+t-i)*inv[t+1];
-        for(int t=0;t<v;t++)for(int i=0;i<=K;i++)
-            f[i]=(Mint(b+t-i)*f[i]+Mint(i+1)*f[i+1])*inv[t+1];
-        fill(prev.begin(),prev.end(),Mint(0));
-        int alpha=a+p-q;
-        for(int t=0;t<min(p,q);t++){
-            ++u;++v;
-            long long C=1LL*(a+u-1)*(b+v-1)+1LL*(u-1)*(v-1);
-            long long D=1LL*(a+u-2)*(b+v-2);
-            Mint scale=inv[u]*inv[v];
-            for(int i=0;i<=K;i++){
-                long long diagonal=C-1LL*i*(a+b-1-i);
-                long long upper=1LL*(i+1)*(alpha-i-1);
-                nxt[i]=(Mint(diagonal)*f[i]+Mint(upper)*f[i+1]-Mint(D)*prev[i])*scale;
-            }
-            prev.swap(f);f.swap(nxt);
+using U=__uint128_t;
+constexpr int LIMIT=24;
+struct Counter{
+    U c[LIMIT+1][LIMIT+1]{},a[LIMIT+1][LIMIT+1]{},e[LIMIT+1]{};
+    Counter(){
+        c[0][0]=a[0][0]=e[0]=1;
+        for(int i=1;i<=LIMIT;i++){
+            c[i][0]=c[i][i]=1;
+            for(int j=1;j<i;j++)c[i][j]=c[i-1][j-1]+c[i-1][j];
+            for(int j=1;j<=i;j++)a[i][j]=a[i][j-1]+a[i-1][i-j];
+            e[i]=a[i][i];
         }
-        A+=p;B+=q;
+        // Computed at runtime; this threshold justifies the forced prefix.
+        assert(e[23]>=U(1000000000000000000ULL));
     }
-    Mint y=f[0]*inverse_total,draw=f[1]*inv[K]*inverse_total;
-    return {(Mint(1)-y-draw).v,y.v,draw.v};
+    U split(int l,int r)const{return c[l+r][l]*e[l]*e[r];}
+    vector<int> unrank(int n,U k,bool fixed_even_valleys)const{
+        assert(n<=LIMIT);
+        vector<int>used(n+2),left(n+2),right(n+2),out;
+        int parity=0;U total=e[n];
+        if(!fixed_even_valleys){
+            if(k>2*e[n])return {};
+            for(int v=1;v<=n;v++){
+                U count=split(v-1,n-v);
+                if(k>count)k-=count;
+                else{used[v]=1;out.push_back(v);parity=v%2;total=count;break;}
+            }
+        }
+        while((int)out.size()<n){
+            int remain=n-out.size();
+            for(int i=1;i<=n;){
+                if(used[i]){i++;continue;}
+                int j=i;while(j<=n&&!used[j])j++;
+                for(int v=i;v<j;v++){left[v]=i;right[v]=j-1;}i=j;
+            }
+            bool found=false;
+            for(int v=1;v<=n;v++)if(!used[v]){
+                if(v%2!=parity&&((v>1&&!used[v-1])||(v<n&&!used[v+1])))continue;
+                int len=right[v]-left[v]+1;
+                U numerator=(total/e[len])*split(v-left[v],right[v]-v)*len;
+                assert(total%e[len]==0&&numerator%remain==0);
+                U count=numerator/remain;
+                if(k>count)k-=count;
+                else{used[v]=1;out.push_back(v);total=count;found=true;break;}
+            }
+            assert(found);
+        }
+        return out;
+    }
+};
+void solve(const Counter&counter,int n,unsigned long long k){
+    bool first=true;
+    auto emit=[&](int v){if(!first)cout<<' ';first=false;cout<<v;};
+    if(n<=23){
+        auto answer=counter.unrank(n,U(k),false);
+        if(answer.empty()){cout<<-1<<'\n';return;}
+        for(int v:answer)emit(v);
+    }
+    else{
+        emit(1);int base=1;
+        while(n-base>24){emit(base+2);emit(base+1);base+=2;}
+        for(int v:counter.unrank(n-base,U(k),true))emit(base+v);
+    }
+    cout<<'\n';
 }
 int main(){
-    ios::sync_with_stdio(false);cin.tie(nullptr);
-    int cases=1;
+    ios::sync_with_stdio(false);cin.tie(nullptr);Counter counter;int n;unsigned long long k;
 #ifdef BATCH_TEST
-    cin>>cases;
+    while(cin>>n>>k)solve(counter,n,k);
+#else
+    if(cin>>n>>k)solve(counter,n,k);
 #endif
-    while(cases--){
-        int n,m,k;if(!(cin>>n>>m>>k))return 1;
-        vector<int>v;v.reserve(n+m);
-        for(int i=0,x;i<n;i++){cin>>x;v.push_back(x<<1);}
-        for(int i=0,x;i<m;i++){cin>>x;v.push_back((x<<1)|1);}
-        auto ans=solve(n,m,k,move(v));
-        for(int x:ans)cout<<x<<'\n';
-    }
-    return 0;
 }
