@@ -1,64 +1,61 @@
 ## Problem Description
 
-A pool contains $n$ cards in $m$ types. Type $i$ initially has $a_i$ cards, and the target collection requires $b_i$ cards of that type.
+For integers $f_0,\ldots,f_{n-1}$, define
 
-Each refresh draws one card uniformly from the cards currently remaining in the pool. If the target still needs that type, keep the card and remove it from the pool. Otherwise, immediately return it to the pool. Every draw counts as a refresh, including a draw whose card is returned. Continue until all target counts have been collected.
+$$F_t=\sum_{s=0}^{n-1} f_s\exp\left(-\frac{2\pi\mathrm{i}st}{n}\right),\qquad 0\le t<n,$$
 
-Compute the expected number of refreshes. Represent this rational expectation modulo $998244353$.
+where $\mathrm{i}^2=-1$ and $\exp(\mathrm{i}\theta)=\cos\theta+\mathrm{i}\sin\theta$.
+
+The index $k$ is fixed. Replace $f_k$ by any integer and minimize
+
+$$\max_{0\le t<n}|F_t|.$$
+
+Here $|p+q\mathrm{i}|=\sqrt{p^2+q^2}$ is the complex modulus.
 
 ## Input Format
 
 Read from standard input.
 
-Read three lines:
-
-1. $n,m$;
-2. $a_1,\ldots,a_m$;
-3. $b_1,\ldots,b_m$.
-
-Integers on the same line are separated by spaces or tabs. Trailing whitespace at the end of a line or the file is allowed; no additional non-whitespace content is allowed.
+The first line contains $n,k$. The second line contains $f_0,f_1,\ldots,f_{n-1}$ in that order. Indices are zero-based.
 
 ## Output Format
 
 Write to standard output.
 
-Let the expectation in lowest terms be $p/q$. Print
+Print the minimum achievable maximum complex modulus as one finite real number on one line; do not print the replacement integer. Outputs such as `nan` or `inf`, and any extra content, are not allowed. For submitted value $a$ and reference value $b$, the acceptance condition is
 
-$$p\,q^{-1}\pmod{998244353}$$
-
-as an integer from 0 through $998244352$. It is guaranteed that the denominator is not divisible by the modulus.
+$$\frac{|a-b|}{\max(1,|b|)}\le10^{-9}.$$
 
 ## Examples
 
 Input:
 
 ```text
-2 2
-1 1
-1 1
+3 2
+1 1 0
 ```
 
 Output:
 
 ```text
-2
+2.0
 ```
 
 ## Explanation / Notes
 
-A returned card remains available for later refreshes. A kept card is no longer eligible to be drawn. Sampling is uniform over individual remaining cards, so the probability of a type depends on its current multiplicity.
+Only the entry at the supplied index $k$ may change. Its new value must be an integer, but it is **not** restricted to the input range $[-2000,2000]$; any integer is allowed.
 
-In the example, both cards are required, so every draw keeps a card and exactly two refreshes are needed. If every $b_i$ is zero, the target is already complete and the expectation is zero.
+The transform is not divided by $n$ or $\sqrt n$. The same definition applies when $n=1$. The unchanged choice is permitted. For the sample, retaining the last entry as 0 yields a maximum modulus of 2, which is optimal.
 
 ## Constraints
 
 - There is one input instance.
-- $1\le n\le2000$.
-- $1\le m\le\min(n,50)$.
-- $1\le a_i\le n$ and $\sum_{i=1}^{m}a_i=n$.
-- $0\le b_i\le a_i$ for every type.
-- All input counts are integers.
-- Empty target requirements are allowed, including $b_i=0$ for every type.
-- For the reduced expectation $p/q$, $q\not\equiv0\pmod{998244353}$.
-- Time limit: 0.5 seconds.
+- $1\le n\le100000$.
+- $0\le k<n$.
+- Initially, every $f_i$ is an integer satisfying $-2000\le f_i\le2000$.
+- The replacement value of $f_k$ is an arbitrary integer; no finite replacement bound is specified.
+- The transform contains $n$ complex values indexed from 0 through $n-1$.
+- The required absolute/relative error is at most $10^{-9}$ under the formula in Output Format.
+- Each official test case is scored independently; there are no subtasks.
+- Time limit: 1 second.
 - Memory limit: 256 MB.

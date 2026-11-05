@@ -1,25 +1,22 @@
 ## Problem Description
 
-There are $n$ players at coordinates $1,2,\ldots,n$ on a line. Each faces left or right and initially has normal size.
+Given $n$ positive integers $a_1,\ldots,a_n$, calculate
 
-Choose a permutation $p$ of the players as their action order. When player $x$ gets a turn:
+$$\sum_{S\subseteq\{1,\ldots,n\}}\varphi\left(\prod_{i\in S}a_i\right)\pmod{998244353}.$$
 
-- If already shrunk, the player does nothing.
-- Otherwise, the player fires in their facing direction. The first player in that direction who has not been shrunk is hit and immediately shrinks. If there is no such player, the shot hits nobody.
-
-For every $k=1,\ldots,n$, count the permutations that leave exactly $k$ players unshrunk after all turns. Output these counts modulo $998244353$.
+Here $\varphi(x)$ is Euler's totient: the number of integers in $[1,x]$ that are coprime to $x$. The empty product is defined to be 1, and $\varphi(1)=1$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by a string $s$ of length $n$. Character `L` means the corresponding player faces toward decreasing coordinates; `R` means increasing coordinates.
+Read $n$, then the $n$ integers $a_1,\ldots,a_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ integers on one line. The $k$-th integer is the number of action permutations leaving exactly $k$ unshrunk players, modulo $998244353$.
+Print the requested sum modulo $998244353$.
 
 ## Examples
 
@@ -28,25 +25,28 @@ Print $n$ integers on one line. The $k$-th integer is the number of action permu
 Input:
 
 ```text
-2
-RL
+3
+1 2 3
 ```
 
 Output:
 
 ```text
-2 0
+12
 ```
 
 ## Explanation / Notes
 
-Shrunk players are skipped when a shot searches for its target. A player may be hit before their own scheduled turn, in which case that turn is skipped. Each original player appears once in the action permutation.
+For the example, the eight index subsets produce products $1,1,2,2,3,3,6,6$. Since $\varphi(1)=\varphi(2)=1$ and $\varphi(3)=\varphi(6)=2$, their sum is $4\cdot1+4\cdot2=12$.
+
+Subsets are subsets of indices. Different subsets still contribute separately when their products are equal. The empty subset contributes 1.
 
 ## Constraints
 
 - One test case.
-- $2\le n\le500$.
-- $|s|=n$ and every character belongs to $\{\texttt{L},\texttt{R}\}$.
-- All $n!$ possible action permutations are counted.
-- Modulus: $998244353$.
-- Time limit: 1 second; memory limit: 512 MB.
+- $1\le n\le2000$.
+- $1\le a_i\le3000$ for every index.
+- Equal input values are allowed.
+- Include all $2^n$ subsets, including the empty subset.
+- Modulus: the prime $998244353$.
+- Time limit: 2 seconds; memory limit: 512 MB.

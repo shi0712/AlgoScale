@@ -1,307 +1,215 @@
-// 树海归航 / standard solution. Expected Treap-union algorithm.
-// No answer tables. C++17; see admin/editorial.md for proof and arithmetic model.
 #include <bits/stdc++.h>
 using namespace std;
-using Real = long double;
+using i64 = long long;
+using i128 = __int128_t;
 
-// 一段函数：y(x) = m*x + b；起点收益函数的导数为 p。
-struct Line {
-    Real m = 0, b = 0, p = 0;
-};
+// All scaled lengths, scan coordinates and scan accumulators are 128-bit.
+string decimal(i128 x) {
+    if (x == 0) return "0";
+    string s;
+    while (x) { s += char('0' + x % 10); x /= 10; }
+    reverse(s.begin(), s.end());
+    return s;
+}
 
-// x' = a*x + b*y + c
-// y' = d*x + e*y + f
-// m_new = (d + e*m) / (a + b*m)
-// p_new = (g + h*m + i*p) / (a + b*m)
-struct Tag {
-    Real a = 1, b = 0, c = 0;
-    Real d = 0, e = 1, f = 0;
-    Real g = 0, h = 0, i = 1;
-};
-
-struct Node {
-    int l = 0, r = 0;
-    uint64_t priority = 0;
-    Real x = 0, y = 0, m = 0, p = 0;
-    Tag tag;
-    bool dirty = false;
-};
-
-struct Event {
-    Real x, p;
-};
-
-class CurveTreap {
-    vector<Node> tr;
-    mt19937_64 &rng;
-
-    static Tag compose(const Tag &u, const Tag &v) {
-        // 返回复合变换 u(v(.))
-        Tag w;
-        w.a = u.a*v.a + u.b*v.d;
-        w.b = u.a*v.b + u.b*v.e;
-        w.c = u.a*v.c + u.b*v.f + u.c;
-        w.d = u.d*v.a + u.e*v.d;
-        w.e = u.d*v.b + u.e*v.e;
-        w.f = u.d*v.c + u.e*v.f + u.f;
-        w.g = u.g*v.a + u.h*v.d + u.i*v.g;
-        w.h = u.g*v.b + u.h*v.e + u.i*v.h;
-        w.i = u.i*v.i;
-        return w;
-    }
-
-    void apply(int u, const Tag &t) {
-        if (!u) return;
-        Node &v = tr[u];
-        Real x = v.x, y = v.y, m = v.m, p = v.p;
-        Real den = t.a + t.b*m;
-        v.x = t.a*x + t.b*y + t.c;
-        v.y = t.d*x + t.e*y + t.f;
-        v.m = (t.d + t.e*m) / den;
-        v.p = (t.g + t.h*m + t.i*p) / den;
-        v.tag = v.dirty ? compose(t, v.tag) : t;
-        v.dirty = true;
-    }
-
-    void push(int u) {
-        if (!u || !tr[u].dirty) return;
-        Tag t = tr[u].tag;
-        apply(tr[u].l, t);
-        apply(tr[u].r, t);
-        tr[u].tag = Tag{};
-        tr[u].dirty = false;
-    }
-
-    Line rightLine(int u) const {
-        const Node &v = tr[u];
-        return {v.m, v.y - v.m*v.x, v.p};
-    }
-
-    // 整棵 Treap：y += s.m*x + s.b，p += s.p。
-    void addLine(int u, const Line &s) {
-        if (!u || (s.m == 0 && s.b == 0 && s.p == 0)) return;
-        Node &v = tr[u];
-        v.y += s.m*v.x + s.b;
-        v.m += s.m;
-        v.p += s.p;
-        Tag &t = v.tag;
-        t.d += s.m*t.a;
-        t.e += s.m*t.b;
-        t.f += s.m*t.c + s.b;
-        t.g += s.p*t.a;
-        t.h += s.p*t.b;
-        v.dirty = true;
-    }
-
-    // 按横坐标 x 分裂，同时返回 x 右侧的线性段。
-    // 恰好位于 x 的断点会与另一棵 Treap 的根合并。
-    void split(int u, Real x, int &l, int &r, Line &mid) {
-        if (!u) {
-            l = r = 0;
-            return;
+// Deterministic linear-time selection, in-place, [left,right), 0-based kth.
+i128 selectK(vector<i128>& v, int left, int right, int kth) {
+    while (true) {
+        if (right - left <= 32) {
+            sort(v.begin() + left, v.begin() + right);
+            return v[kth];
         }
-        push(u);
-        if (tr[u].x == x) {
-            l = tr[u].l;
-            r = tr[u].r;
-            mid = rightLine(u);
-        } else if (tr[u].x < x) {
-            mid = rightLine(u);
-            int a, b;
-            split(tr[u].r, x, a, b, mid);
-            tr[u].r = a;
-            l = u;
-            r = b;
-        } else {
-            int a, b;
-            split(tr[u].l, x, a, b, mid);
-            tr[u].l = b;
-            l = a;
-            r = u;
+        int groups = 0;
+        for (int i = left; i < right; i += 5) {
+            int end = min(i + 5, right);
+            sort(v.begin() + i, v.begin() + end);
+            swap(v[left + groups], v[i + (end - i) / 2]);
+            ++groups;
         }
-    }
-
-    int join(int a, int b) {
-        if (!a || !b) return a ? a : b;
-        if (tr[a].priority > tr[b].priority) {
-            push(a);
-            tr[a].r = join(tr[a].r, b);
-            return a;
+        i128 pivot = selectK(v, left, left + groups, left + groups / 2);
+        int lt = left, cur = left, gt = right;
+        while (cur < gt) {
+            if (v[cur] < pivot) swap(v[lt++], v[cur++]);
+            else if (v[cur] > pivot) swap(v[cur], v[--gt]);
+            else ++cur;
         }
-        push(b);
-        tr[b].l = join(a, tr[b].l);
-        return b;
+        if (kth < lt) right = lt;
+        else if (kth >= gt) left = gt;
+        else return pivot;
     }
+}
 
-    void collect(int u, vector<Event> &out) {
-        if (!u) return;
-        push(u);
-        collect(tr[u].l, out);
-        out.push_back({tr[u].x, tr[u].p});
-        collect(tr[u].r, out);
-    }
-
-public:
-    CurveTreap(int n, mt19937_64 &generator) : rng(generator) {
-        tr.reserve(n + 1);
-        tr.emplace_back();
-    }
-
-    // 两个分段线性函数逐点相加。
-    // la、lb 分别是各自第一个断点之前的线性段。
-    int meld(int a, int b, Line la, Line lb) {
-        if (!a) {
-            addLine(b, la);
-            return b;
-        }
-        if (!b) {
-            addLine(a, lb);
-            return a;
-        }
-        if (tr[a].priority < tr[b].priority) {
-            swap(a, b);
-            swap(la, lb);
-        }
-        push(a);
-        Line ar = rightLine(a);
-        Line br = lb;
-        int bl, rr;
-        split(b, tr[a].x, bl, rr, br);
-
-        tr[a].l = meld(tr[a].l, bl, la, lb);
-        tr[a].r = meld(tr[a].r, rr, ar, br);
-        tr[a].y += br.m*tr[a].x + br.b;
-        tr[a].m += br.m;
-        tr[a].p += br.p;
-        return a;
-    }
-
-    // 将孩子函数之和 S(t) 转成当前顶点的函数：
-    // X = t + S(t) + degree，Y = S(t) + degree。
-    int extend(int root, int degree, int children, bool isStart) {
-        if (root) {
-            Node &v = tr[root];
-            Tag &t = v.tag;
-            if (isStart) {
-                v.p = 1;
-                t.g = t.a;
-                t.h = t.b;
-                t.i = 0;
-            }
-            Real den = 1 + v.m;
-            v.x += v.y + degree;
-            v.y += degree;
-            v.m /= den;
-            v.p /= den;
-            t.a += t.d;
-            t.b += t.e;
-            t.c += t.f + degree;
-            t.f += degree;
-            v.dirty = true;
-        }
-        Node v;
-        v.priority = rng();
-        v.x = v.y = degree;
-        v.m = Real(children) / (children + 1);
-        v.p = isStart ? Real(1) / (children + 1) : 0;
-        tr.push_back(v);
-        int u = int(tr.size()) - 1;
-        return join(u, root);
-    }
-
-    vector<Event> events(int root) {
-        vector<Event> out;
-        collect(root, out);
-        // 数学上横坐标和 p 都不下降；修正浮点舍入造成的微小偏差。
-        Real lastX = 0, lastP = 0;
-        for (auto &e : out) {
-#ifdef LOCAL_CHECK
-            assert(isfinite(e.x) && isfinite(e.p));
-            assert(e.x >= lastX - 1e-10L * max(1.0L, lastX));
-            assert(e.p >= lastP - 1e-10L && e.p <= 1 + 1e-10L);
+#ifdef LOCAL_DIAGNOSTICS
+struct Diagnostics {
+    i64 d = 0, initial_count = 0, final_count = 0, peak_elements = 0;
+    int streaming_rounds = 0;
+    bool upper_fallback = false, pivot_answer = false;
+    i128 w = 0, initial_l = 0, initial_r = 0;
+} diag;
 #endif
-            e.x = max(e.x, lastX);
-            e.p = max(lastP, min(Real(1), max(Real(0), e.p)));
-            lastX = e.x;
-            lastP = e.p;
-        }
-        if (!out.empty()) out.back().p = 1;
-        return out;
-    }
-};
 
-struct HeapItem {
-    Real x;
-    int tree, pos;
-    bool operator>(const HeapItem &o) const { return x > o.x; }
-};
+i128 solve(i64 n, i64 k, i64 a, i64 b) {
+#ifdef LOCAL_DIAGNOSTICS
+    diag = Diagnostics{};
+#endif
+    i64 dl = 1, dr = min(n - 1, k);
+    while (dl < dr) {
+        i64 mid = dl + (dr - dl) / 2;
+        if ((i128)mid * (mid + 1) / 2 >= k) dr = mid;
+        else dl = mid + 1;
+    }
+    const i64 D = dl;
+    const i128 W = (i128)D * ((i128)a * (D + 2) + 2 * (i128)b);
+    auto start = [&](i64 d) -> i128 {
+        return (i128)d * ((i128)a * d + 2 * (i128)b);
+    };
+    auto finish = [&](i64 d) -> i128 {
+        return (i128)d * ((i128)a * (2 * (i128)n - d) + 2 * (i128)b);
+    };
+    auto weight = [&](i64 d) -> i128 { return W / (2 * (i128)a * d); };
+
+    const i128 targetL = (i128)(k - D) * W;
+    const i128 targetR = (i128)(k + D) * W;
+    i128 L = 0, R = W, x = 0, value = 0, slope = 0;
+    bool foundL = (targetL == 0), foundR = false;
+    i64 enter = 1, leave = 1;
+    while (x < W) {
+        i128 ns = enter <= D ? start(enter) : W + 1;
+        i128 ne = leave <= D ? finish(leave) : W + 1;
+        i128 nx = min(W, min(ns, ne)), dx = nx - x;
+        if (slope > 0) {
+            // For positive gap, ceil(gap/slope) <= dx iff (gap-1)/slope < dx.
+            // Test BEFORE multiplying. If the upper root is not reached,
+            // value + slope*dx < targetR < 2^127, so the update cannot overflow.
+            if (!foundL && (targetL - value - 1) / slope < dx) {
+                L = x + (targetL - value) / slope;
+                foundL = true;
+            }
+            if ((targetR - value - 1) / slope < dx) {
+                R = x + (targetR - value) / slope;
+                foundR = true;
+                break;
+            }
+        }
+        value += slope * dx;
+        x = nx;
+        if (x == W) break;
+        if (ns == x) { slope += weight(enter); ++enter; }
+        if (ne == x) { slope -= weight(leave); ++leave; }
+    }
+    assert(foundL);
+    (void)foundR;
+
+    // Count one row, avoiding negative division and saturating before narrowing.
+    auto rowCount = [&](i128 bound, i128 base, i64 step, i64 len) -> i64 {
+        if (bound <= base) return 0;
+        return (i64)min((i128)len, (bound - base) / step);
+    };
+    auto rankAndEqual = [&](i128 bound) -> pair<i64, i64> {
+        i64 rank = 0, equal = 0;
+        for (i64 d = 1; d <= D; ++d) {
+            i128 base = start(d);
+            if (base >= bound) break;
+            i64 step = 2 * a * d;
+            i64 c = rowCount(bound, base, step, n - d);
+            rank += c;
+            if (c > 0 && base + (i128)step * c == bound) ++equal;
+        }
+        return {rank, equal};
+    };
+    // Enumerate the CURRENT interval only; no row arrays are stored.
+    auto enumerate = [&](auto&& emit) {
+        for (i64 d = 1; d <= D; ++d) {
+            i128 base = start(d);
+            if (base >= R) break;
+            i64 step = 2 * a * d;
+            i64 first = rowCount(L, base, step, n - d) + 1;
+            i64 last = rowCount(R, base, step, n - d);
+            i128 v = base + (i128)step * first;
+            for (i64 i = first; i <= last; ++i, v += step) emit(v);
+        }
+    };
+    i64 rankL = rankAndEqual(L).first;
+    i64 rankR = rankAndEqual(R).first;
+    assert(rankL < k && k <= rankR && rankR - rankL < 4 * D);
+#ifdef LOCAL_DIAGNOSTICS
+    diag.d = D; diag.w = W; diag.initial_l = L; diag.initial_r = R;
+    diag.initial_count = rankR - rankL; diag.upper_fallback = !foundR;
+#endif
+    const i64 materializeLimit = max<i64>(D, 256);
+
+    // Retain the earlier O(sqrt(k)) scan + BFPRT algorithm, but stream a few
+    // BFPRT pivot rounds before materialization. At most one vector is alive.
+    // A group-of-five pivot leaves <= 7m/10+6 elements: <= 5 rounds suffice
+    // from m<4D until m<=max(D,256). This keeps worst-case memory below 256 MiB.
+    while (rankR - rankL > materializeLimit) {
+        const i64 count = rankR - rankL;
+        i128 pivot;
+        {
+            vector<i128> medians;
+            medians.reserve((size_t)((count + 4) / 5));
+            array<i128, 5> group{};
+            int used = 0;
+            enumerate([&](i128 v) {
+                group[used++] = v;
+                if (used == 5) {
+                    sort(group.begin(), group.end());
+                    medians.push_back(group[2]);
+                    used = 0;
+                }
+            });
+            if (used) {
+                sort(group.begin(), group.begin() + used);
+                medians.push_back(group[used / 2]);
+            }
+            assert((i64)medians.size() == (count + 4) / 5);
+#ifdef LOCAL_DIAGNOSTICS
+            ++diag.streaming_rounds;
+            diag.peak_elements = max(diag.peak_elements, (i64)medians.capacity());
+#endif
+            pivot = selectK(medians, 0, (int)medians.size(), (int)medians.size() / 2);
+        } // Release ALL medians before allocating any final candidate vector.
+        auto [le, eq] = rankAndEqual(pivot);
+        if (k <= le - eq) { R = pivot - 1; rankR = le - eq; }
+        else if (k <= le) {
+#ifdef LOCAL_DIAGNOSTICS
+            diag.pivot_answer = true;
+#endif
+            return pivot;
+        } else { L = pivot; rankL = le; }
+        assert(rankL < k && k <= rankR);
+        assert(rankR - rankL <= count * 7 / 10 + 6);
+    }
+    vector<i128> candidates;
+    candidates.reserve((size_t)(rankR - rankL));
+    enumerate([&](i128 v) { candidates.push_back(v); });
+    assert((i64)candidates.size() == rankR - rankL);
+#ifdef LOCAL_DIAGNOSTICS
+    diag.final_count = (i64)candidates.size();
+    diag.peak_elements = max(diag.peak_elements, (i64)candidates.capacity());
+    assert(diag.streaming_rounds <= 5);
+#endif
+    return selectK(candidates, 0, (int)candidates.size(), (int)(k - rankL - 1));
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int k;
-    if (!(cin >> k)) return 0;
-    // Only Treap priorities depend on this seed; no Monte Carlo estimation.
-    uint64_t seed = chrono::steady_clock::now().time_since_epoch().count();
-    if (const char *e = getenv("TREAP_SEED")) seed = strtoull(e, nullptr, 10);
-    mt19937_64 rng(seed);
-    vector<vector<Event>> all(k);
-    for (int i = 0; i < k; ++i) {
-        int n, s;
-        cin >> n >> s;
-        vector<vector<int>> adj(n + 1);
-        for (int j = 1; j < n; ++j) {
-            int u, v;
-            cin >> u >> v;
-            adj[u].push_back(v);
-            adj[v].push_back(u);
-        }
-        CurveTreap curves(n, rng);
-        // Iterative postorder: safe even when the input tree is a long path.
-        vector<int> parent(n + 1), order{1}, rt(n + 1);
-        for (size_t j = 0; j < order.size(); ++j) {
-            int u = order[j];
-            for (int v : adj[u]) if (v != parent[u]) {
-                parent[v] = u;
-                order.push_back(v);
-            }
-        }
-        for (int j = n - 1; j >= 0; --j) {
-            int u = order[j], root = 0, children = 0;
-            for (int v : adj[u]) if (parent[v] == u) {
-                root = curves.meld(root, rt[v],
-                                   {Real(children), 0, 0}, {1, 0, 0});
-                ++children;
-            }
-            rt[u] = (u == 1) ? root : curves.extend(
-                root, int(adj[u].size()), children, u == s);
-        }
-        all[i] = curves.events(rt[1]);
-    }
-
-    priority_queue<HeapItem, vector<HeapItem>, greater<HeapItem>> heap;
-    for (int i = 0; i < k; ++i) {
-        heap.push({all[i][0].x, i, 0});
-    }
-    vector<Real> q(k, 1);
-    Real product = 1, previous = 0, answer = 0;
-    while (!heap.empty()) {
-        auto [x, i, pos] = heap.top();
-        heap.pop();
-        answer += (x - previous)*product;
-        previous = x;
-        Real nextQ = 1 - all[i][pos].p;
-        if (nextQ <= 0) break;
-        product = product / q[i] * nextQ;
-        q[i] = nextQ;
-        if (product == 0) break;
-        if (pos + 1 < int(all[i].size())) {
-            heap.push({all[i][pos + 1].x, i, pos + 1});
-        }
-    }
-#ifdef LOCAL_CHECK
-    assert(isfinite(answer) && answer >= 1 - 1e-9L && answer <= 998001.01L);
+    i64 n, k, a, b;
+    if (!(cin >> n >> k >> a >> b)) return 0;
+    i128 answer = solve(n, k, a, b);
+    i64 g = gcd((i64)(answer % a), a);
+    cout << decimal(answer / g) << ' ' << a / g << '\n';
+#ifdef LOCAL_DIAGNOSTICS
+    cerr << "{\"D\":" << diag.d << ",\"W\":\"" << decimal(diag.w)
+         << "\",\"L\":\"" << decimal(diag.initial_l)
+         << "\",\"R\":\"" << decimal(diag.initial_r)
+         << "\",\"initial_candidates\":" << diag.initial_count
+         << ",\"final_candidates\":" << diag.final_count
+         << ",\"streaming_rounds\":" << diag.streaming_rounds
+         << ",\"peak_vector_bytes\":" << diag.peak_elements * 16
+         << ",\"upper_fallback\":" << diag.upper_fallback
+         << ",\"pivot_answer\":" << diag.pivot_answer << "}\n";
 #endif
-    cout << fixed << setprecision(15) << answer << '\n';
     return 0;
 }

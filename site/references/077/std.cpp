@@ -1,163 +1,134 @@
 #include <bits/stdc++.h>
 using namespace std;
+using int64 = long long;
 
-struct Edge {
-    int u, v, w;
+struct Block {
+    int l, r;
+    int64 sum;
+    // Lower bound on the cost of the gap immediately to this block's left.
+    int64 gap;
+    // An adjustable position in that gap; -1 when there is no left block.
+    int slot;
 };
 
-struct Fraction {
-    long long num = 0, den = 0;  // den == 0: no candidate
+template <class Ask>
+vector<int64> reconstruct(int n, Ask ask) {
+    constexpr int64 A = 1'000'000'000LL;
+    vector<int64> positive(n + 1, 0);
+    vector<char> sampled(n + 1, false), unknown(n + 1, false);
 
-    void relax(long long length, long long sum, long long square_sum) {
-        long long a = length * square_sum - sum * sum;
-        long long b = length * length;
-        if (den == 0 || a * den < num * b) {
-            num = a;
-            den = b;
+    // Sample singletons: skip one position after a positive answer.
+    for (int i = 1; i <= n; ) {
+        positive[i] = ask(i, i);
+        sampled[i] = true;
+        if (positive[i] > 0 && i + 2 <= n) i += 2;
+        else ++i;
+    }
+
+    // A skipped position whose right neighbour is nonpositive is easy to resolve.
+    for (int i = 1; i <= n; ++i) {
+        if (sampled[i]) continue;
+        if (positive[i + 1] == 0) {
+            positive[i] = ask(i - 1, i + 1) - positive[i - 1];
+        } else {
+            unknown[i] = true;
         }
     }
-};
 
-Fraction solve(int n, const vector<Edge>& input) {
-    vector<vector<int>> g(n), rg(n);
-    for (const auto& e : input) {
-        g[e.u].push_back(e.v);
-        rg[e.v].push_back(e.u);
+    vector<int64> b = positive;
+    for (int i = 1; i <= n; ++i) {
+        if (unknown[i]) b[i] = A;
     }
 
-    auto reach = [&](int start, const vector<vector<int>>& graph) {
-        vector<char> vis(n, false);
-        vector<int> st{start};
-        vis[start] = true;
+    // Maximal runs of already-known positive entries.
+    vector<Block> runs;
+    for (int i = 1; i <= n; ) {
+        if (positive[i] == 0) {
+            ++i;
+            continue;
+        }
+        int l = i;
+        int64 sum = 0;
+        while (i <= n && positive[i] > 0) sum += positive[i++];
+        runs.push_back({l, i - 1, sum, 0, -1});
+    }
+
+    vector<Block> st;
+    st.reserve(runs.size());
+    int previous_end = -1;
+
+    for (Block cur : runs) {
+        if (previous_end != -1) {
+            cur.slot = previous_end + 1;
+            if (cur.l == previous_end + 2 && unknown[cur.slot]) {
+                cur.gap = -A;  // The skipped entry might be positive.
+            } else {
+                cur.gap = 0;   // Every entry in this gap is nonpositive.
+            }
+        }
+
         while (!st.empty()) {
-            int u = st.back();
-            st.pop_back();
-            for (int v : graph[u]) {
-                if (!vis[v]) {
-                    vis[v] = true;
-                    st.push_back(v);
+            Block left = st.back();
+            int64 small = min(left.sum, cur.sum);
+            int64 large = max(left.sum, cur.sum);
+            int64 answer = (cur.gap >= small)
+                         ? large : ask(left.l, cur.r);
+
+            if (answer > large) {
+                // The entire interval is a maximum subarray: its sum is known.
+                int64 needed = left.sum + cur.sum - answer;
+                b[cur.slot] -= needed - cur.gap;
+                cur.l = left.l;
+                cur.sum = answer;
+                cur.gap = left.gap;
+                cur.slot = left.slot;
+                st.pop_back();
+            } else {
+                // Only a lower bound on the gap cost is necessary for now.
+                int64 needed = max(cur.gap, small);
+                b[cur.slot] -= needed - cur.gap;
+                cur.gap = needed;
+
+                if (left.sum > cur.sum) break;
+
+                // Remove the smaller left block from the active stack.
+                // Its entries remain in b and become part of the combined gap.
+                st.pop_back();
+                if (st.empty()) {
+                    cur.gap = 0;
+                    cur.slot = -1;
+                } else {
+                    cur.gap += left.gap - left.sum;
+                    cur.slot = left.slot;
                 }
             }
         }
-        return vis;
-    };
-
-    auto from_s = reach(0, g);
-    if (!from_s[n - 1]) return {};
-    auto to_t = reach(n - 1, rg);
-
-    vector<int> id(n, -1);
-    int N = 0;
-    for (int v = 0; v < n; ++v) {
-        if (from_s[v] && to_t[v]) id[v] = N++;
+        st.push_back(cur);
+        previous_end = cur.r;
     }
-    const int source = id[0], target = id[n - 1];
-
-    vector<Edge> edges;
-    int W = 0;
-    for (const auto& e : input) {
-        if (id[e.u] != -1 && id[e.v] != -1) {
-            edges.push_back({id[e.u], id[e.v], e.w});
-            W = max(W, e.w);
-        }
-    }
-
-    const int S = N * W + 1;
-    const int layer_size = N * S;
-    const int INF = 1000000000;
-
-    // Minimum sum of squares for the current / next length.
-    vector<int> dp(layer_size, INF), ndp(layer_size, INF);
-    // Parent edge for every length, endpoint, and weight sum.
-    vector<int> parent((N + 1) * layer_size, -1);
-    dp[source * S] = 0;
-
-    Fraction answer;
-    for (int len = 1; len <= N; ++len) {
-        fill(ndp.begin(), ndp.end(), INF);
-        const int prev_max_sum = (len - 1) * W;
-        for (int i = 0; i < (int)edges.size(); ++i) {
-            const auto& e = edges[i];
-            int from = e.u * S;
-            int to = e.v * S + e.w;
-            for (int sum = 0; sum <= prev_max_sum; ++sum) {
-                if (dp[from + sum] == INF) continue;
-                int candidate = dp[from + sum] + e.w * e.w;
-                if (candidate < ndp[to + sum]) {
-                    ndp[to + sum] = candidate;
-                    parent[len * layer_size + to + sum] = i;
-                }
-            }
-        }
-        dp.swap(ndp);
-
-        if (len < N) {
-            for (int sum = 0; sum <= len * W; ++sum) {
-                int q = dp[target * S + sum];
-                if (q != INF) answer.relax(len, sum, q);
-            }
-            if (answer.den != 0 && answer.num == 0) return answer;
-        }
-    }
-
-    // Every N-edge walk on N vertices contains a cycle.
-    // Only the first cycle found in each representative walk is needed.
-    vector<int> seen(N), saved_sum(N), saved_square_sum(N);
-    for (int end = 0; end < N; ++end) {
-        for (int total = 0; total < S; ++total) {
-            if (dp[end * S + total] == INF) continue;
-            fill(seen.begin(), seen.end(), -1);
-
-            int v = end, sum = total;
-            int steps = 0, accumulated_sum = 0, accumulated_square_sum = 0;
-            seen[v] = 0;
-            saved_sum[v] = 0;
-            saved_square_sum[v] = 0;
-
-            for (int len = N; len >= 1; --len) {
-                int edge_id = parent[len * layer_size + v * S + sum];
-                const auto& e = edges[edge_id];
-                v = e.u;
-                sum -= e.w;
-                ++steps;
-                accumulated_sum += e.w;
-                accumulated_square_sum += e.w * e.w;
-
-                if (seen[v] != -1) {
-                    answer.relax(steps - seen[v],
-                                 accumulated_sum - saved_sum[v],
-                                 accumulated_square_sum - saved_square_sum[v]);
-                    break;
-                }
-                seen[v] = steps;
-                saved_sum[v] = accumulated_sum;
-                saved_square_sum[v] = accumulated_square_sum;
-            }
-            if (answer.den != 0 && answer.num == 0) return answer;
-        }
-    }
-    return answer;
+    return b;
 }
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n, m;
-    if (!(cin >> n >> m)) return 0;
-    vector<Edge> edges(m);
-    for (auto& e : edges) {
-        cin >> e.u >> e.v >> e.w;
-        --e.u;
-        --e.v;
-    }
-
-    Fraction result = solve(n, edges);
-    if (result.den == 0) {
-        cout << "-1\n";
-    } else {
-        cout << fixed << setprecision(15)
-             << (long double)result.num / result.den << '\n';
+    int T;
+    if (!(cin >> T)) return 0;
+    while (T--) {
+        int n;
+        if (!(cin >> n)) return 0;
+        auto ask = [&](int l, int r) -> int64 {
+            cout << "? " << l << ' ' << r << endl;
+            int64 answer;
+            if (!(cin >> answer) || answer < 0) exit(0);
+            return answer;
+        };
+        vector<int64> b = reconstruct(n, ask);
+        cout << '!';
+        for (int i = 1; i <= n; ++i) cout << ' ' << b[i];
+        cout << endl;
+        // The statement specifies no extra verdict token after an answer.
     }
     return 0;
 }

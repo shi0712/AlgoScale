@@ -1,22 +1,30 @@
 ## Problem Description
 
-Two connected simple undirected graphs, $A$ and $B$, each have $n$ vertices and $m$ edges. Their edges are indexed $1$ through $m$; equal indices do not necessarily have equal endpoints in the two graphs.
+An $n\times m$ grid of vertices has weighted undirected edges between every pair of orthogonally adjacent vertices. A journey may start at any vertex in column 1 and end at any vertex in column $m$. Its distance is the sum of the traversed edge weights, and the traveler chooses the shortest available journey over all such endpoints.
 
-Determine whether there is a set of edge indices that forms a spanning tree in $A$ but does not form a spanning tree in $B$.
+One operation increases one edge weight by one. Make the shortest possible journey longer by $k$, using the minimum number of operations. Output both that minimum and a resulting set of edge weights.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $t$.
+The first line contains the number of test cases $T$.
 
-Each case begins with $n,m$. Each of the next $m$ lines contains $u_A,v_A,u_B,v_B$. The $i$-th line gives the endpoints of edge $i$ in $A$ and edge $i$ in $B$ respectively.
+For each case:
+
+- Read $n,m,k$.
+- Read $n$ rows, each containing $m-1$ weights $r_{i,1},\ldots,r_{i,m-1}$. Weight $r_{i,j}$ belongs to the horizontal edge $(i,j)$–$(i,j+1)$.
+- Read $n-1$ rows, each containing $m$ weights $c_{i,1},\ldots,c_{i,m}$. Weight $c_{i,j}$ belongs to the vertical edge $(i,j)$–$(i+1,j)$.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print `YES` if such an index set exists, and `NO` otherwise. You do not need to construct or print the set.
+For each case, print the minimum operation count, then the modified weights in the same layout: $n$ rows of $m-1$ horizontal weights followed by $n-1$ rows of $m$ vertical weights.
+
+Only increases are allowed. Each resulting weight must lie in $[1,2\times10^9]$. Any optimal valid result is accepted.
+
+**Do not print trailing spaces at the ends of output lines.**
 
 ## Examples
 
@@ -24,30 +32,40 @@ Input:
 
 ```text
 1
-2 1
-1 2 2 1
+3 3 3
+1 1
+2 2
+3 3
+1 1 1
+2 2 2
 ```
 
 Output:
 
 ```text
-NO
+4
+4 1
+3 2
+3 3
+1 1 1
+2 2 2
 ```
 
 ## Explanation / Notes
 
-Both graphs consist of the same undirected edge between vertices 1 and 2. Their only spanning tree uses edge 1, so it cannot be a spanning tree in $A$ and fail in $B$.
+The original minimum distance is 2 along the top row. The shown construction increases the first top-row edge by 3 and the first middle-row edge by 1, for four operations in total. The new minimum distance is 5, so it has increased by the requested 3.
 
-The condition is directional: it specifically requires a spanning tree of the first graph that fails in the second.
+The traveler may move in either direction along any edge, including leftward moves. Starting and ending rows need not agree. The operation count equals the sum of all weight increments.
 
 ## Constraints
 
-- $1\le t\le2500$.
-- $2\le n\le5000$ per case.
-- $n-1\le m\le\min\left(5000,\frac{n(n-1)}2\right)$.
-- Every endpoint lies in $[1,n]$.
-- $u_A\ne v_A$ and $u_B\ne v_B$ for every edge.
-- Both graphs are undirected, connected, and simple: no self-loops or parallel edges.
-- Across all cases, $\sum n\le5000$ and, independently, $\sum m\le5000$.
-- A spanning tree includes every vertex and exactly $n-1$ of the indexed edges.
-- Time limit: **1 second**. Memory limit: **1024 MiB**.
+- Each test case has integer $n,m,k$.
+- $2\le n,m\le500$.
+- $1\le nm\le500$.
+- $1\le k\le100$.
+- Every original horizontal and vertical weight is an integer in $[1,10^9]$.
+- Across all cases, $\sum nm\le5\times10^3$.
+- Each output weight is an integer in $[1,2\times10^9]$ and must be at least its original value.
+- Horizontal weight arrays have dimensions $n\times(m-1)$; vertical arrays have dimensions $(n-1)\times m$.
+- The modified minimum distance between the first and last columns must increase by $k$.
+- Time limit: **1 second**. Memory limit: **1024 MB**.

@@ -1,58 +1,64 @@
 ## Problem Description
 
-For an integer sequence $a_1,\ldots,a_n$, an operation selects a contiguous subarray of odd length strictly greater than 1 and simultaneously replaces **every element** of that subarray by the median of that subarray computed before the operation.
+A pool contains $n$ cards in $m$ types. Type $i$ initially has $a_i$ cards, and the target collection requires $b_i$ cards of that type.
 
-Apply any finite number of operations, possibly zero, until all elements are equal. For $n\ge3$, this can always be achieved. Define the value of the original sequence to be the largest final common value that can be obtained.
+Each refresh draws one card uniformly from the cards currently remaining in the pool. If the target still needs that type, keep the card and remove it from the pool. Otherwise, immediately return it to the pool. Every draw counts as a refresh, including a draw whose card is returned. Continue until all target counts have been collected.
 
-Given intervals $[l_i,r_i]$, consider every integer sequence satisfying $l_i\le a_i\le r_i$ for all $i$. Find the sum of their values, modulo $10^9+7$. Each legal sequence is counted once, regardless of how many operation sequences attain its value.
+Compute the expected number of refreshes. Represent this rational expectation modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $T$, the test-case count. For each case, read:
+Read three lines:
 
-1. $n$;
-2. $l_1,l_2,\ldots,l_n$;
-3. $r_1,r_2,\ldots,r_n$.
+1. $n,m$;
+2. $a_1,\ldots,a_m$;
+3. $b_1,\ldots,b_m$.
+
+Integers on the same line are separated by spaces or tabs. Trailing whitespace at the end of a line or the file is allowed; no additional non-whitespace content is allowed.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print one integer in $[0,10^9+6]$: the required sum modulo $1\,000\,000\,007$.
+Let the expectation in lowest terms be $p/q$. Print
+
+$$p\,q^{-1}\pmod{998244353}$$
+
+as an integer from 0 through $998244352$. It is guaranteed that the denominator is not divisible by the modulus.
 
 ## Examples
 
 Input:
 
 ```text
-1
-3
-1 1 1
-1 1 1
+2 2
+1 1
+1 1
 ```
 
 Output:
 
 ```text
-1
+2
 ```
 
 ## Explanation / Notes
 
-An odd-length list has a unique middle element after sorting; that element is its median. The permitted operation lengths are 3, 5, 7, and so on.
+A returned card remains available for later refreshes. A kept card is no longer eligible to be drawn. Sampling is uniform over individual remaining cards, so the probability of a type depends on its current multiplicity.
 
-The only permitted input sequence in the example is $(1,1,1)$. Its value is 1, so the required sum is 1.
+In the example, both cards are required, so every draw keeps a card and exactly two refreshes are needed. If every $b_i$ is zero, the target is already complete and the expectation is zero.
 
 ## Constraints
 
-- $1\le T\le10$.
-- $3\le n\le2000$ for each case; $n$ itself need not be odd.
-- $1\le l_i\le r_i\le10^9$ for every position.
-- Across all test cases in one input file, $\sum n^2\le4\,000\,000$.
-- All sequence entries and interval endpoints are integers.
-- A replacement interval must be contiguous, have odd length, and contain at least 3 elements.
-- No bound on the number of allowed operations is specified.
-- The required modulus is $10^9+7$.
-- Time limit: 6 seconds; memory limit: 512 MB.
+- There is one input instance.
+- $1\le n\le2000$.
+- $1\le m\le\min(n,50)$.
+- $1\le a_i\le n$ and $\sum_{i=1}^{m}a_i=n$.
+- $0\le b_i\le a_i$ for every type.
+- All input counts are integers.
+- Empty target requirements are allowed, including $b_i=0$ for every type.
+- For the reduced expectation $p/q$, $q\not\equiv0\pmod{998244353}$.
+- Time limit: 0.5 seconds.
+- Memory limit: 256 MB.

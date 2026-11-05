@@ -1,158 +1,327 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-int n;
-int w[20][20];
-int adjMask[20];
-double ansValue = 0.0;
+static const int MOD = 998244353;
 
-void solveClique(const vector<int>& verts) {
-    int k = (int)verts.size();
-    if (k < 2) return;
+struct Mat {
+    int a, b, c, d;
+};
 
-    double a[20][21];
-
-    for (int i = 0; i < k; ++i) {
-        int vi = verts[i];
-        for (int j = 0; j < k; ++j) {
-            a[i][j] = (double)w[vi][verts[j]];
-        }
-        a[i][k] = 1.0;
-    }
-
-    // Gaussian elimination
-    for (int col = 0; col < k; ++col) {
-        int piv = col;
-        double best = fabs(a[col][col]);
-
-        for (int r = col + 1; r < k; ++r) {
-            double v = fabs(a[r][col]);
-            if (v > best) {
-                best = v;
-                piv = r;
-            }
-        }
-
-        if (best < 1e-12) return;
-
-        if (piv != col) {
-            for (int j = col; j <= k; ++j) {
-                swap(a[col][j], a[piv][j]);
-            }
-        }
-
-        double pivot = a[col][col];
-
-        for (int r = col + 1; r < k; ++r) {
-            double factor = a[r][col] / pivot;
-            if (fabs(factor) < 1e-18) continue;
-            a[r][col] = 0.0;
-            for (int j = col + 1; j <= k; ++j) {
-                a[r][j] -= factor * a[col][j];
-            }
-        }
-    }
-
-    double y[20];
-    double sum = 0.0;
-
-    for (int i = k - 1; i >= 0; --i) {
-        double val = a[i][k];
-        for (int j = i + 1; j < k; ++j) {
-            val -= a[i][j] * y[j];
-        }
-        val /= a[i][i];
-
-        if (val < -1e-9) return;
-        if (val < 0.0) val = 0.0;
-
-        y[i] = val;
-        sum += val;
-    }
-
-    if (sum <= 1e-15) return;
-
-    double cur = 0.5 / sum;
-    if (cur > ansValue) ansValue = cur;
+static inline Mat identityMat() {
+    return {1, 0, 0, 1};
 }
 
-void dfs(int mask, int allowed, vector<int>& verts) {
-    int U = mask | allowed;
-    int m = __builtin_popcount((unsigned)U);
+static inline Mat mulMat(const Mat& x, const Mat& y) {
+    Mat z;
+    z.a = (1LL * x.a * y.a + 1LL * x.b * y.c) % MOD;
+    z.b = (1LL * x.a * y.b + 1LL * x.b * y.d) % MOD;
+    z.c = (1LL * x.c * y.a + 1LL * x.d * y.c) % MOD;
+    z.d = (1LL * x.c * y.b + 1LL * x.d * y.d) % MOD;
+    return z;
+}
 
-    if (m < 2) return;
+static inline Mat makeLightMat(int S, int A) {
+    // [[S, 0],
+    //  [A, S]]
+    return {S, 0, A, S};
+}
 
-    int arr[20], cnt = 0;
-    int tmp = U;
-    while (tmp) {
-        int v = __builtin_ctz((unsigned)tmp);
-        tmp &= tmp - 1;
-        arr[cnt++] = v;
-    }
+struct SegTree {
+    int n, sz;
+    vector<Mat> tr;
 
-    int maxW = 0;
-    for (int i = 0; i < cnt; ++i) {
-        int vi = arr[i];
-        for (int j = i + 1; j < cnt; ++j) {
-            maxW = max(maxW, w[vi][arr[j]]);
+    void init(const vector<Mat>& arr, int m) {
+        n = m;
+        sz = 1;
+        while (sz < n) sz <<= 1;
+        tr.assign(sz << 1, identityMat());
+
+        for (int i = 1; i <= m; ++i) {
+            tr[sz + i - 1] = arr[i];
+        }
+        for (int i = sz - 1; i >= 1; --i) {
+            tr[i] = mulMat(tr[i << 1], tr[i << 1 | 1]);
         }
     }
 
-    if (maxW == 0) return;
-
-    double upperBound = 1.0 * maxW * (1.0 - 1.0 / m) * 0.5;
-    if (upperBound <= ansValue + 1e-12) return;
-
-    if ((int)verts.size() >= 2) {
-        solveClique(verts);
+    void update(int pos, const Mat& val) {
+        int p = sz + pos - 1;
+        tr[p] = val;
+        for (p >>= 1; p; p >>= 1) {
+            tr[p] = mulMat(tr[p << 1], tr[p << 1 | 1]);
+        }
     }
 
-    int curAllowed = allowed;
+    Mat query(int l, int r) const {
+        if (l > r) return identityMat();
+        int L = sz + l - 1;
+        int R = sz + r - 1;
 
-    while (curAllowed) {
-        int v = __builtin_ctz((unsigned)curAllowed);
-        curAllowed &= curAllowed - 1;
+        Mat left = identityMat();
+        Mat right = identityMat();
 
-        int newAllowed = curAllowed & adjMask[v];
-
-        verts.push_back(v);
-        dfs(mask | (1 << v), newAllowed, verts);
-        verts.pop_back();
+        while (L <= R) {
+            if (L & 1) left = mulMat(left, tr[L++]);
+            if (!(R & 1)) right = mulMat(tr[R--], right);
+            L >>= 1;
+            R >>= 1;
+        }
+        return mulMat(left, right);
     }
-}
+};
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
+    int n;
     cin >> n;
 
-    int maxEdge = 0;
+    if (n == 1) {
+        return 0;
+    }
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            cin >> w[i][j];
-            if (i < j) maxEdge = max(maxEdge, w[i][j]);
+    vector<vector<int>> g(n + 1);
+    for (int i = 1; i < n; ++i) {
+        int u, v;
+        cin >> u >> v;
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+
+    vector<int> b(n - 1);
+    vector<char> inB(n + 1, false);
+    for (int i = 0; i < n - 1; ++i) {
+        cin >> b[i];
+        inB[b[i]] = true;
+    }
+
+    int root = 1;
+    while (root <= n && inB[root]) ++root;
+    // root is the unique vertex that never appears in b
+
+    // Root the tree at root.
+    vector<int> parent(n + 1, 0);
+    vector<int> order;
+    order.reserve(n);
+
+    vector<int> stk;
+    stk.reserve(n);
+    stk.push_back(root);
+    parent[root] = 0;
+
+    while (!stk.empty()) {
+        int v = stk.back();
+        stk.pop_back();
+        order.push_back(v);
+
+        for (int u : g[v]) {
+            if (u == parent[v]) continue;
+            parent[u] = v;
+            stk.push_back(u);
         }
     }
 
-    for (int i = 0; i < n; ++i) {
-        adjMask[i] = 0;
-        for (int j = 0; j < n; ++j) {
-            if (i != j && w[i][j] > 0) {
-                adjMask[i] |= (1 << j);
+    // Subtree sizes and heavy child.
+    vector<int> sz(n + 1, 0), heavy(n + 1, 0);
+
+    for (int i = n - 1; i >= 0; --i) {
+        int v = order[i];
+        sz[v] = 1;
+
+        int bestSize = 0;
+        for (int u : g[v]) {
+            if (parent[u] == v) {
+                sz[v] += sz[u];
+                if (sz[u] > bestSize) {
+                    bestSize = sz[u];
+                    heavy[v] = u;
+                }
             }
         }
     }
 
-    ansValue = maxEdge * 0.25;
+    // Heavy-light decomposition.
+    vector<int> head(n + 1), dfn(n + 1), rev(n + 1), tailPos(n + 1);
+    vector<pair<int, int>> hldStack;
+    hldStack.push_back({root, root});
 
-    vector<int> verts;
-    verts.reserve(n);
+    int timer = 0;
 
-    dfs(0, (1 << n) - 1, verts);
+    while (!hldStack.empty()) {
+        auto [v, h] = hldStack.back();
+        hldStack.pop_back();
 
-    cout << fixed << setprecision(12) << ansValue << '\n';
+        int cur = v;
+        int last = 0;
+
+        while (cur) {
+            head[cur] = h;
+            dfn[cur] = ++timer;
+            rev[timer] = cur;
+            last = cur;
+
+            for (int u : g[cur]) {
+                if (parent[u] == cur && u != heavy[cur]) {
+                    hldStack.push_back({u, u});
+                }
+            }
+
+            cur = heavy[cur];
+        }
+
+        tailPos[h] = dfn[last];
+    }
+
+    vector<char> selected(n + 1, false);
+
+    // Initial DP when every vertex is unselected.
+    // For a node v:
+    //   S[v] = 2 * product S[child], A[v] = product S[child]
+    vector<int> S(n + 1, 0), A(n + 1, 0);
+
+    for (int i = n - 1; i >= 0; --i) {
+        int v = order[i];
+
+        long long prod = 1;
+        for (int u : g[v]) {
+            if (parent[u] == v) {
+                prod = prod * S[u] % MOD;
+            }
+        }
+
+        S[v] = 2LL * prod % MOD;
+        A[v] = prod;
+    }
+
+    // Build light-child segment tree.
+    int lightCnt = 0;
+    vector<int> lightPos(n + 1, 0), L(n + 1), R(n + 1);
+    vector<Mat> lightArr(1, identityMat());
+
+    for (int v = 1; v <= n; ++v) {
+        L[v] = lightCnt + 1;
+
+        for (int u : g[v]) {
+            if (parent[u] == v && u != heavy[v]) {
+                lightPos[u] = ++lightCnt;
+                lightArr.push_back(makeLightMat(S[u], A[u]));
+            }
+        }
+
+        R[v] = lightCnt;
+    }
+
+    SegTree lightSeg;
+    lightSeg.init(lightArr, lightCnt);
+
+    // Build initial heavy-path segment tree.
+    vector<Mat> heavyArr(n + 1, identityMat());
+
+    for (int v = 1; v <= n; ++v) {
+        int P0 = 1, Q0 = 0;
+
+        if (L[v] <= R[v]) {
+            Mat m = lightSeg.query(L[v], R[v]);
+            P0 = m.a;
+            Q0 = m.c;
+        }
+
+        Mat hMat;
+        if (!selected[v]) {
+            hMat = {2LL * P0 % MOD, 0, P0, 0};
+        } else {
+            hMat = {
+                (P0 + 2LL * Q0) % MOD,
+                2LL * P0 % MOD,
+                Q0,
+                P0
+            };
+        }
+
+        heavyArr[dfn[v]] = hMat;
+    }
+
+    SegTree heavySeg;
+    heavySeg.init(heavyArr, n);
+
+    // Powers of inverse of 2.
+    vector<int> invPow2(n + 1);
+    invPow2[0] = 1;
+    const int inv2 = (MOD + 1) / 2;
+
+    for (int i = 1; i <= n; ++i) {
+        invPow2[i] = 1LL * invPow2[i - 1] * inv2 % MOD;
+    }
+
+    int unselectedEdges = n - 1;
+
+    auto recalcH = [&](int v) {
+        int P0 = 1, Q0 = 0;
+
+        if (L[v] <= R[v]) {
+            Mat m = lightSeg.query(L[v], R[v]);
+            P0 = m.a;
+            Q0 = m.c;
+        }
+
+        Mat hMat;
+
+        if (!selected[v]) {
+            hMat = {2LL * P0 % MOD, 0, P0, 0};
+        } else {
+            hMat = {
+                (P0 + 2LL * Q0) % MOD,
+                2LL * P0 % MOD,
+                Q0,
+                P0
+            };
+        }
+
+        heavySeg.update(dfn[v], hMat);
+    };
+
+    for (int x : b) {
+        // Remove edges whose both endpoints were unselected.
+        for (int u : g[x]) {
+            if (!selected[u]) {
+                --unselectedEdges;
+            }
+        }
+
+        selected[x] = true;
+        recalcH(x);
+
+        int cur = x;
+        int tauPar = 0;
+
+        while (true) {
+            int h = head[cur];
+
+            Mat prod = heavySeg.query(dfn[h], tailPos[h]);
+
+            int newS = prod.a; // first column of prod
+            int newA = prod.c;
+
+            S[h] = newS;
+            A[h] = newA;
+
+            if (h == root) {
+                tauPar = newA;
+                break;
+            }
+
+            int p = parent[h];
+
+            lightSeg.update(lightPos[h], makeLightMat(newS, newA));
+            recalcH(p);
+
+            cur = p;
+        }
+
+        int ans = 1LL * tauPar * invPow2[unselectedEdges] % MOD;
+        cout << ans << '\n';
+    }
 
     return 0;
 }

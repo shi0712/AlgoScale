@@ -1,48 +1,52 @@
 ## Problem Description
 
-Initially, $n$ walkers and one torch are on the same bank of a river. A bridge can carry at most $c$ walkers at once. Every crossing, in either direction, requires the torch, so someone must carry it back whenever another outward crossing still needs it.
+A magical string initially contains lowercase English letters and has no run of three or more equal consecutive letters.
 
-Walker $i$ takes $t_i$ time to cross. A group crosses together at its slowest member's speed. Find the minimum total time until all walkers have reached the other bank.
+In one operation, change one letter into another letter. The change is permitted only if it immediately creates a run of at least three equal consecutive letters. The whole resulting maximal run is then replaced by one asterisk, `*`.
+
+An asterisk is inert: it cannot be edited, cannot join a run of letters, and is never removed, even when several asterisks become adjacent.
+
+Given a magical string $S$ and an integer $K$, perform at most $K$ operations to maximize the number of original characters absorbed into asterisks. Replacing a run of length $r$ contributes $r$ to this count, not one.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n$ and $c$. The next line contains $t_1,\ldots,t_n$.
+The first line contains the number of test cases $T$. Each of the next $T$ lines contains the string $S$ and integer $K$, separated by a space.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum total crossing time.
+For each case, print the maximum number of characters that can be transformed into asterisks using at most $K$ edits.
 
 ## Examples
 
 Input:
 
 ```text
-4 2
-1 2 10 5
+1
+cabacbc 2
 ```
 
 Output:
 
 ```text
-17
+6
 ```
 
 ## Explanation / Notes
 
-The walkers with times 1 and 2 cross in 2 time units; the time-1 walker returns; the time-5 and time-10 walkers cross; the time-2 walker returns; then the two fastest cross again. The total is $2+1+10+2+2=17$.
+Edit the third character of `cabacbc` from `b` to `a`, obtaining `caaacbc`, then replace `aaa` to get `c*cbc`. Editing the remaining `b` to `c` removes another three letters, giving `c**` and a total of six absorbed characters.
 
 ## Constraints
 
-- $2\le n\le10^4$.
-- $2\le c\le10^4$.
-- $1\le t_i\le10^9$ for all $i$.
-- All input values are integers.
-- The capacity may exceed $n$.
-- The crossing times need not be sorted or distinct.
-- There is exactly one torch, and every crossing must include it.
-- There is one test instance per input.
-- Time limit: **4 seconds**.
+- $1\le T\le50$.
+- $1\le |S|\le1000$ for each test case.
+- $1\le K\le1000$.
+- The initial string uses only the 26 lowercase English letters `a`–`z`.
+- Initially, every run of equal consecutive letters has length at most two.
+- Each operation must immediately create a run of at least three equal letters; arbitrary preparatory edits are not permitted.
+- Each created run is replaced by exactly one permanent asterisk.
+- Fewer than $K$ operations may be used, including zero.
+- Time limit: **1 second**. Memory limit: **1024 MB**.

@@ -1,51 +1,51 @@
 ## Problem Description
 
-Consider a tree on vertices $1,\ldots,n$, rooted at vertex $1$. A depth-first search starts by visiting and recording the root. At each vertex, its children may be processed in any order; each child's entire subtree is explored before moving on to the next child. Record a vertex when it is first visited.
+An elevator starts at floor `start` at time zero in a building with floors $0,\ldots,n-1$. Each second, it can move one floor upward, move one floor downward, or wait.
 
-You are given $m$ permutations, each starting with $1$. Count the rooted trees for which **every** supplied permutation can be a DFS order. The ordering of children may differ between the DFS runs.
+There are $m$ requests. Request $i$ specifies arrival time $a_i$ and floor $f_i$. It completes instantly whenever the elevator occupies $f_i$ at time $t\ge a_i$.
 
-Trees are distinct when their edge sets differ. Return the count modulo $10^9+7$.
+Minimize the time when every request has completed.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n,m$. Each of the next $m$ lines contains one permutation $p_{k,1},\ldots,p_{k,n}$ of $1,\ldots,n$. Duplicate input permutations are allowed.
+The first line contains three integers $n$, $\texttt{start}$, and $m$: the number of floors, the initial floor, and the number of requests.
+
+Each of the next $m$ lines contains two integers $a_i$ and $f_i$, describing the arrival time and floor of one request.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of compatible rooted trees modulo $1000000007$.
+Print one integer: the minimum time by which all requests can be completed.
 
 ## Examples
 
 Input:
 
 ```text
-4 1
-1 2 3 4
+9 0 2
+0 8
+6 5
 ```
 
 Output:
 
 ```text
-5
+9
 ```
 
 ## Explanation / Notes
 
-Writing $(p_2,p_3,p_4)$ for the parents of vertices 2, 3, 4, the five compatible trees are $(1, 1, 1)$, $(1, 1, 3)$, $(1, 2, 1)$, $(1, 2, 2)$, and $(1, 2, 3)$.
-
-This is a first-visit DFS order, not a sequence that records returns to ancestors. Child order is a choice made during a traversal and is not part of the identity of a counted tree.
+Move from floor 0 to floor 5, arriving at time 5. Wait until time 6 to complete the request at floor 5, then continue to floor 8 and finish at time 9. This is the minimum possible completion time.
 
 ## Constraints
 
-- $1\le n,m\le2000$.
-- Every supplied sequence contains each integer in $[1,n]$ exactly once.
-- $p_{k,1}=1$ for every sequence $k$.
-- Every candidate tree is undirected and connected, with exactly $n-1$ edges and root $1$.
-- One common tree must support all $m$ DFS orders, though different child-processing orders may be used.
-- Answer modulus: $10^9+7$.
-- There is one instance per input.
-- Time limit: **1 second**. Memory limit: **256 MB**.
+- $1\le n\le10^5$.
+- $1\le m\le2\times10^5$.
+- $0\le a_i\le10^9$.
+- $0\le\texttt{start},f_i\le n-1$.
+- Requests need not be ordered by arrival time, and request times and floors may repeat.
+- All requests eligible at the same time on the same floor are served simultaneously.
+- Time limit: 0.5 seconds. Memory limit: 256 MB.

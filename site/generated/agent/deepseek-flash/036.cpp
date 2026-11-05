@@ -1,308 +1,343 @@
 #include <bits/stdc++.h>
 using namespace std;
-typedef long long ll;
 
-static const int MOD = 998244353;
+/*
+  For an edge (i,j) and a key point k with i<=k<=j let
+      t_k = h-y_k,  b_k = sqrt(x_j-x_k),  p_k = sqrt(x_k-x_i).
+  The arch condition at k is  |p_k - b_k| <= sqrt(2 t_k), which is
+  equivalent to
+      L_k(j) <= x_i <= U_k(j),
+      L_k(j) = x_k - (sqrt(x_j-x_k)+sqrt(2t_k))^2
+      U_k(j) = x_k - max(0, sqrt(x_j-x_k)-sqrt(2t_k))^2.
 
-struct Mat { int a, b, c, d; };
+  * Lower bounds:  since L_k(j) <= x_k, the condition x_i >= L_k(j)
+    for all k in [i,j] is the same as x_i >= max_{k<=j} L_k(j) = M_j.
+  * Upper bounds:  x_i <= U_k(j) is equivalent (for k>=i) to
+    x_j <= C_k(i), where C_k(i)=x_k+(sqrt(x_k-x_i)+sqrt(2t_k))^2.
+    Hence all upper conditions are equivalent to
+    x_j <= D_i = min_{k>=i} C_k(i), which depends only on i.
 
-static inline Mat mmul(const Mat &x, const Mat &y) {
-    return Mat{
-        (int)(((ll)x.a * y.a + (ll)x.b * y.c) % MOD),
-        (int)(((ll)x.a * y.b + (ll)x.b * y.d) % MOD),
-        (int)(((ll)x.c * y.a + (ll)x.d * y.c) % MOD),
-        (int)(((ll)x.c * y.b + (ll)x.d * y.d) % MOD)};
+  Therefore edge (i,j) is legal iff
+       x_i >= M_j   and   x_j <= D_i.
+  M_j is computed with a max-Li-Chao (prefix), D_i with a min-Li-Chao
+  (suffix), both batched on a segment tree over indices.  Afterwards the
+  DP is a standard CHT DP with the two independent restrictions.
+*/
+
+static const long long INFLL = (long long)4e18;
+static const double INFDB = 1e18;
+static const double EPS = 1e-7;
+
+int n;
+long long h, alpha, bet;
+vector<int> xs;        // x coordinates
+vector<int> tt;        // t_i = h - y_i
+vector<double> ss;     // sqrt(2*t_i)
+
+vector<vector<int>> qs;   // query lists attached to segment tree nodes
+
+void addQuery(int node, int l, int r, int ql, int qr, int id) {
+    if (qr < l || r < ql) return;
+    if (ql <= l && r <= qr) { qs[node].push_back(id); return; }
+    int mid = (l + r) >> 1;
+    addQuery(node << 1, l, mid, ql, qr, id);
+    addQuery(node << 1 | 1, mid + 1, r, ql, qr, id);
 }
-static const Mat IDM{1, 0, 0, 1};
 
-static int n;
-static vector<int> adjHead, adjNext, adjTo; // CSR adjacency
-static vector<int> par_, heavy, szs, ordr;
-static vector<char> mem_;
-static vector<int> kL;
-static vector<int> lightOff, lightPow, lidx;
-static vector<Mat> ltree;
-static vector<int> chainId, cpos, chainOff, chainPow;
-static vector<Mat> ctree;
-static vector<vector<int> > chains;
-static vector<int> inv2p;
-static vector<Mat> nodeM;
-static int root_;
-static int answer;
+/* ---------------- Li Chao: minimum of C_k(u), valid u<=x_k --------------- */
+struct LiChaoC {
+    const vector<int>* crd;
+    vector<int> tr;
+    inline double val(int id, int u) const {
+        double p = sqrt((double)xs[id] - u) + ss[id];
+        return (double)xs[id] + p * p;
+    }
+    void init(const vector<int>& c) {
+        crd = &c;
+        tr.assign(4 * (int)c.size() + 4, -1);
+    }
+    void add(int v, int l, int r, int id) {
+        int &cur = tr[v];
+        if (cur == -1) { cur = id; return; }
+        int mid = (l + r) >> 1;
+        int um = (*crd)[mid], ul = (*crd)[l];
+        bool midBetter  = val(id, um) < val(cur, um);
+        bool leftBetter = val(id, ul) < val(cur, ul);
+        if (midBetter) swap(cur, id);
+        if (l == r) return;
+        if (leftBetter != midBetter) add(v << 1, l, mid, id);
+        else                         add(v << 1 | 1, mid + 1, r, id);
+    }
+    double query(int v, int l, int r, int u) const {
+        double res = INFDB;
+        if (tr[v] != -1) res = val(tr[v], u);
+        if (l == r) return res;
+        int mid = (l + r) >> 1;
+        if (u <= (*crd)[mid]) return min(res, query(v << 1, l, mid, u));
+        return min(res, query(v << 1 | 1, mid + 1, r, u));
+    }
+};
 
-static inline int nextpow2(int x) { int s = 1; while (s < x) s <<= 1; return s; }
+/* ---------------- Li Chao: maximum of L_k(u), valid u>=x_k --------------- */
+struct LiChaoL {
+    const vector<int>* crd;
+    vector<int> tr;
+    inline double val(int id, int u) const {
+        double p = sqrt((double)u - xs[id]) + ss[id];
+        return (double)xs[id] - p * p;
+    }
+    void init(const vector<int>& c) {
+        crd = &c;
+        tr.assign(4 * (int)c.size() + 4, -1);
+    }
+    void add(int v, int l, int r, int id) {
+        int &cur = tr[v];
+        if (cur == -1) { cur = id; return; }
+        int mid = (l + r) >> 1;
+        int um = (*crd)[mid], ul = (*crd)[l];
+        bool midBetter  = val(id, um) > val(cur, um);
+        bool leftBetter = val(id, ul) > val(cur, ul);
+        if (midBetter) swap(cur, id);
+        if (l == r) return;
+        if (leftBetter != midBetter) add(v << 1, l, mid, id);
+        else                         add(v << 1 | 1, mid + 1, r, id);
+    }
+    double query(int v, int l, int r, int u) const {
+        double res = -INFDB;
+        if (tr[v] != -1) res = val(tr[v], u);
+        if (l == r) return res;
+        int mid = (l + r) >> 1;
+        if (u <= (*crd)[mid]) return max(res, query(v << 1, l, mid, u));
+        return max(res, query(v << 1 | 1, mid + 1, r, u));
+    }
+};
 
-static inline void lightAgg(int x, int &AL, int &BL) {
-    if (lightPow[x] == 0) { AL = 1; BL = 0; return; }
-    const Mat &m = ltree[lightOff[x] + 1];
-    AL = m.a; BL = m.c;
-}
+/* ---------------- Li Chao: DP lines b + m*u, minimum (exact) ------------ */
+struct LiChaoDP {
+    const vector<int>* crd;
+    const vector<long long> *mm, *bb;
+    vector<int> tr;
+    inline long long val(int id, int u) const {
+        return (*bb)[id] + (*mm)[id] * (long long)u;
+    }
+    void init(const vector<int>& c, const vector<long long>& m,
+              const vector<long long>& b) {
+        crd = &c; mm = &m; bb = &b;
+        tr.assign(4 * (int)c.size() + 4, -1);
+    }
+    void add(int v, int l, int r, int id) {
+        int &cur = tr[v];
+        if (cur == -1) { cur = id; return; }
+        int mid = (l + r) >> 1;
+        int um = (*crd)[mid], ul = (*crd)[l];
+        bool midBetter  = val(id, um) < val(cur, um);
+        bool leftBetter = val(id, ul) < val(cur, ul);
+        if (midBetter) swap(cur, id);
+        if (l == r) return;
+        if (leftBetter != midBetter) add(v << 1, l, mid, id);
+        else                         add(v << 1 | 1, mid + 1, r, id);
+    }
+    long long query(int v, int l, int r, int u) const {
+        long long res = INFLL;
+        if (tr[v] != -1) res = val(tr[v], u);
+        if (l == r) return res;
+        int mid = (l + r) >> 1;
+        if (u <= (*crd)[mid]) return min(res, query(v << 1, l, mid, u));
+        return min(res, query(v << 1 | 1, mid + 1, r, u));
+    }
+};
 
-static inline void computeNodeM(int x) {
-    int AL, BL;
-    lightAgg(x, AL, BL);
-    if (mem_[x]) {
-        int t = (int)(((ll)2 * BL + AL) % MOD);
-        nodeM[x] = Mat{AL, (int)(2LL * AL % MOD), BL, t};
-    } else {
-        int k = kL[x];
-        int h = heavy[x];
-        if (h != -1 && !mem_[h]) k++;
-        int coef = inv2p[k];
-        int v1 = (int)((ll)AL * coef % MOD);
-        nodeM[x] = Mat{0, 0, v1, (int)(2LL * v1 % MOD)};
+vector<double> Dval, Mval;
+
+void processD(int v, int l, int r) {
+    if (!qs[v].empty()) {
+        vector<int> coords;
+        coords.reserve(qs[v].size());
+        for (int id : qs[v]) coords.push_back(xs[id]);
+        sort(coords.begin(), coords.end());
+        coords.erase(unique(coords.begin(), coords.end()), coords.end());
+        LiChaoC lc;
+        lc.init(coords);
+        int m = (int)coords.size();
+        for (int k = l; k <= r; ++k) lc.add(1, 0, m - 1, k);
+        for (int id : qs[v]) {
+            double cur = lc.query(1, 0, m - 1, xs[id]);
+            if (cur < Dval[id]) Dval[id] = cur;
+        }
+    }
+    if (l < r) {
+        int mid = (l + r) >> 1;
+        processD(v << 1, l, mid);
+        processD(v << 1 | 1, mid + 1, r);
     }
 }
 
-static inline void updateNode(int x) {
-    computeNodeM(x);
-    int c = chainId[x], base = chainOff[c], S = chainPow[c];
-    int j = S + cpos[x];
-    ctree[base + j] = nodeM[x];
-    for (j >>= 1; j >= 1; j >>= 1)
-        ctree[base + j] = mmul(ctree[base + 2 * j], ctree[base + 2 * j + 1]);
+void processM(int v, int l, int r) {
+    if (!qs[v].empty()) {
+        vector<int> coords;
+        coords.reserve(qs[v].size());
+        for (int id : qs[v]) coords.push_back(xs[id]);
+        sort(coords.begin(), coords.end());
+        coords.erase(unique(coords.begin(), coords.end()), coords.end());
+        LiChaoL lc;
+        lc.init(coords);
+        int m = (int)coords.size();
+        for (int k = l; k <= r; ++k) lc.add(1, 0, m - 1, k);
+        for (int id : qs[v]) {
+            double cur = lc.query(1, 0, m - 1, xs[id]);
+            if (cur > Mval[id]) Mval[id] = cur;
+        }
+    }
+    if (l < r) {
+        int mid = (l + r) >> 1;
+        processM(v << 1, l, mid);
+        processM(v << 1 | 1, mid + 1, r);
+    }
 }
 
-static inline void setLightLeaf(int q, int y, int u, int J) {
-    int base = lightOff[q], S = lightPow[q];
-    int j = S + lidx[y];
-    ltree[base + j] = Mat{u, 0, J, u};
-    for (j >>= 1; j >= 1; j >>= 1)
-        ltree[base + j] = mmul(ltree[base + 2 * j], ltree[base + 2 * j + 1]);
+vector<int> segL, segR;
+vector<int> Rreach;              // last j with edge(i,j) upper-valid
+
+void collectDP(int v, int l, int r, vector<vector<int>>& byR) {
+    if (!qs[v].empty()) {
+        segL[v] = l; segR[v] = r;
+        byR[r].push_back(v);     // all its lines are known at time r
+    }
+    if (l < r) {
+        int mid = (l + r) >> 1;
+        collectDP(v << 1, l, mid, byR);
+        collectDP(v << 1 | 1, mid + 1, r, byR);
+    }
 }
 
-static inline void setLightLeafRaw(int q, int y, int u, int J) {
-    int base = lightOff[q], S = lightPow[q];
-    ltree[base + S + lidx[y]] = Mat{u, 0, J, u};
-}
+void processDPNode(int v, vector<long long>& dp, vector<long long>& contrib,
+                   const vector<long long>& lm, const vector<long long>& lbv) {
+    int L = segL[v], R = segR[v];
+    vector<int> lines;
+    lines.reserve(R - L + 1);
+    for (int i = L; i <= R; ++i)
+        if (dp[i] < INFLL) lines.push_back(i);
+    if (lines.empty()) return;
 
-static void flip(int x) {
-    mem_[x] = 1;
-    updateNode(x);
-    int p = par_[x];
-    if (p != -1 && heavy[p] == x) updateNode(p);
-    int c = chainId[x];
-    while (true) {
-        const Mat &pr = ctree[chainOff[c] + 1];
-        int P = pr.a, J = pr.c;
-        int top = chains[c][0];
-        if (top == root_) { answer = J; return; }
-        int q = par_[top];
-        int u = (int)((2LL * J + P) % MOD);
-        setLightLeaf(q, top, u, J);
-        if (top == x) kL[q]--;
-        updateNode(q);
-        c = chainId[q];
+    sort(lines.begin(), lines.end(), [&](int a, int b) {
+        if (Rreach[a] != Rreach[b]) return Rreach[a] > Rreach[b];
+        return a > b;
+    });
+
+    vector<int> coords;
+    coords.reserve(qs[v].size());
+    for (int j : qs[v]) coords.push_back(xs[j]);
+    sort(coords.begin(), coords.end());
+    coords.erase(unique(coords.begin(), coords.end()), coords.end());
+
+    LiChaoDP lc;
+    lc.init(coords, lm, lbv);
+    int qn = (int)coords.size();
+    int ptr = 0, sz = (int)lines.size();
+
+    // qs[v] is in increasing j; process decreasing j, adding lines as R_i>=j.
+    for (int qi = (int)qs[v].size() - 1; qi >= 0; --qi) {
+        int j = qs[v][qi];
+        while (ptr < sz && Rreach[lines[ptr]] >= j) {
+            lc.add(1, 0, qn - 1, lines[ptr]);
+            ++ptr;
+        }
+        if (ptr == 0) continue;
+        long long cur = lc.query(1, 0, qn - 1, xs[j]);
+        if (cur < contrib[j]) contrib[j] = cur;
     }
 }
 
 int main() {
-    // ---- fast input ----
-    static string sbuf;
-    {
-        sbuf.reserve(1 << 22);
-        char tmp[1 << 16];
-        size_t r;
-        while ((r = fread(tmp, 1, sizeof(tmp), stdin)) > 0) sbuf.append(tmp, r);
-    }
-    const char *buf = sbuf.data();
-    size_t bufLen = sbuf.size();
-    size_t bufPos = 0;
-    auto readInt = [&]() -> int {
-        while (bufPos < bufLen && (buf[bufPos] < '0' || buf[bufPos] > '9')) bufPos++;
-        int v = 0;
-        while (bufPos < bufLen && buf[bufPos] >= '0' && buf[bufPos] <= '9') {
-            v = v * 10 + (buf[bufPos] - '0');
-            bufPos++;
-        }
-        return v;
-    };
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
-    n = readInt();
+    int alphai, betai;
+    if (!(cin >> n >> h >> alphai >> betai)) return 0;
+    alpha = alphai; bet = betai;
 
-    adjHead.assign(n, -1);
-    adjTo.reserve(2 * max(0, n - 1));
-    adjNext.reserve(2 * max(0, n - 1));
-    for (int i = 0; i < n - 1; i++) {
-        int u = readInt() - 1, v = readInt() - 1;
+    xs.resize(n);
+    vector<long long> yin(n);
+    for (int i = 0; i < n; ++i) cin >> xs[i] >> yin[i];
 
-        adjTo.push_back(v); adjNext.push_back(adjHead[u]); adjHead[u] = (int)adjTo.size() - 1;
-        adjTo.push_back(u); adjNext.push_back(adjHead[v]); adjHead[v] = (int)adjTo.size() - 1;
-    }
-    vector<int> ops(n > 1 ? n - 1 : 0);
-    vector<char> isOp(n, 0);
-    for (int i = 0; i < n - 1; i++) { ops[i] = readInt() - 1; isOp[ops[i]] = 1; }
-    if (n == 1) return 0;
-    int r = 0;
-    while (isOp[r]) r++;
-    root_ = r;
-
-    // ---- root the tree ----
-    par_.assign(n, -1);
-    ordr.reserve(n);
-    vector<int> stk;
-    stk.push_back(r);
-    vector<char> vis(n, 0);
-    vis[r] = 1;
-    while (!stk.empty()) {
-        int x = stk.back(); stk.pop_back();
-        ordr.push_back(x);
-        for (int e = adjHead[x]; e != -1; e = adjNext[e]) {
-            int y = adjTo[e];
-            if (!vis[y]) { vis[y] = 1; par_[y] = x; stk.push_back(y); }
-        }
+    tt.resize(n);
+    ss.resize(n);
+    for (int i = 0; i < n; ++i) {
+        tt[i] = (int)(h - yin[i]);
+        ss[i] = sqrt(2.0 * (double)tt[i]);
     }
 
-    // ---- sizes and heavy child ----
-    szs.assign(n, 1);
-    heavy.assign(n, -1);
-    for (int i = n - 1; i >= 0; i--) {
-        int x = ordr[i];
-        int best = -1, bestSz = 0;
-        for (int e = adjHead[x]; e != -1; e = adjNext[e]) {
-            int y = adjTo[e];
-            if (par_[y] == x) {
-                szs[x] += szs[y];
-                if (szs[y] > bestSz) { bestSz = szs[y]; best = y; }
-            }
-        }
-        heavy[x] = best;
+    int N4 = 4 * n + 5;
+    qs.assign(N4, {});
+
+    /* ---------- D_i = min_{k>=i} C_k(x_i) ---------- */
+    Dval.assign(n, INFDB);
+    for (int i = 0; i + 1 < n; ++i)
+        addQuery(1, 0, n - 1, i + 1, n - 1, i);
+    processD(1, 0, n - 1);
+
+    Rreach.assign(n, n - 1);
+    for (int i = 0; i < n; ++i) {
+        double d = Dval[i];
+        double own = (double)xs[i] + 2.0 * (double)tt[i];
+        if (own < d) d = own;
+        int r = (int)(upper_bound(xs.begin(), xs.end(), d + EPS) - xs.begin()) - 1;
+        if (r < i) r = i;
+        if (r > n - 1) r = n - 1;
+        Rreach[i] = r;
     }
 
-    // ---- HLD chains ----
-    chainId.assign(n, -1);
-    cpos.assign(n, 0);
-    chains.clear();
-    for (int i = 0; i < n; i++) {
-        int x = ordr[i];
-        if (par_[x] == -1 || heavy[par_[x]] != x) {
-            // x is chain head
-            int cid = (int)chains.size();
-            chains.push_back(vector<int>());
-            int y = x;
-            while (y != -1) {
-                chainId[y] = cid;
-                cpos[y] = (int)chains.back().size();
-                chains.back().push_back(y);
-                y = heavy[y];
-            }
+    for (auto& v : qs) v.clear();
+
+    /* ---------- M_j = max_{k<=j} L_k(x_j) ---------- */
+    Mval.assign(n, -INFDB);
+    for (int j = 0; j < n; ++j)
+        addQuery(1, 0, n - 1, 0, j, j);
+    processM(1, 0, n - 1);
+
+    vector<int> lowIdx(n);
+    for (int j = 0; j < n; ++j) {
+        int p = (int)(lower_bound(xs.begin(), xs.end(), Mval[j] - EPS) - xs.begin());
+        if (p < 0) p = 0;
+        if (p > j) p = j;
+        lowIdx[j] = p;
+    }
+
+    for (auto& v : qs) v.clear();
+
+    /* ---------- DP ---------- */
+    vector<long long> dp(n, INFLL), contrib(n, INFLL);
+    vector<long long> lm(n, 0), lb(n, 0);
+
+    if (n == 1) {
+        cout << (long long)alpha * tt[0] << '\n';
+        return 0;
+    }
+
+    for (int j = 1; j < n; ++j) {
+        int lo = lowIdx[j], hi = j - 1;
+        if (lo <= hi) addQuery(1, 0, n - 1, lo, hi, j);
+    }
+
+    segL.assign(N4, 0); segR.assign(N4, 0);
+    vector<vector<int>> byR(n);
+    collectDP(1, 0, n - 1, byR);
+
+    dp[0] = alpha * (long long)tt[0];
+    lm[0] = -2LL * bet * xs[0];
+    lb[0] = dp[0] + bet * 1LL * xs[0] * xs[0];
+
+    for (int j = 1; j < n; ++j) {
+        for (int v : byR[j - 1]) processDPNode(v, dp, contrib, lm, lb);
+        if (contrib[j] < INFLL) {
+            long long xx = xs[j];
+            dp[j] = alpha * (long long)tt[j] + bet * xx * xx + contrib[j];
+            lm[j] = -2LL * bet * xx;
+            lb[j] = dp[j] + bet * xx * xx;
         }
     }
 
-    // ---- light children blocks ----
-    // count light children
-    lightOff.assign(n, 0);
-    lightPow.assign(n, 0);
-    lidx.assign(n, 0);
-    {
-        vector<int> cnt(n, 0);
-        for (int x = 0; x < n; x++) {
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) cnt[p]++;
-        }
-        // assign indices in a stable order: iterate over children in reverse-order list
-        vector<int> fill(n, 0);
-        for (int i = n - 1; i >= 0; i--) {
-            int x = ordr[i];
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) lidx[x] = fill[p]++;
-        }
-        long long total = 0;
-        for (int x = 0; x < n; x++) {
-            if (cnt[x] > 0) {
-                lightPow[x] = nextpow2(cnt[x]);
-                total += 2LL * lightPow[x];
-            }
-        }
-        ltree.assign(total, IDM);
-        long long off = 0;
-        for (int x = 0; x < n; x++) {
-            if (lightPow[x] > 0) { lightOff[x] = (int)off; off += 2LL * lightPow[x]; }
-        }
-    }
-
-    // ---- chain segment trees ----
-    {
-        int nc = (int)chains.size();
-        chainOff.assign(nc, 0);
-        chainPow.assign(nc, 0);
-        long long total = 0;
-        for (int c = 0; c < nc; c++) {
-            chainPow[c] = nextpow2((int)chains[c].size());
-            total += 2LL * chainPow[c];
-        }
-        ctree.assign(total, IDM);
-        long long off = 0;
-        for (int c = 0; c < nc; c++) { chainOff[c] = (int)off; off += 2LL * chainPow[c]; }
-    }
-
-    // ---- inverse powers of 2 ----
-    inv2p.assign(n + 2, 1);
-    {
-        int inv2 = (MOD + 1) / 2;
-        for (int i = 1; i <= n + 1; i++) inv2p[i] = (int)((ll)inv2p[i - 1] * inv2 % MOD);
-    }
-
-    // ---- initial bottom-up DP ----
-    mem_.assign(n, 0);
-    kL.assign(n, 0);
-    nodeM.assign(n, IDM);
-    {
-        vector<int> Pv(n, 0), Jv(n, 0), Uv(n, 0);
-        // kL init: count light children (none in S yet)
-        for (int x = 0; x < n; x++) {
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) kL[p]++;
-        }
-        for (int i = n - 1; i >= 0; i--) {
-            int x = ordr[i];
-            if (lightPow[x] > 0) {
-                int base = lightOff[x], S = lightPow[x];
-                for (int j = S - 1; j >= 1; j--)
-                    ltree[base + j] = mmul(ltree[base + 2 * j], ltree[base + 2 * j + 1]);
-            }
-            computeNodeM(x);
-            int h = heavy[x];
-            int Px, Jx;
-            if (h == -1) { Px = nodeM[x].a; Jx = nodeM[x].c; }
-            else {
-                Px = (int)(((ll)nodeM[x].a * Pv[h] + (ll)nodeM[x].b * Jv[h]) % MOD);
-                Jx = (int)(((ll)nodeM[x].c * Pv[h] + (ll)nodeM[x].d * Jv[h]) % MOD);
-            }
-            Pv[x] = Px; Jv[x] = Jx;
-            Uv[x] = (int)((2LL * Jx + Px) % MOD);
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) setLightLeafRaw(p, x, Uv[x], Jv[x]);
-        }
-        answer = Jv[r];
-    }
-
-    // ---- build chain segment trees ----
-    {
-        int nc = (int)chains.size();
-        for (int c = 0; c < nc; c++) {
-            int base = chainOff[c], S = chainPow[c];
-            int L = (int)chains[c].size();
-            for (int i = 0; i < L; i++) ctree[base + S + i] = nodeM[chains[c][i]];
-            for (int j = S + L; j < 2 * S; j++) ctree[base + j] = IDM;
-            for (int j = S - 1; j >= 1; j--)
-                ctree[base + j] = mmul(ctree[base + 2 * j], ctree[base + 2 * j + 1]);
-        }
-    }
-
-    // ---- process operations ----
-    string out;
-    out.reserve((size_t)(n - 1) * 11);
-    char tmp[16];
-    for (int i = 0; i < n - 1; i++) {
-        flip(ops[i]);
-        int v = answer;
-        int len = 0;
-        if (v == 0) tmp[len++] = '0';
-        while (v > 0) { tmp[len++] = char('0' + v % 10); v /= 10; }
-        while (len > 0) out.push_back(tmp[--len]);
-        out.push_back('\n');
-    }
-    fwrite(out.data(), 1, out.size(), stdout);
+    if (dp[n - 1] >= INFLL) cout << "impossible\n";
+    else cout << dp[n - 1] << '\n';
     return 0;
 }

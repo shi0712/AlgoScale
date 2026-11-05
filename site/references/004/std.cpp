@@ -1,279 +1,168 @@
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdint>
+#include <vector>
+#include <cassert>
 using namespace std;
+using i64 = long long;
 
-using ll = long long;
-using Poly = vector<int>;
-constexpr int MOD = 1000000007;
+// All traversal is iterative. No stored answers or shape-specific formulas.
+class FastInput {
+    static constexpr int S = 1 << 16;
+    char a[S]; int p=0,z=0;
+    int gc(){if(p==z){z=(int)fread(a,1,S,stdin);p=0;if(!z)return EOF;}return a[p++];}
+public:
+    bool read(int &x){int c;do{c=gc();if(c==EOF)return false;}while(c<=32);x=0;do{x=x*10+c-'0';c=gc();}while(c>32&&c!=EOF);return true;}
+};
 
-int power_mod(int a, int e, int mod = MOD) {
-    int r = 1;
-    while (e) {
-        if (e & 1) r = (ll)r * a % mod;
-        a = (ll)a * a % mod;
-        e >>= 1;
+class Solver {
+    int n,H,B,L;
+    vector<int> par,head,nxt,sz,ht,dep,heavy,pos;
+    vector<i64> base;
+    // The high-layer skeleton: a region consists of a unary big-node chain
+    // (including its bottom branching node) and attached small subtrees.
+    int R=0, stride=0;
+    vector<int> euler,tin,rid,roots,rend,bottom,jump;
+    vector<i64> jumpSum, ftab, gtab, potential;
+    i64 &ff(int r,int j){return ftab[(size_t)r*stride+j];}
+    i64 &gg(int r,int j){return gtab[(size_t)r*stride+j];}
+    i64 &pp(int r,int j){return potential[(size_t)r*stride+j];}
+    i64 getG(int u,int j) {
+        const int b=jump[u];
+        if(!b)return base[u];
+        const int k=j+dep[b]-dep[u];
+        if(k>H)return base[u];
+        return max(base[u],jumpSum[u]+gg(rid[b],k));
     }
-    return r;
-}
-
-void trim(Poly &a) {
-    while (a.size() > 1 && a.back() == 0) a.pop_back();
-}
-
-// 三个 NTT 模数的原根均为 3。
-template<int P>
-void ntt(vector<int> &a, bool inverse) {
-    int n = (int)a.size();
-    for (int i = 1, j = 0; i < n; ++i) {
-        int bit = n >> 1;
-        for (; j & bit; bit >>= 1) j ^= bit;
-        j ^= bit;
-        if (i < j) swap(a[i], a[j]);
-    }
-    for (int len = 2; len <= n; len <<= 1) {
-        int wlen = power_mod(3, (P - 1) / len, P);
-        if (inverse) wlen = power_mod(wlen, P - 2, P);
-        for (int i = 0; i < n; i += len) {
-            int w = 1;
-            for (int j = 0; j < len / 2; ++j) {
-                int u = a[i + j];
-                int v = (ll)a[i + j + len / 2] * w % P;
-                int x = u + v;
-                if (x >= P) x -= P;
-                int y = u - v;
-                if (y < 0) y += P;
-                a[i + j] = x;
-                a[i + j + len / 2] = y;
-                w = (ll)w * wlen % P;
+    void highLayers(vector<i64> &nextG) {
+        vector<int> bigCount(n+1), bigSon(n+1);
+        for(int u=n;u>=1;--u)
+            for(int v=head[u];v;v=nxt[v])if(sz[v]>=B){++bigCount[u];bigSon[u]=v;}
+        euler.reserve(n);tin.resize(n+1);rid.resize(n+1);
+        vector<int> st(1,1);
+        while(!st.empty()){
+            int u=st.back();st.pop_back();tin[u]=(int)euler.size();euler.push_back(u);
+            if(u==1||(sz[u]>=B&&bigCount[par[u]]>=2)){
+                rid[u]=R++;roots.push_back(u);bottom.push_back(0);
+            }else rid[u]=rid[par[u]];
+            if(sz[u]>=B&&bigCount[u]!=1)bottom[rid[u]]=u;
+            for(int v=head[u];v;v=nxt[v])st.push_back(v);
+        }
+        vector<int> rootTin(R);
+        for(int r=0;r<R;++r)rootTin[r]=tin[roots[r]];
+        rend.resize(R);
+        for(int r=0;r<R;++r)rend[r]=(int)(lower_bound(rootTin.begin(),rootTin.end(),tin[roots[r]]+sz[roots[r]])-rootTin.begin());
+        jump.assign(n+1,0);jumpSum.assign(n+1,0);
+        for(int u=n;u>=1;--u){
+            if(bigCount[u]>=2)jump[u]=u;
+            else if(bigCount[u]==1){int v=bigSon[u];jump[u]=jump[v];jumpSum[u]=(i64)sz[v]+jumpSum[v];}
+        }
+        stride=H+2;
+        ftab.assign((size_t)R*stride,0);
+        gtab.assign((size_t)R*stride,0);
+        potential.assign((size_t)R*stride,0);
+        vector<int> children;vector<i64> sumF(stride);
+        for(int r=R-1;r>=0;--r){
+            int b=bottom[r];assert(b!=0);
+            children.clear();i64 smallBest=0;
+            int maxh1=0,maxh2=0,who=-1;
+            for(int v=head[b];v;v=nxt[v]){
+                if(sz[v]>=B){
+                    children.push_back(v);
+                    int h=ht[v]+1;
+                    if(h>maxh1){maxh2=maxh1;maxh1=h;who=v;}else maxh2=max(maxh2,h);
+                }else smallBest=max(smallBest,(i64)sz[v]+base[v]);
+            }
+            fill(sumF.begin(),sumF.end(),0);
+            for(int v:children)for(int j=L+1;j<=ht[v]+1;++j)sumF[j]+=ff(rid[v],j);
+            for(int j=L+1;j<=H;++j){
+                i64 best=smallBest;
+                for(int v:children)best=max(best,(i64)sz[v]+getG(v,j+1)-ff(rid[v],j));
+                gg(r,j)=sumF[j]+best;
+            }
+            // Add sibling potentials to all descendant regions. For a fixed
+            // destination region, the sibling subtrees charged by its ancestors
+            // are pairwise disjoint. Total work is O(n*R), not O(H*R^2).
+            for(int v:children){
+                int c=rid[v],last=(v==who?maxh2:maxh1);
+                for(int s=c;s<rend[c];++s)
+                    for(int j=L+1;j<=last;++j)pp(s,j)+=sumF[j]-ff(c,j);
+            }
+            const int u=roots[r], end=tin[u]+sz[u];
+            for(int i=tin[u];i<end;++i){
+                int x=euler[i],j=dep[x]-dep[u]+1;
+                if(j>L)ff(r,j)=max(ff(r,j),getG(x,j)+pp(rid[x],j));
             }
         }
+        for(int u=1;u<=n;++u)nextG[u]=getG(u,L+1);
+        // High-layer tables are not needed in the low-layer phase.
+        vector<i64>().swap(ftab);vector<i64>().swap(gtab);vector<i64>().swap(potential);
     }
-    if (inverse) {
-        int invn = power_mod(n, P - 2, P);
-        for (int &x : a) x = (ll)x * invn % P;
+public:
+    explicit Solver(vector<int> p):n((int)p.size()-1),par(move(p)),head(n+1),nxt(n+1),sz(n+1,1),ht(n+1),dep(n+1),heavy(n+1),pos(n+1),base(n+1){
+        for(int u=2;u<=n;++u){nxt[u]=head[par[u]];head[par[u]]=u;dep[u]=dep[par[u]]+1;}
+        for(int u=n;u>=1;--u){
+            for(int v=head[u];v;v=nxt[v]){
+                sz[u]+=sz[v];ht[u]=max(ht[u],ht[v]+1);
+                base[u]=max(base[u],(i64)sz[v]+base[v]);
+                if(!heavy[u]||ht[v]>ht[heavy[u]])heavy[u]=v;
+            }
+        }
+        H=ht[1]; B=1;while(1LL*B*B<n)++B;
+#ifdef TEST_BLOCK
+        B=TEST_BLOCK; // Test builds only; forces high-layer coverage.
+#endif
+        L=min(H,2*B);
+        int used=0;
+        for(int u=1;u<=n;++u)if(u==1||heavy[par[u]]!=u)
+            for(int v=u;v;v=heavy[v])pos[v]=used++;
+        assert(used==n);
     }
-}
-
-template<int P>
-vector<int> convolution_prime(const Poly &a, const Poly &b, int len) {
-    vector<int> x(len), y(len);
-    for (int i = 0; i < (int)a.size(); ++i) x[i] = a[i] % P;
-    for (int i = 0; i < (int)b.size(); ++i) y[i] = b[i] % P;
-    ntt<P>(x, false);
-    ntt<P>(y, false);
-    for (int i = 0; i < len; ++i) x[i] = (ll)x[i] * y[i] % P;
-    ntt<P>(x, true);
-    return x;
-}
-
-Poly multiply(const Poly &a, const Poly &b) {
-    if ((a.size() == 1 && a[0] == 0) ||
-        (b.size() == 1 && b[0] == 0)) return {0};
-    int need = (int)a.size() + (int)b.size() - 1;
-    Poly c(need);
-    if (min(a.size(), b.size()) <= 16 || a.size() * b.size() <= 4096) {
-        for (int i = 0; i < (int)a.size(); ++i)
-            for (int j = 0; j < (int)b.size(); ++j)
-                c[i + j] = (c[i + j] + (ll)a[i] * b[j]) % MOD;
-        trim(c);
-        return c;
-    }
-    int len = 1;
-    while (len < need) len <<= 1;
-    constexpr int P1 = 998244353;
-    constexpr int P2 = 1004535809;
-    constexpr int P3 = 469762049;
-    auto x = convolution_prime<P1>(a, b, len);
-    auto y = convolution_prime<P2>(a, b, len);
-    auto z = convolution_prime<P3>(a, b, len);
-    static const int inv12 = power_mod(P1, P2 - 2, P2);
-    static const int p12_3 = (ll)P1 * P2 % P3;
-    static const int inv123 = power_mod(p12_3, P3 - 2, P3);
-    static const int p12_mod = (ll)P1 * P2 % MOD;
-    for (int i = 0; i < need; ++i) {
-        ll t1 = (y[i] - (ll)x[i] + P2) * inv12 % P2;
-        ll r3 = (x[i] + (ll)P1 * t1) % P3;
-        ll t2 = (z[i] - r3 + P3) * inv123 % P3;
-        c[i] = (x[i] + (ll)(P1 % MOD) * (t1 % MOD)
-                     + (ll)p12_mod * t2) % MOD;
-    }
-    trim(c);
-    return c;
-}
-
-void add_to(Poly &a, const Poly &b) {
-    if (a.size() < b.size()) a.resize(b.size());
-    for (int i = 0; i < (int)b.size(); ++i) {
-        a[i] += b[i];
-        if (a[i] >= MOD) a[i] -= MOD;
-    }
-}
-
-int evaluate(const Poly &a, int x) {
-    int ans = 0;
-    for (int i = (int)a.size() - 1; i >= 0; --i)
-        ans = ((ll)ans * x + a[i]) % MOD;
-    return ans;
-}
-
-struct Solver {
-    struct Piece {
-        int start;
-        Poly f, shifted;  // 本段的 f(x)、f(x-1)，使用全局变量 x
-    };
-    struct Node {
-        vector<Piece> pieces;
-    };
-    struct Split {
-        int root, left, right;
-    };
-
-    int n;
-    vector<int> A, B, fact, ifact, beta;
-    vector<vector<int>> id;
-    vector<Node> nodes;
-
-    Solver(int n, vector<int> A, vector<int> B)
-        : n(n), A(move(A)), B(move(B)), fact(n + 2), ifact(n + 2),
-          beta(n + 1), id(n + 2, vector<int>(n + 2, -1)) {
-        fact[0] = 1;
-        for (int i = 1; i <= n + 1; ++i) fact[i] = (ll)fact[i - 1] * i % MOD;
-        ifact[n + 1] = power_mod(fact[n + 1], MOD - 2);
-        for (int i = n + 1; i >= 1; --i) ifact[i - 1] = (ll)ifact[i] * i % MOD;
-
-        // beta(t) = t / (1 - exp(-t))。
-        // 其倒数的第 k 项系数为 (-1)^k / (k+1)!。
-        beta[0] = 1;
-        for (int i = 1; i <= n; ++i) {
-            int sum = 0;
-            for (int k = 1; k <= i; ++k) {
-                int v = (ll)ifact[k + 1] * beta[i - k] % MOD;
-                if (k & 1) {
-                    sum -= v;
-                    if (sum < 0) sum += MOD;
-                } else {
-                    sum += v;
-                    if (sum >= MOD) sum -= MOD;
+    i64 solve(){
+        vector<i64> nextG=base;
+        if(H>L)highLayers(nextG);
+        vector<i64> pool(n),delta(n+1),F(n+1),curG(n+1);
+        // Aggregate leaf children, which all have F=G=0 and size 1.
+        vector<int> nh(n+1), nn(n+1), internal;
+        vector<unsigned char> leaf(n+1),lightLeaf(n+1);
+        internal.reserve(n);
+        for(int u=n;u>=1;--u)if(head[u]){
+            internal.push_back(u);
+            for(int v=head[u];v;v=nxt[v]){
+                if(head[v]){nn[v]=nh[u];nh[u]=v;}
+                else{leaf[u]=1;if(v!=heavy[u])lightLeaf[u]=1;}
+            }
+        }
+        for(int j=L;j>=1;--j){
+            fill(pool.begin(),pool.end(),0);
+            for(int u:internal){
+                i64 sum=0,best=leaf[u]?1:0;
+                for(int v=nh[u];v;v=nn[v]){
+                    sum+=F[v];best=max(best,(i64)sz[v]+nextG[v]-F[v]);
                 }
+                i64 gu=sum+best;curG[u]=gu;
+                int s=heavy[u];
+                delta[u]=delta[s]+sum-F[s];
+                pool[pos[u]]=gu-delta[u];
+                if(lightLeaf[u])pool[pos[u]+1]=max(pool[pos[u]+1],sum-delta[u]);
+                for(int v=nh[u];v;v=nn[v])if(v!=s){
+                    i64 off=delta[v]+sum-F[v]-delta[u];
+                    for(int k=0;k<=ht[v];++k)
+                        pool[pos[u]+k+1]=max(pool[pos[u]+k+1],pool[pos[v]+k]+off);
+                }
+                F[u]=j-1<=ht[u]?max<i64>(0,pool[pos[u]+j-1]+delta[u]):0;
             }
-            beta[i] = sum ? MOD - sum : 0;
+            nextG.swap(curG);
         }
-        Node empty;
-        empty.pieces.push_back({1, {1}, {1}});
-        nodes.push_back(move(empty));  // 空区间的计数函数恒为 1。
-    }
-
-    // 离散求和：返回 q，使 q(0)=0 且 q(x)-q(x-1)=g(x)。
-    Poly antidifference(const Poly &g) const {
-        if (g.size() == 1 && g[0] == 0) return {0};
-        int d = (int)g.size() - 1;
-        Poly a(d + 1), b(d + 1);
-        for (int i = 0; i <= d; ++i) {
-            a[d - i] = (ll)g[i] * fact[i] % MOD;
-            b[i] = beta[i];
-        }
-        Poly c = multiply(a, b);
-        c.resize(d + 1);
-        Poly q(d + 2);
-        for (int i = 0; i <= d; ++i)
-            q[i + 1] = (ll)c[d - i] * ifact[i + 1] % MOD;
-        trim(q);
-        return q;
-    }
-
-    // 用阶乘卷积计算 f(x-1)。
-    Poly shift_minus_one(const Poly &f) const {
-        int d = (int)f.size() - 1;
-        if (d == 0) return f;
-        Poly a(d + 1), b(d + 1);
-        for (int i = 0; i <= d; ++i) {
-            a[d - i] = (ll)f[i] * fact[i] % MOD;
-            b[i] = (i & 1) ? MOD - ifact[i] : ifact[i];
-        }
-        Poly c = multiply(a, b);
-        c.resize(d + 1);
-        Poly ans(d + 1);
-        for (int i = 0; i <= d; ++i)
-            ans[i] = (ll)c[d - i] * ifact[i] % MOD;
-        trim(ans);
-        return ans;
-    }
-
-    const Piece &get_piece(int u, int x) const {
-        const auto &v = nodes[u].pieces;
-        int lo = 0, hi = (int)v.size();
-        while (lo + 1 < hi) {
-            int mid = (lo + hi) / 2;
-            if (v[mid].start <= x) lo = mid;
-            else hi = mid;
-        }
-        return v[lo];
-    }
-
-    int solve(int l, int r) {
-        if (l > r) return 0;
-        if (id[l][r] != -1) return id[l][r];
-
-        vector<Split> splits;
-        int low = max(l, (l + r - 1) / 2);
-        int high = min(r, (l + r + 2) / 2);
-        for (int k = low; k <= high; ++k) {
-            int left = solve(l, k - 1);
-            int right = solve(k + 1, r);
-            splits.push_back({k, left, right});
-        }
-
-        vector<int> cuts{1};
-        for (int i = l; i <= r; ++i) {
-            cuts.push_back(A[i]);
-            cuts.push_back(B[i] + 1);
-        }
-        sort(cuts.begin(), cuts.end());
-        cuts.erase(unique(cuts.begin(), cuts.end()), cuts.end());
-
-        Node cur;
-        cur.pieces.reserve(cuts.size());
-        int carry = 0;  // F(cuts[j]-1)，初始为 F(0)=0。
-        for (int j = 0; j + 1 < (int)cuts.size(); ++j) {
-            int lo = cuts[j], hi = cuts[j + 1] - 1;
-            Poly g{0};
-            for (const auto &sp : splits) {
-                if (lo < A[sp.root] || lo > B[sp.root]) continue;
-                const auto &left = get_piece(sp.left, lo);
-                const auto &right = get_piece(sp.right, lo);
-                add_to(g, multiply(left.f, right.shifted));
-            }
-            trim(g);
-            Poly f = antidifference(g);
-            int delta = carry - evaluate(f, lo - 1);
-            if (delta < 0) delta += MOD;
-            f[0] += delta;
-            if (f[0] >= MOD) f[0] -= MOD;
-            carry = evaluate(f, hi);
-            Poly shifted = shift_minus_one(f);
-            cur.pieces.push_back({lo, move(f), move(shifted)});
-        }
-        // 超过最大的 B 后，计数函数恒定。
-        cur.pieces.push_back({cuts.back(), {carry}, {carry}});
-        int u = (int)nodes.size();
-        nodes.push_back(move(cur));
-        id[l][r] = u;
-        return u;
-    }
-
-    int run() {
-        int root = solve(1, n);
-        return nodes[root].pieces.back().f[0];
+        return (i64)n+nextG[1];
     }
 };
 
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-    int n;
-    if (!(cin >> n)) return 0;
-    vector<int> A(n + 1), B(n + 1);
-    for (int i = 1; i <= n; ++i) cin >> A[i] >> B[i];
-    Solver solver(n, move(A), move(B));
-    cout << solver.run() << '\n';
+#ifndef TREE_VALUE_NO_MAIN
+int main(){
+    FastInput in;int T;if(!in.read(T))return 0;
+    while(T--){int n=0,m=0;in.read(n);in.read(m);vector<int> p(n+1);for(int u=2;u<=n;++u)in.read(p[u]);printf("%lld\n",Solver(move(p)).solve());}
     return 0;
 }
+#endif

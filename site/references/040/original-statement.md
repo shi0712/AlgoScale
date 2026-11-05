@@ -1,63 +1,58 @@
 ## Problem Description
 
-Given sequences $a_1,\ldots,a_n$ and $b_1,\ldots,b_n$ and a threshold $k$, construct a bipartite graph with $n$ left vertices and $n$ right vertices. Connect left vertex $i$ to right vertex $j$ exactly when
+A tree has $n$ vertices numbered $1$ through $n$. The numbers $1,2,\ldots,n$ occupy its vertices, with each number occurring exactly once.
 
-$$a_i\mathbin{\oplus}b_j\ge k,$$
+Perform exactly $n-1$ operations. In each operation, choose an edge that has not yet been deleted, swap the numbers on its endpoints, and then delete the edge. Thus every original edge is used once.
 
-where $\oplus$ is bitwise XOR.
-
-For each size $x=1,\ldots,n$, count the matchings containing exactly $x$ edges, modulo $998244353$.
+After all operations, let $P_i$ be the vertex containing number $i$. Find the lexicographically smallest possible sequence $(P_1,P_2,\ldots,P_n)$.
 
 ## Input Format
 
 Read from standard input.
 
-Read three lines: $n,k$; then the $n$ entries of $a$; then the $n$ entries of $b$.
+The first line contains the number of test cases $T$. Each test case consists of:
+
+1. A line containing $n$.
+2. A line of $n$ integers; its $i$-th integer is the **initial vertex containing number $i$**, not the number initially stored at vertex $i$.
+3. $n-1$ lines containing endpoints $x,y$ of the tree's edges.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ nonnegative integers, in increasing order of matching size. The $i$-th integer is the count for size $i$ modulo $998244353$. The example prints these integers on separate lines.
+For each test case, print $n$ space-separated integers: the lexicographically smallest possible final position sequence $P_1,\ldots,P_n$.
 
 ## Examples
 
 Input:
 
 ```text
-9 5
-1 7 2 8 4 9 2 5 10
-1 3 2 4 5 8 8 8 9
+1
+5
+2 1 3 5 4
+1 3
+1 4
+2 4
+4 5
 ```
 
 Output:
 
 ```text
-51
-1034
-10768
-62195
-200965
-348924
-294444
-97344
-7200
+1 3 4 2 5
 ```
 
 ## Explanation / Notes
 
-A matching is a set of edges in which no vertex is used twice. Vertices are distinguished by their indices, even if their associated numeric values are equal.
+Lexicographic comparison uses the first position at which two sequences differ. The smaller vertex number at that position makes the whole sequence smaller.
 
-The threshold comparison is inclusive: XOR equal to $k$ creates an edge. A size-zero matching is not requested.
+In the example, numbers $1,2,3,4,5$ initially occupy vertices $2,1,3,5,4$. An optimal ordering of edge deletions leaves them at vertices $1,3,4,2,5$, respectively.
 
 ## Constraints
 
-- There is one input instance.
-- $1\le n\le200$.
-- $0\le k<2^{60}$.
-- $0\le a_i<2^{60}$ and $0\le b_i<2^{60}$ for every index.
-- All inputs are integers; the upper bound $2^{60}$ is **exclusive**.
-- Repeated values in either sequence are allowed.
-- Every count is taken modulo $998244353$.
-- Time limit: 1 second.
-- Memory limit: 256 MB.
+- There are $1\le T\le10$ test cases.
+- Each case is a tree: it has $n$ vertices and $n-1$ undirected edges and is connected.
+- Vertex labels and initial positions lie in $[1,n]$; the initial position list is a permutation of $1,\ldots,n$.
+- $n\le2000$.
+- Time limit: 2,000 ms.
+- Memory limit: 256,000 KB.

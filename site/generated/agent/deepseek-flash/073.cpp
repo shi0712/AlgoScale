@@ -1,224 +1,174 @@
 #include <bits/stdc++.h>
 using namespace std;
 using ll = long long;
+static const int INF = 100000000;
 
-struct Tree {
-    int N;
-    vector<vector<pair<int,ll>>> ch;   // (child, weight) left-to-right
-    vector<ll> inw;                    // in-edge weight per original vertex
-    int root = -1;
-    // postorder-indexed
-    vector<int> lft, sz;
-    vector<ll> win;
-};
+int n;
+vector<int> a;
+int Amax;
+ll baseCost;
 
-static void buildPost(Tree& T) {
-    int N = T.N;
-    vector<int> post(N, -1);
-    vector<int> ord; ord.reserve(N);
-    T.lft.assign(N, 0);
-    T.sz.assign(N, 0);
-    T.win.assign(N, 0);
-    vector<int> it(N, 0), st;
-    st.reserve(N);
-    st.push_back(T.root);
-    while (!st.empty()) {
-        int u = st.back();
-        if (it[u] < (int)T.ch[u].size()) {
-            int v = T.ch[u][it[u]].first;
-            ++it[u];
-            st.push_back(v);
-        } else {
-            int idx = (int)ord.size();
-            ord.push_back(u);
-            post[u] = idx;
-            int ls = idx, s = 1;
-            for (auto& e : T.ch[u]) {
-                int c = e.first;
-                ls = min(ls, T.lft[post[c]]);
-                s += T.sz[post[c]];
-            }
-            T.lft[idx] = ls;
-            T.sz[idx] = s;
-            T.win[idx] = T.inw[u];
-            st.pop_back();
-        }
-    }
-    T.root = post[T.root];
+int sz;
+vector<int> tr;   // 4 ints per node: m00,m01,m10,m11  (min-plus 2x2)
+
+static inline void pull(int p){
+    int* c = &tr[(size_t)p*4];
+    const int* L = &tr[(size_t)(2*p)*4];
+    const int* R = &tr[(size_t)(2*p+1)*4];
+    int l0=L[0],l1=L[1],l2=L[2],l3=L[3],r0=R[0],r1=R[1],r2=R[2],r3=R[3];
+    int x0,y0;
+    x0=l0+r0; y0=l1+r2; c[0]=x0<y0?x0:y0;
+    x0=l0+r1; y0=l1+r3; c[1]=x0<y0?x0:y0;
+    x0=l2+r0; y0=l3+r2; c[2]=x0<y0?x0:y0;
+    x0=l2+r1; y0=l3+r3; c[3]=x0<y0?x0:y0;
 }
 
-static Tree readTree() {
-    Tree T;
-    int N;
-    if (scanf("%d", &N) != 1) exit(1);
-    T.N = N;
-    T.ch.assign(N, {});
-    T.inw.assign(N, 0);
-    vector<char> hasPar(N, 0);
-    for (int i = 0; i < N; i++) {
-        int k;
-        if (scanf("%d", &k) != 1) exit(1);
-        T.ch[i].reserve(k);
-        for (int j = 0; j < k; j++) {
-            int v; ll w;
-            if (scanf("%d %lld", &v, &w) != 2) exit(1);
-            --v;
-            T.ch[i].push_back({v, w});
-            hasPar[v] = 1;
-            T.inw[v] = w;
+int main(){
+    int T; if(scanf("%d",&T)!=1) return 0;
+    while(T--){
+        int m;
+        if(scanf("%d %d",&n,&m)!=2) return 0;
+        a.assign(n,0);
+        for(int i=0;i<n;i++) if(scanf("%d",&a[i])!=1) return 0;
+        Amax = 0; for(int x:a) Amax = x>Amax?x:Amax;
+        baseCost = 0;
+        for(int i=1;i<n;i++) if(a[i-1]>a[i]) baseCost += a[i-1]-a[i];
+        if(m==1 || n==1){
+            printf("%lld\n", (ll)((Amax>a[0])?(Amax-a[0]):0) + baseCost);
+            continue;
         }
-    }
-    for (int i = 0; i < N; i++) if (!hasPar[i]) { T.root = i; break; }
-    buildPost(T);
-    return T;
-}
+        vector<int> vals(a);
+        sort(vals.begin(), vals.end());
+        vals.erase(unique(vals.begin(), vals.end()), vals.end());
+        if((int)vals.size()<=2){ printf("0\n"); continue; }
 
-int main() {
-    ll c1, c2, c3;
-    if (scanf("%lld %lld %lld", &c1, &c2, &c3) != 3) return 0;
+        ll best = (ll)((Amax>a[0])?(Amax-a[0]):0) + baseCost;   // D=0
 
-    Tree A = readTree();
-    Tree B = readTree();
-    const int n = A.N, m = B.N;
-    const int rootA = A.root, rootB = B.root;
-
-    // base cost: contract every non-root node of A, insert every non-root node of B
-    ll base = 0;
-    for (int i = 0; i < n; i++) if (i != rootA) base += c2 * A.win[i];
-    for (int j = 0; j < m; j++) if (j != rootB) base += c1 * B.win[j];
-
-    // keyroots: for each distinct leftmost-leaf value, the node with maximal postorder index
-    auto keyroots = [](const Tree& T) {
-        vector<int> best(T.N, -1), kr;
-        for (int i = 0; i < T.N; i++) best[T.lft[i]] = i;
-        for (int i = 0; i < T.N; i++) if (best[T.lft[i]] == i) kr.push_back(i);
-        return kr;
-    };
-    vector<int> krA = keyroots(A), krB = keyroots(B);
-
-    const size_t PM = (size_t)m + 1;             // padded stride so row pointers stay in-bounds
-    vector<ll> P((size_t)(n + 1) * PM, 0);       // max savings matching subtree(i) <-> subtree(j)
-    vector<ll> fd((size_t)(n + 1) * (m + 1));    // scratch forest DP table
-
-    vector<int> colJump(m + 2);
-    vector<char> specCol(m + 2);
-
-    for (int j1 : krB) {
-        const int l2 = B.lft[j1];
-        const int W = j1 - l2 + 2;               // relative cols 0..W-1, col 0 = empty
-        for (int b = 1; b < W; b++) {
-            const int j = l2 + b - 1;
-            colJump[b] = B.lft[j] - l2;
-            specCol[b] = (B.lft[j] == l2);
-        }
-        const bool forbidIns = (j1 == rootB);    // last column j == rootB cannot be inserted
-        const int blast = forbidIns ? W - 1 : W; // normal columns are [1, blast), tail is b=W-1
-
-        for (int i1 : krA) {
-            const int l1 = A.lft[i1];
-            const int H = i1 - l1 + 2;           // relative rows 0..H-1, row 0 = empty
-            ll* tab = fd.data();
-            memset(tab, 0, sizeof(ll) * W);      // row 0 = all zeros
-            for (int a = 1; a < H; a++) {
-                const int i = l1 + a - 1;
-                const bool forbidDel = (i == rootA);  // contracting the root of A is forbidden
-                ll* cur  = tab + (size_t)a * W;
-                ll* prev = cur - W;
-                ll* jrow = cur - (size_t)A.sz[i] * W;        // row (lft[i]-1)
-                ll* Prow = &P[(size_t)(i + 1) * PM + l2 - 1]; // Prow[b] = P[i][l2+b-1]
-                const bool specRow = (A.lft[i] == l1);
-                const ll wi = A.win[i];
-                cur[0] = 0;
-                ll run = 0;
-
-                if (!forbidDel) {
-                    if (specRow) {
-                        for (int b = 1; b < blast; b++) {
-                            ll v;
-                            if (specCol[b]) {
-                                const ll wj = B.win[l2 + b - 1];
-                                const ll sav = c2*wi + c1*wj - c3*(wi > wj ? wi - wj : wj - wi);
-                                v = prev[b-1] + sav;
-                                if (prev[b] > v) v = prev[b];
-                                if (run > v) v = run;
-                                Prow[b] = v;
-                            } else {
-                                v = prev[b];
-                                const ll u = jrow[colJump[b]] + Prow[b];
-                                if (u > v) v = u;
-                                if (run > v) v = run;
-                            }
-                            cur[b] = v; run = v;
-                        }
-                    } else {
-                        for (int b = 1; b < blast; b++) {
-                            ll v = prev[b];
-                            const ll u = jrow[colJump[b]] + Prow[b];
-                            if (u > v) v = u;
-                            if (run > v) v = run;
-                            cur[b] = v; run = v;
-                        }
-                    }
-                    if (forbidIns) {   // tail column: no insert transition, no run
-                        const int b = W - 1;
-                        ll v;
-                        if (specRow && specCol[b]) {
-                            const ll wj = B.win[l2 + b - 1];
-                            const ll sav = c2*wi + c1*wj - c3*(wi > wj ? wi - wj : wj - wi);
-                            v = prev[b-1] + sav;
-                            if (prev[b] > v) v = prev[b];
-                            Prow[b] = v;
-                        } else {
-                            v = prev[b];
-                            const ll u = jrow[colJump[b]] + Prow[b];
-                            if (u > v) v = u;
-                        }
-                        cur[b] = v;
-                    }
-                } else {
-                    // last row: "delete i" forbidden, and this row's P is not meaningful for jumps;
-                    // it only needs to produce the root cell value (and special-cell P values).
-                    if (specRow) {
-                        for (int b = 1; b < blast; b++) {
-                            ll v;
-                            if (specCol[b]) {
-                                const ll wj = B.win[l2 + b - 1];
-                                const ll sav = c2*wi + c1*wj - c3*(wi > wj ? wi - wj : wj - wi);
-                                v = prev[b-1] + sav;
-                                if (run > v) v = run;
-                                Prow[b] = v;
-                            } else {
-                                v = jrow[colJump[b]] + Prow[b];
-                                if (run > v) v = run;
-                            }
-                            cur[b] = v; run = v;
-                        }
-                    } else {
-                        for (int b = 1; b < blast; b++) {
-                            ll v = jrow[colJump[b]] + Prow[b];
-                            if (run > v) v = run;
-                            cur[b] = v; run = v;
-                        }
-                    }
-                    if (forbidIns) {
-                        const int b = W - 1;
-                        ll v;
-                        if (specRow && specCol[b]) {
-                            const ll wj = B.win[l2 + b - 1];
-                            const ll sav = c2*wi + c1*wj - c3*(wi > wj ? wi - wj : wj - wi);
-                            v = prev[b-1] + sav;
-                            Prow[b] = v;
-                        } else {
-                            v = jrow[colJump[b]] + Prow[b];
-                        }
-                        cur[b] = v;
-                    }
+        // ---------- family I : q = Amax (D = Amax - V) ----------
+        {
+            int Vlist[2100]; int cnt=0;
+            Vlist[cnt++]=0;
+            for(int v: vals) Vlist[cnt++]=v;
+            for(int k=0;k<cnt;k++){
+                int V = Vlist[k];
+                if((ll)V - a[0] >= best) continue;
+                int D = Amax - V;
+                int dp0 = (a[0]<=V)?0:INF;
+                int dp1 = D;
+                for(int i=1;i<n;i++){
+                    int ai=a[i], r=ai-a[i-1];
+                    int al = (D>r)?(D-r):0;
+                    int dr = (r<0)?-r:0;
+                    int be = (D<dr)?D:dr;
+                    int t = dp0+al; int n1 = dp1<t?dp1:t;
+                    int n0;
+                    if(ai<=V){ t=dp1-be; n0 = dp0<t?dp0:t; }
+                    else n0 = INF;
+                    dp0=n0; dp1=n1;
                 }
+                int phi = dp0<dp1?dp0:dp1;
+                ll tot = (ll)V - a[0] + baseCost + phi;
+                if(tot<best) best=tot;
             }
         }
-    }
 
-    ll best = P[(size_t)(rootA + 1) * PM + rootB];
-    printf("%lld\n", base - best);
+        // ---------- family II : D in breakpoints ----------
+        vector<int> cand;
+        cand.push_back(0);
+        for(int i=1;i<n;i++){ int d = a[i]-a[i-1]; cand.push_back(d<0?-d:d); }
+        cand.push_back(Amax - vals[0]);
+        sort(cand.begin(), cand.end());
+        cand.erase(unique(cand.begin(),cand.end()),cand.end());
+
+        // lower bounds via unconstrained optimum (V = Amax)
+        vector<pair<int,int>> tasks;   // (lowerbound, D)
+        tasks.reserve(cand.size());
+        for(int D : cand){
+            int Tv = Amax - D; if(Tv<0) Tv=0;
+            if((ll)Tv - a[0] >= best) continue;
+            // unconstrained DP (all positions may be 0)
+            int dp0=0, dp1=D;
+            for(int i=1;i<n;i++){
+                int r=a[i]-a[i-1];
+                int al = (D>r)?(D-r):0;
+                int dr = (r<0)?-r:0;
+                int be = (D<dr)?D:dr;
+                int t = dp0+al; int n1 = dp1<t?dp1:t;
+                t = dp1-be;     int n0 = dp0<t?dp0:t;
+                dp0=n0; dp1=n1;
+            }
+            int phiM = dp0<dp1?dp0:dp1;
+            int lb = (int)((ll)Tv - a[0] + baseCost + phiM);   // valid lower bound of any (V,D) cost
+            if((ll)lb < best) tasks.push_back(make_pair(lb, D));
+        }
+        sort(tasks.begin(), tasks.end());
+
+        vector<int> ord(n);
+        for(int i=0;i<n;i++) ord[i]=i;
+        sort(ord.begin(), ord.end(), [](int x,int y){ return a[x]<a[y]; });
+
+        int leaves = n-1;
+        sz = 1; while(sz<leaves) sz <<= 1;
+        tr.assign((size_t)2*sz*4, 0);
+        for(int j=0;j<sz;j++){ int* p=&tr[(size_t)(sz+j)*4]; p[0]=0;p[1]=INF;p[2]=INF;p[3]=0; }
+        for(int p=sz-1;p>=1;p--) pull(p);
+
+        vector<int> alpha_(n,0), beta_(n,0);
+
+        for(size_t ti=0; ti<tasks.size(); ++ti){
+            if((ll)tasks[ti].first >= best) break;   // remaining bounds are >= this one
+            int D = tasks[ti].second;
+            int T = Amax - D; if(T<0) T=0;
+            if((ll)T - a[0] >= best) continue;
+            for(int i=1;i<n;i++){
+                int r=a[i]-a[i-1];
+                alpha_[i] = (D>r)?(D-r):0;
+                int dr = (r<0)?-r:0;
+                beta_[i]  = (D<dr)?D:dr;
+            }
+            for(int i=1;i<n;i++){
+                int* p=&tr[(size_t)(sz+i-1)*4];
+                p[1]=alpha_[i];
+                if(a[i]>T){ p[0]=INF; p[2]=INF; p[3]=0; }
+                else { p[0]=0; p[2]=-beta_[i]; p[3]=0; }
+            }
+            for(int p=sz-1;p>=1;p--) pull(p);
+            int restricted0 = (a[0] > T);
+
+            int nextord = 0;
+            while(nextord<n && a[ord[nextord]]<=T) nextord++;
+            int V = T;
+            while(true){
+                if((ll)V - a[0] >= best) break;
+                const int* P = &tr[4];
+                int init1 = D;
+                int m0 = init1+P[2];
+                { int t=init1+P[3]; if(t<m0) m0=t; }
+                if(!restricted0){
+                    if(P[0]<m0) m0=P[0];
+                    { int t=P[1]; if(t<m0) m0=t; }
+                }
+                ll tot = (ll)V - a[0] + baseCost + m0;
+                if(tot<best) best=tot;
+                if(nextord>=n) break;
+                int nv = a[ord[nextord]];
+                if((ll)nv - a[0] >= best) break;
+                while(nextord<n && a[ord[nextord]]==nv){
+                    int pos = ord[nextord];
+                    if(pos==0) restricted0 = 0;
+                    else {
+                        int idx = sz + pos - 1;
+                        int* p=&tr[(size_t)idx*4];
+                        p[0]=0; p[2]=-beta_[pos];
+                        idx >>= 1;
+                        while(idx>=1){ pull(idx); idx >>= 1; }
+                    }
+                    nextord++;
+                }
+                V = nv;
+            }
+        }
+        printf("%lld\n", best);
+    }
     return 0;
 }

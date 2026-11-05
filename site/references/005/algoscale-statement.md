@@ -1,62 +1,82 @@
 ## Problem Description
 
-A rooted tree has $n$ vertices, root 1, and parent $p_i$ for each vertex $i\ge2$. Depth is the number of edges from the root, so $d_1=0$ and $d_i=d_{p_i}+1$. The tree's height is its maximum depth and is guaranteed to be at most the given bound $m$.
+An undirected tree connects $n$ devices numbered $1,\ldots,n$. Choosing a final device $x$ roots the tree at $x$ and directs every edge toward that root.
 
-Assign a nonnegative integer $a_i$ to every vertex. Let $S_i$ be the set of assigned values appearing in the subtree of $i$, including vertex $i$. The **mex** of a set is its smallest missing nonnegative integer.
+For that root, define device $y$'s product recursively as the **multiset of the products of all its proper descendants**, not just its children:
 
-Find the maximum possible value of
+$$a_{x,y}=\{a_{x,z}:z\text{ is a proper descendant of }y\}.$$
 
-$$\sum_{i=1}^{n}\operatorname{mex}(S_i)$$
+A leaf's product is the empty multiset. Multiplicities matter.
 
-over all assignments.
+To compare two products, sort their multiset elements in decreasing product order and compare the resulting sequences lexicographically. At the first unequal position, the larger element determines the larger product. If one sequence is a proper prefix of the other, the longer sequence is larger. Equal sequences represent equal products. This recursively defines the comparison, starting with empty products.
+
+Define the descending rank, allowing ties, by
+
+$$f(x,y)=1+\#\{z:a_{x,z}>a_{x,y}\}.$$
+
+For each query $(s,t,o_x,o_y,r)$, let $P(s,t)$ be the set of vertices on the unique simple path from $s$ to $t$, **including both endpoints**. Define
+
+$$X=\begin{cases}\{s\},&o_x=0,\\P(s,t),&o_x=1,\end{cases}\qquad
+Y=\begin{cases}\{t\},&o_y=0,\\P(s,t),&o_y=1.\end{cases}$$
+
+Count the ordered pairs $(x,y)\in X\times Y$ for which $f(x,y)\le r$.
 
 ## Input Format
 
 Read from standard input.
 
-Read the number of cases $t$. Each case consists of:
+Read the following, in order:
 
-1. A line containing $n,m$.
-2. A line containing the $n-1$ parents $p_2,p_3,\ldots,p_n$.
+1. An unused nonnegative decimal integer $c$, with no further bound on its value, which should be read and ignored.
+2. $n$.
+3. $n-1$ lines containing tree edges $u_i,v_i$.
+4. The query count $m$.
+5. $m$ lines, each containing $s,t,o_x,o_y,r$.
+
+There is one tree in the input; $c$ is not a case count.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print one nonnegative integer: the maximum tree value.
+Print one nonnegative integer per query: the exact number of qualifying ordered pairs, without taking a modulus.
 
 ## Examples
 
 Input:
 
 ```text
+0
+3
+1 2
+2 3
 1
-5 2
-1 1 2 2
+1 2 0 0 2
 ```
 
 Output:
 
 ```text
-9
+1
 ```
 
 ## Explanation / Notes
 
-Assign $(a_1,a_2,a_3,a_4,a_5)=(3,2,0,0,1)$. The subtree mex values sum to $4+3+1+1+0=9$, which is optimal.
+Rooting the path $1-2-3$ at vertex 1 gives
 
-Repeated values contribute only once to a subtree's set. The height bound $m$ concerns the input tree's structure; it is not an upper bound on assigned weights.
+$$a_{1,3}=\varnothing,\quad a_{1,2}=\{\varnothing\},\quad a_{1,1}=\{\varnothing,\{\varnothing\}\}.$$
+
+Thus $f(1,2)=2$. The query has $X=\{1\}$, $Y=\{2\}$, and $r=2$, so its only candidate pair qualifies.
 
 ## Constraints
 
-- $1\le t\le5$.
-- $2\le n\le500\,000$.
-- There is no additional bound on the sum of $n$ across cases: an input file may contain five cases with $500\,000$ vertices each.
-- $1\le m\le\min(n-1,800)$.
-- $1\le p_i\le i-1$ for every $2\le i\le n$.
-- Vertex 1 is the root, with depth zero.
-- The input tree's height does not exceed $m$.
-- Chosen weights $a_i$ may be arbitrary nonnegative integers; they are decision variables rather than input values.
+- $2\le n\le5\times10^5$.
+- Exactly $n-1$ edges are given; their endpoints are in $[1,n]$ and they form a tree.
+- $1\le m\le10^5$.
+- For every query, $1\le s,t,r\le n$ and $o_x,o_y\in\{0,1\}$.
+- Queries with $s=t$ and pairs with $x=y$ are allowed.
+- Equal products have equal ranks; each rank counts all strictly larger products, rather than the number of distinct larger values.
+- An answer is at most $n^2\le2.5\times10^{11}$, so it need not fit in a signed 32-bit integer.
 
-- Time limit: 32.5 seconds.
-- Memory limit: 256 MB.
+- Time limit: 3 seconds.
+- Memory limit: 768 MB.

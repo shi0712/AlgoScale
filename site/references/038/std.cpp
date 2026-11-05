@@ -1,236 +1,201 @@
-// 时间复杂度 O(n log^2 n)，额外空间 O(n log n)。
 #include <bits/stdc++.h>
 using namespace std;
 
+using u64 = unsigned long long;
 using i64 = long long;
-using i128 = __int128_t;
-const i64 INF = numeric_limits<i64>::max() / 4;
 
-static i64 isqrt(i64 v) {
-    i64 s = static_cast<i64>(sqrtl(static_cast<long double>(v)));
-    while ((s + 1) * (s + 1) <= v) ++s;
-    while (s * s > v) --s;
-    return s;
+static constexpr int MOD = 998244353;
+static constexpr int G = 3;
+
+int N;
+u64 K;
+vector<u64> A, B;
+vector<int> fac, ifac;
+
+int mod_pow(int a, int e) {
+    long long r = 1, x = a;
+    while (e) {
+        if (e & 1) r = r * x % MOD;
+        x = x * x % MOD;
+        e >>= 1;
+    }
+    return (int)r;
 }
 
-struct Radical {
-    i64 a, b; // 表示 a + sqrt(b)，其中 b >= 0
-};
+void ntt(vector<int>& a, bool invert) {
+    int n = (int)a.size();
+    static vector<int> rev;
+    static vector<int> roots{0, 1};
 
-// 精确比较两个带根式的数，返回 -1 / 0 / 1。
-static int compareRadical(Radical u, Radical v) {
-    if (u.a < v.a) return -compareRadical(v, u);
-    i128 d = static_cast<i128>(u.a) - v.a;
-    if (d == 0) return (u.b > v.b) - (u.b < v.b);
-    i128 q = static_cast<i128>(v.b) - u.b - d * d;
-    if (q < 0) return 1;
-    i128 lhs = 4 * d * d * u.b;
-    i128 rhs = q * q;
-    return (lhs > rhs) - (lhs < rhs);
+    if ((int)rev.size() != n) {
+        int k = __builtin_ctz(n);
+        rev.assign(n, 0);
+        for (int i = 0; i < n; ++i)
+            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (k - 1));
+    }
+    if ((int)roots.size() < n) {
+        int k = __builtin_ctz((int)roots.size());
+        roots.resize(n);
+        while ((1 << k) < n) {
+            int e = mod_pow(G, (MOD - 1) >> (k + 1));
+            for (int i = 1 << (k - 1); i < (1 << k); ++i) {
+                roots[i << 1] = roots[i];
+                roots[i << 1 | 1] = (long long)roots[i] * e % MOD;
+            }
+            ++k;
+        }
+    }
+    for (int i = 0; i < n; ++i)
+        if (i < rev[i]) swap(a[i], a[rev[i]]);
+
+    for (int len = 1; len < n; len <<= 1) {
+        for (int i = 0; i < n; i += len << 1) {
+            for (int j = 0; j < len; ++j) {
+                int u = a[i + j];
+                int v = (long long)a[i + j + len] * roots[len + j] % MOD;
+                int x = u + v;
+                if (x >= MOD) x -= MOD;
+                int y = u - v;
+                if (y < 0) y += MOD;
+                a[i + j] = x;
+                a[i + j + len] = y;
+            }
+        }
+    }
+
+    if (invert) {
+        reverse(a.begin() + 1, a.end());
+        int inv_n = mod_pow(n, MOD - 2);
+        for (int& x : a) x = (long long)x * inv_n % MOD;
+    }
 }
 
-// 维护几何限制函数最小值的广义李超树。
-class GeometryHull {
-    const vector<i64>& x;
-    const vector<i64>& t;
-    int n;
-    vector<int> tree;
-
-    Radical value(int k, int p) const {
-        i64 a = x[k] - x[p];
-        // 辅助延拓：保证整个定义域上任意两函数至多交叉一次。
-        // 真实查询不会用到这一段。
-        if (a < 0) return {a, 0};
-        return {2 * (a + t[k]), 8LL * a * t[k]};
+vector<int> convolution(const vector<int>& a, const vector<int>& b) {
+    if (a.empty() || b.empty()) return {};
+    if (a.size() == 1) {
+        vector<int> c = b;
+        for (int& x : c) x = (long long)x * a[0] % MOD;
+        return c;
     }
-
-    bool better(int a, int b, int p) const {
-        if (a == -1) return false;
-        if (b == -1) return true;
-        return compareRadical(value(a, p), value(b, p)) < 0;
+    if (b.size() == 1) {
+        vector<int> c = a;
+        for (int& x : c) x = (long long)x * b[0] % MOD;
+        return c;
     }
-
-    void add(int v, int l, int r, int f) {
-        if (tree[v] == -1) {
-            tree[v] = f;
-            return;
+    if ((long long)a.size() * b.size() <= 4096) {
+        vector<int> c(a.size() + b.size() - 1, 0);
+        for (int i = 0; i < (int)a.size(); ++i) {
+            for (int j = 0; j < (int)b.size(); ++j) {
+                c[i + j] = (c[i + j] + (long long)a[i] * b[j]) % MOD;
+            }
         }
-        int m = (l + r) / 2;
-        bool left = better(f, tree[v], l);
-        bool middle = better(f, tree[v], m);
-        if (middle) swap(f, tree[v]);
-        if (l == r) return;
-        if (left != middle) add(v * 2, l, m, f);
-        else add(v * 2 + 1, m + 1, r, f);
+        return c;
     }
-
-    int query(int v, int l, int r, int p) const {
-        int ans = tree[v];
-        if (l == r) return ans;
-        int m = (l + r) / 2;
-        int other = p <= m ? query(v * 2, l, m, p)
-                           : query(v * 2 + 1, m + 1, r, p);
-        return better(other, ans, p) ? other : ans;
-    }
-
-public:
-    GeometryHull(const vector<i64>& xs, const vector<i64>& ts)
-        : x(xs), t(ts), n(static_cast<int>(xs.size())), tree(4 * n, -1) {}
-
-    void add(int k) { add(1, 0, n - 1, k); }
-    int query(int p) const { return query(1, 0, n - 1, p); }
-};
-
-static vector<i64> rightLimits(const vector<i64>& x, const vector<i64>& t) {
-    int n = static_cast<int>(x.size());
-    vector<i64> limit(n);
-    GeometryHull hull(x, t);
-    for (int i = n - 1; i >= 0; --i) {
-        hull.add(i);
-        int k = hull.query(i);
-        i64 a = x[k] - x[i];
-        limit[i] = 2 * (a + t[k]) + isqrt(8LL * a * t[k]);
-    }
-    return limit;
+    int need = (int)a.size() + (int)b.size() - 1;
+    int sz = 1;
+    while (sz < need) sz <<= 1;
+    vector<int> x(sz), y(sz);
+    copy(a.begin(), a.end(), x.begin());
+    copy(b.begin(), b.end(), y.begin());
+    ntt(x, false);
+    ntt(y, false);
+    for (int i = 0; i < sz; ++i) x[i] = (long long)x[i] * y[i] % MOD;
+    ntt(x, true);
+    x.resize(need);
+    return x;
 }
 
-class BridgeDP {
-    int n;
-    i64 alpha, beta;
-    const vector<i64>& x;
-    const vector<i64>& t;
-    vector<int> L, R;
-    vector<i64> dp, best, slope, intercept;
-    vector<vector<int>> pending;
-
-    i64 value(int k, i64 at) const {
-        return slope[k] * at + intercept[k];
+vector<int> full_board(int m, int n) {
+    int s = min(m, n);
+    vector<int> r(s + 1);
+    // C(m,t) C(n,t) t! = m! n! / ((m-t)!(n-t)!t!)
+    for (int t = 0; t <= s; ++t) {
+        r[t] = (long long)fac[m] * fac[n] % MOD
+             * ifac[m - t] % MOD * ifac[n - t] % MOD * ifac[t] % MOD;
     }
-
-    // a、b、c 的斜率严格递增，判断中间直线 b 是否冗余。
-    bool redundant(int a, int b, int c) const {
-        return (static_cast<i128>(intercept[a]) - intercept[b]) *
-                   (slope[c] - slope[b]) <=
-               (static_cast<i128>(intercept[b]) - intercept[c]) *
-                   (slope[b] - slope[a]);
-    }
-
-    void addRange(int v, int l, int r, int ql, int qr, int id) {
-        if (ql <= l && r <= qr) {
-            pending[v].push_back(id);
-            return;
-        }
-        int m = (l + r) / 2;
-        if (ql <= m) addRange(v * 2, l, m, ql, qr, id);
-        if (qr > m) addRange(v * 2 + 1, m + 1, r, ql, qr, id);
-    }
-
-    // 进入节点时，属于该节点的所有直线都已经加入。
-    void apply(int v, int l, int r) {
-        auto& ids = pending[v];
-        if (ids.empty()) return;
-
-        vector<int> order(r - l + 1);
-        iota(order.begin(), order.end(), l);
-        sort(order.begin(), order.end(), [&](int a, int b) {
-            return L[a] > L[b];
-        });
-
-        vector<int> hull;
-        hull.reserve(ids.size());
-        int p = static_cast<int>(ids.size()) - 1;
-        for (int j : order) {
-            while (p >= 0 && ids[p] >= L[j]) {
-                int k = ids[p--];
-                while (hull.size() >= 2 &&
-                       redundant(hull[hull.size() - 2], hull.back(), k)) {
-                    hull.pop_back();
-                }
-                hull.push_back(k);
-            }
-            if (hull.empty()) continue;
-
-            int a = 0, b = static_cast<int>(hull.size()) - 1;
-            while (a < b) {
-                int m = (a + b) / 2;
-                if (value(hull[m], x[j]) <= value(hull[m + 1], x[j])) b = m;
-                else a = m + 1;
-            }
-            best[j] = min(best[j], value(hull[a], x[j]));
-        }
-        vector<int>().swap(ids);
-    }
-
-    void solve(int v, int l, int r) {
-        apply(v, l, r);
-        if (l == r) {
-            if (l == 0) dp[l] = alpha * t[l];
-            else if (best[l] != INF) {
-                dp[l] = best[l] + beta * x[l] * x[l] + alpha * t[l];
-            }
-            if (dp[l] != INF && l < R[l]) {
-                intercept[l] = dp[l] + beta * x[l] * x[l];
-                addRange(1, 0, n - 1, l + 1, R[l], l);
-            }
-            return;
-        }
-        int m = (l + r) / 2;
-        solve(v * 2, l, m);
-        solve(v * 2 + 1, m + 1, r);
-    }
-
-public:
-    BridgeDP(const vector<i64>& xs, const vector<i64>& ts, i64 a, i64 b,
-             vector<int> left, vector<int> right)
-        : n(static_cast<int>(xs.size())), alpha(a), beta(b), x(xs), t(ts),
-          L(move(left)), R(move(right)), dp(n, INF), best(n, INF),
-          slope(n), intercept(n), pending(4 * n) {
-        for (int i = 0; i < n; ++i) slope[i] = -2 * beta * x[i];
-    }
-
-    i64 run() {
-        solve(1, 0, n - 1);
-        return dp[n - 1];
-    }
-};
-
-static i64 minimumBridge(const vector<i64>& x, const vector<i64>& t,
-                         i64 alpha, i64 beta) {
-    int n = static_cast<int>(x.size());
-    auto right = rightLimits(x, t);
-    vector<i64> rx(n), rt(n);
-    for (int i = 0; i < n; ++i) {
-        rx[i] = -x[n - 1 - i];
-        rt[i] = t[n - 1 - i];
-    }
-    auto left = rightLimits(rx, rt);
-    vector<int> L(n), R(n);
-    for (int i = 0; i < n; ++i) {
-        L[i] = static_cast<int>(lower_bound(x.begin(), x.end(),
-                         x[i] - left[n - 1 - i]) - x.begin());
-        R[i] = static_cast<int>(upper_bound(x.begin(), x.end(),
-                         x[i] + right[i]) - x.begin()) - 1;
-    }
-    BridgeDP solver(x, t, alpha, beta, move(L), move(R));
-    return solver.run();
+    return r;
 }
 
-#ifndef BRIDGE_SOLVER_NO_MAIN
+vector<int> complement_poly(const vector<int>& r, int m, int n) {
+    int s = min(m, n);
+    int d = min(s, (int)r.size() - 1);
+    if (d == 0 && r[0] == 1) return full_board(m, n);
+
+    vector<int> x(d + 1), y(s + 1);
+    for (int j = 0; j <= d; ++j) {
+        long long v = (long long)r[j] * fac[m - j] % MOD * fac[n - j] % MOD;
+        if (j & 1) v = v ? MOD - v : 0;
+        x[j] = (int)v;
+    }
+    for (int j = 0; j <= s; ++j) y[j] = ifac[j];
+    vector<int> z = convolution(x, y);
+    vector<int> ans(s + 1);
+    for (int t = 0; t <= s; ++t) {
+        ans[t] = (long long)z[t] * ifac[m - t] % MOD * ifac[n - t] % MOD;
+    }
+    return ans;
+}
+
+int split_pos(const vector<u64>& v, int l, int r, int bit) {
+    if (l == r) return l;
+    u64 high = (v[l] >> (bit + 1)) << (bit + 1);
+    u64 threshold = high | (1ULL << bit);
+    return (int)(lower_bound(v.begin() + l, v.begin() + r, threshold) - v.begin());
+}
+
+// Returns the rook polynomial of either E = {xor >= K} (want_edge=true)
+// or its complement (want_edge=false), restricted to A[al:ar), B[bl:br).
+vector<int> solve(int al, int ar, int bl, int br, int bit, bool want_edge) {
+    int m = ar - al, n = br - bl;
+    if (m == 0 || n == 0) return {1};
+    if (bit < 0) return want_edge ? full_board(m, n) : vector<int>{1};
+
+    // If the remaining threshold bits are all zero, xor_suffix >= 0 is always true.
+    u64 mask = (1ULL << (bit + 1)) - 1;
+    if ((K & mask) == 0) return want_edge ? full_board(m, n) : vector<int>{1};
+
+    int am = split_pos(A, al, ar, bit);
+    int bm = split_pos(B, bl, br, bit);
+    bool kb = (K >> bit) & 1ULL;
+
+    // The easy object is edges when kb=1, non-edges when kb=0.
+    bool easy_is_edge = kb;
+    vector<int> p, q;
+    if (kb) {
+        p = solve(al, am, bm, br, bit - 1, true);   // A0 x B1
+        q = solve(am, ar, bl, bm, bit - 1, true);   // A1 x B0
+    } else {
+        p = solve(al, am, bl, bm, bit - 1, false);  // A0 x B0
+        q = solve(am, ar, bm, br, bit - 1, false);  // A1 x B1
+    }
+    vector<int> easy = convolution(p, q);
+    if (want_edge == easy_is_edge) return easy;
+    return complement_poly(easy, m, n);
+}
+
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int n;
-    i64 h, alpha, beta;
-    if (!(cin >> n >> h >> alpha >> beta)) return 0;
-    vector<i64> x(n), t(n);
-    for (int i = 0; i < n; ++i) {
-        i64 y;
-        cin >> x[i] >> y;
-        t[i] = h - y;
+
+    cin >> N >> K;
+    A.resize(N); B.resize(N);
+    for (u64& x : A) cin >> x;
+    for (u64& x : B) cin >> x;
+    sort(A.begin(), A.end());
+    sort(B.begin(), B.end());
+
+    fac.assign(N + 1, 1);
+    ifac.assign(N + 1, 1);
+    for (int i = 1; i <= N; ++i) fac[i] = (long long)fac[i - 1] * i % MOD;
+    ifac[N] = mod_pow(fac[N], MOD - 2);
+    for (int i = N; i >= 1; --i) ifac[i - 1] = (long long)ifac[i] * i % MOD;
+
+    vector<int> ans = solve(0, N, 0, N, 59, true);
+    for (int t = 1; t <= N; ++t) {
+        int v = t < (int)ans.size() ? ans[t] : 0;
+        if (t > 1) cout << ' ';
+        cout << v;
     }
-    i64 ans = minimumBridge(x, t, alpha, beta);
-    if (ans == INF) cout << "impossible\n";
-    else cout << ans << '\n';
+    cout << '\n';
     return 0;
 }
-#endif

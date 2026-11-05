@@ -1,65 +1,62 @@
 ## Problem Description
 
-The training team has $m$ candidate players. You need to select $2n$ players, pair them up, and assign the resulting pairs to $n$ tennis doubles matches.
+This is an interactive problem.
 
-Player $i$ has an estimated ability $e_i$ and is classified as either a junior or a senior according to their training experience.
+There are $n$ cyclic wheels. Every wheel contains the same $n$ distinct symbols in the same cyclic order, and each wheel currently displays one symbol. Their initial positions are hidden.
 
-Match $i$ requires the ability of each participating player not to exceed $l_i$. For stability, the absolute difference between the abilities of the two players in every pair must not exceed $d$.
-
-Players in a pair do not need to belong to the same category. To make full use of the potential of junior players, the coach wants to know the best possible lineup for every exact number of selected juniors.
-
-For each $t=0,1,\ldots,2n$, determine whether a valid pairing and assignment exists that contains exactly $t$ junior players. If it does not exist, the answer is $-1$. Otherwise, output the maximum possible sum of the abilities of the selected $2n$ players.
+You may rotate one wheel by any allowed integer number of positions. After each action, the judge reports how many distinct symbols are currently displayed across the wheels. Make all wheels display the same symbol within the allowed number of actions.
 
 ## Input Format
 
 Read from standard input.
 
-There is one instance per input file.
+First read the integer $n$.
 
-The first line contains three integers $n$, $m$, and $d$.
+Then read the current distinct-symbol count $k$. This count is provided before the first action and again after each action. If $k>1$, perform another action. If $k=1$, terminate immediately without producing further non-whitespace output. Also terminate if the input stream closes unexpectedly.
 
-The second line contains $n$ integers $l_1,l_2,\ldots,l_n$.
-
-Each of the following $m$ lines contains two integers $e_i$ and $t_i$. Here, $e_i$ is the estimated ability of player $i$; $t_i=1$ denotes a junior, and $t_i=2$ denotes a senior.
+The initial configuration is fixed before interaction begins; the judge does not change hidden positions adaptively in response to your strategy.
 
 ## Output Format
 
 Write to standard output.
 
-Output $2n+1$ integers on one line. The $(i+1)$-st integer is the answer when exactly $i$ junior players are selected, for every $i=0,1,\ldots,2n$.
+Whenever $k>1$, output one line containing:
+
+```text
+i j
+```
+
+This rotates wheel $i$ by $j$ positions. Negative $j$ rotates in the opposite direction. Do not print a final answer marker: success is indicated by reading $k=1$, after which the program must exit.
+
+Flush an emitted action before waiting for the next response. At most $1333$ actions may be printed. Every valid action counts once, including $j=0$ or a multiple of $n$; reading the initial $n$ and $k$ does not count. All wheels use the same positive rotation direction, and $n$ steps make one full rotation.
 
 ## Examples
 
-Input:
+The table shows the complete interaction in chronological order. A blank cell means that the other side sends the next message.
 
-```text
-4 9 400
-800 900 1050 1200
-46 1
-264 2
-295 1
-305 1
-332 2
-678 1
-770 2
-903 2
-1291 2
-```
+| Judge sends | Program sends |
+| --- | --- |
+| `3` | |
+| `3` | |
+| | `2 -1` |
+| `2` | |
+| | `3 -1` |
+| `2` | |
+| | `2 -1` |
+| `1` | |
 
-Output:
+## Explanation / Notes
 
-```text
--1 -1 -1 -1 3593 -1 -1 -1 -1
-```
+The judge reveals only the number of different visible symbols, not their identities or individual wheel positions. A rotation can leave this count unchanged even though the configuration changes. The interaction stops as soon as the response is `1`.
 
 ## Constraints
 
-- $1\le n\le500$.
-- $2n\le m\le10^5$.
-- $0\le d<10^9$.
-- $1\le l_i\le10^9$.
-- $1\le e_i\le10^9$.
-- $t_i\in\{1,2\}$.
-- Abilities and match limits may contain equal values.
-- Each player may be selected at most once; every selected player participates in exactly one match, and every match receives exactly one pair.
-- Time limit: 6 seconds. Memory limit: 256 MB.
+- $3\le n\le50$.
+- Every wheel contains exactly $n$ distinct symbols, with the same cyclic ordering on every wheel.
+- Every response satisfies $1\le k\le n$.
+- The first response satisfies $k>1$; the machine is not already solved.
+- For every action, $1\le i\le n$ and $-10^9\le j\le10^9$, with integer $i,j$.
+- At most $1333$ actions are allowed.
+- The hidden initial configuration is fixed before the first action; the judge is non-adaptive.
+- After receiving $k=1$, produce no further non-whitespace output.
+- Time limit: **0.5 seconds**. Memory limit: **256 MB**.

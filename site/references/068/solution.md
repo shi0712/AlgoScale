@@ -1,3 +1,3 @@
-The standard program uses the interpolation formula from the optimized solution and runs in `O(n^2)` arithmetic operations, independently of `m`.
+The standard implementation constructs spanning trees in both graphs, tests fundamental paths, contracts cyclic biconnected edge blocks, and checks strongly connected components of the resulting dependency graph. It runs in near-linear `O((n+m) log n)` time and linear space.
 
-The official contest baseline is the dynamic-programming implementation in `admin/original.cpp`, whose running time is `O(n^2 m)`. The strengthened range is `n <= 300`, `m <= 10^9`.
+The original official approach explicitly enumerates auxiliary-graph paths and is quadratic in the graph size on dense cases. The strengthened range is `sum n,sum m <= 10000`.

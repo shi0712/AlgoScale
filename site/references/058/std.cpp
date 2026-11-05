@@ -1,189 +1,141 @@
 #include <algorithm>
-#include <functional>
+#include <array>
+#include <cstdint>
 #include <iostream>
 #include <limits>
-#include <queue>
-#include <utility>
 #include <vector>
-using namespace std;
 
-using int64 = long long;
-static constexpr int64 INF = numeric_limits<int64>::max() / 4;
+using i64 = long long;
+static constexpr i64 NEG = -(1LL << 60);
 
-struct MinCostFlow {
-    struct Edge { int to, rev, cap; int64 cost; };
-    vector<vector<Edge>> graph;
-    explicit MinCostFlow(int n) : graph(n) {}
+struct Item {
+    int p = 0;
+    std::array<i64, 11> w{};
+};
 
-    int add_edge(int from, int to, int cap, int64 cost) {
-        int id = static_cast<int>(graph[from].size());
-        graph[from].push_back({to, static_cast<int>(graph[to].size()), cap, cost});
-        graph[to].push_back({from, id, 0, -cost});
-        return id;
-    }
+// Max-plus convolution of an arbitrary sequence A with a discrete concave
+// sequence B. Source indices increase by step; offset is added to the final
+// resource usage. The totally monotone row maxima are found by divide-and-
+// conquer optimization. This costs O(K log K) per convolution.
+static std::vector<i64> concave_transition(
+    const std::vector<i64>& a,
+    const std::vector<i64>& b,
+    int step,
+    int offset
+) {
+    const int k = static_cast<int>(a.size()) - 1;
+    std::vector<i64> out(k + 1, NEG);
 
-    pair<int, int64> flow(int source, int sink, int required) {
-        int n = static_cast<int>(graph.size()), sent = 0;
-        int64 total_cost = 0;
-        vector<int64> potential(n), distance(n);
-        vector<int> previous_vertex(n), previous_edge(n);
-        while (sent < required) {
-            fill(distance.begin(), distance.end(), INF);
-            priority_queue<pair<int64, int>, vector<pair<int64, int>>,
-                           greater<pair<int64, int>>> heap;
-            distance[source] = 0;
-            heap.push({0, source});
-            while (!heap.empty()) {
-                auto [dist, vertex] = heap.top();
-                heap.pop();
-                if (dist != distance[vertex]) continue;
-                for (int i = 0; i < static_cast<int>(graph[vertex].size()); ++i) {
-                    const Edge &edge = graph[vertex][i];
-                    if (edge.cap == 0) continue;
-                    int64 next_dist = dist + edge.cost + potential[vertex] - potential[edge.to];
-                    if (next_dist < distance[edge.to]) {
-                        distance[edge.to] = next_dist;
-                        previous_vertex[edge.to] = vertex;
-                        previous_edge[edge.to] = i;
-                        heap.push({next_dist, edge.to});
-                    }
+    for (int rem = 0; rem < step && rem <= k; ++rem) {
+        const int na = (k - rem) / step + 1;
+        if (k - offset < rem) continue;
+        const int rows = (k - offset - rem) / step + 1;
+
+        auto solve = [&](auto&& self, int left, int right, int opt_left, int opt_right) -> void {
+            if (left > right) return;
+            const int mid = (left + right) / 2;
+            const int low = std::max({0, opt_left, mid - static_cast<int>(b.size()) + 1});
+            const int high = std::min({na - 1, opt_right, mid});
+
+            int best_j = low;
+            __int128 best_value = -((__int128)1 << 120);
+            for (int j = low; j <= high; ++j) {
+                const i64 av = a[rem + j * step];
+                const __int128 value = static_cast<__int128>(av) + b[mid - j];
+                // Pick the rightmost maximum. This is the tie rule used by
+                // the monotone divide-and-conquer recursion.
+                if (value >= best_value) {
+                    best_value = value;
+                    best_j = j;
                 }
             }
-            if (distance[sink] == INF) break;
-            for (int v = 0; v < n; ++v)
-                if (distance[v] != INF) potential[v] += distance[v];
 
-            int add = required - sent;
-            for (int v = sink; v != source; v = previous_vertex[v])
-                add = min(add, graph[previous_vertex[v]][previous_edge[v]].cap);
-            for (int v = sink; v != source; v = previous_vertex[v]) {
-                Edge &edge = graph[previous_vertex[v]][previous_edge[v]];
-                total_cost += static_cast<int64>(add) * edge.cost;
-                edge.cap -= add;
-                graph[v][edge.rev].cap += add;
-            }
-            sent += add;
-        }
-        return {sent, total_cost};
+            const int target = rem + mid * step + offset;
+            const i64 source = a[rem + best_j * step];
+            if (source != NEG) out[target] = source + b[mid - best_j];
+
+            self(self, left, mid - 1, opt_left, best_j);
+            self(self, mid + 1, right, best_j, opt_right);
+        };
+
+        solve(solve, 0, rows - 1, 0, na - 1);
     }
-};
-
-struct Casino {
-    int first = -1, second = -1;
-    int64 cancel_cost = 0, win_cost = 1;
-};
+    return out;
+}
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
 
-    int test_count = 1;
-    while (test_count--) {
-        int casino_count, opponent_count;
-        cin >> casino_count >> opponent_count;
-        vector<Casino> casinos(casino_count);
+    int n, k;
+    if (!(std::cin >> n >> k)) return 0;
 
-        for (Casino &casino : casinos) {
-            vector<pair<int, int>> row(opponent_count);
-            for (int player = 0; player < opponent_count; ++player) {
-                cin >> row[player].first;
-                row[player].second = player;
-            }
-            sort(row.begin(), row.end());
-
-            for (int left = 0, right; left < opponent_count; left = right) {
-                right = left + 1;
-                while (right < opponent_count && row[right].first == row[left].first) ++right;
-                if (right == left + 1 && row[left].first > 0) {
-                    casino.second = casino.first;
-                    casino.first = row[left].second;
-                    casino.cancel_cost = row[left].first;
-                }
-            }
-
-            casino.win_cost = casino.cancel_cost + 1;
-            for (const auto &[value, player] : row) {
-                (void)player;
-                if (value == casino.win_cost) ++casino.win_cost;
-                else if (value > casino.win_cost) break;
-            }
-        }
-
-        // Only players that are first or second surviving candidates matter.
-        vector<int> compressed_id(opponent_count, -1);
-        int relevant_players = 0;
-        for (Casino &casino : casinos) {
-            for (int *player : {&casino.first, &casino.second}) {
-                if (*player != -1) {
-                    if (compressed_id[*player] == -1)
-                        compressed_id[*player] = relevant_players++;
-                    *player = compressed_id[*player];
-                }
-            }
-        }
-
-        auto solve = [&](int own_wins, vector<int64> *answer) -> int64 {
-            int source = 0;
-            int casino_base = 1;
-            int player_base = casino_base + casino_count;
-            int nobody = player_base + relevant_players;
-            int self = nobody + 1;
-            int hub = self + 1;
-            int sink = hub + 1;
-            MinCostFlow mcf(sink + 1);
-            vector<vector<pair<int, int64>>> choices(casino_count);
-
-            auto player_node = [&](int player) {
-                return player == -1 ? nobody : player_base + player;
-            };
-            for (int i = 0; i < casino_count; ++i) {
-                int node = casino_base + i;
-                mcf.add_edge(source, node, 1, 0);
-                auto add_choice = [&](int to, int64 dice) {
-                    int edge_id = mcf.add_edge(node, to, 1, dice);
-                    choices[i].push_back({edge_id, dice});
-                };
-                add_choice(player_node(casinos[i].first), 0);
-                if (casinos[i].first != -1)
-                    add_choice(player_node(casinos[i].second), casinos[i].cancel_cost);
-                add_choice(self, casinos[i].win_cost);
-            }
-            for (int player = 0; player < relevant_players; ++player)
-                mcf.add_edge(player_base + player, hub, own_wins, 0);
-            mcf.add_edge(nobody, hub, casino_count, 0);
-            mcf.add_edge(self, sink, own_wins, 0);
-            mcf.add_edge(hub, sink, casino_count - own_wins, 0);
-
-            auto [sent, cost] = mcf.flow(source, sink, casino_count);
-            if (sent != casino_count) return INF;
-            if (answer != nullptr) {
-                answer->assign(casino_count, 0);
-                for (int i = 0; i < casino_count; ++i) {
-                    int node = casino_base + i;
-                    for (auto [edge_id, dice] : choices[i])
-                        if (mcf.graph[node][edge_id].cap == 0) (*answer)[i] = dice;
-                }
-            }
-            return cost;
-        };
-
-        vector<int64> memo(casino_count + 1, -1);
-        auto value = [&](int wins) -> int64 {
-            if (memo[wins] == -1) memo[wins] = solve(wins, nullptr);
-            return memo[wins];
-        };
-
-        int low = 0, high = (casino_count + 1) / 2;
-        while (low < high) {
-            int middle = (low + high) / 2;
-            int64 current = value(middle);
-            if (current == INF || current > value(middle + 1)) low = middle + 1;
-            else high = middle;
-        }
-
-        vector<int64> answer;
-        solve(low, &answer);
-        for (int i = 0; i < casino_count; ++i)
-            cout << answer[i] << (i + 1 == casino_count ? '\n' : ' ');
+    std::array<std::vector<Item>, 11> groups;
+    i64 total_power = 0;
+    i64 all_full_reward = 0;
+    for (int i = 0; i < n; ++i) {
+        Item item;
+        std::cin >> item.p;
+        total_power += item.p;
+        for (int t = 1; t <= item.p; ++t) std::cin >> item.w[t];
+        all_full_reward += item.w[item.p];
+        groups[item.p].push_back(item);
     }
+
+    if (total_power <= k) {
+        std::cout << all_full_reward << '\n';
+        return 0;
+    }
+
+    std::vector<i64> no_partial(k + 1, NEG), has_partial(k + 1, NEG);
+    no_partial[0] = 0;
+
+    for (int p = 1; p <= 10; ++p) {
+        auto& items = groups[p];
+        if (items.empty()) continue;
+        std::sort(items.begin(), items.end(), [p](const Item& lhs, const Item& rhs) {
+            return lhs.w[p] > rhs.w[p];
+        });
+
+        const int count = static_cast<int>(items.size());
+        std::vector<i64> full(count + 1, 0);
+        for (int i = 0; i < count; ++i) full[i + 1] = full[i] + items[i].w[p];
+
+        const std::vector<i64> old_no_partial = no_partial;
+        const std::vector<i64> old_has_partial = has_partial;
+        no_partial = concave_transition(old_no_partial, full, p, 0);
+        has_partial = concave_transition(old_has_partial, full, p, 0);
+
+        for (int t = 1; t < p; ++t) {
+            std::vector<i64> suffix_best(count + 1, NEG);
+            for (int i = count - 1; i >= 0; --i) {
+                suffix_best[i] = std::max(suffix_best[i + 1], items[i].w[t]);
+            }
+
+            std::vector<i64> prefix_best(count, NEG);
+            for (int i = 0; i < count; ++i) {
+                const i64 value = items[i].w[t] - items[i].w[p];
+                prefix_best[i] = (i == 0 ? value : std::max(prefix_best[i - 1], value));
+            }
+
+            std::vector<i64> partial(count, NEG);
+            for (int chosen_full = 0; chosen_full < count; ++chosen_full) {
+                partial[chosen_full] = full[chosen_full] + suffix_best[chosen_full];
+                if (chosen_full > 0) {
+                    partial[chosen_full] = std::max(
+                        partial[chosen_full],
+                        full[chosen_full + 1] + prefix_best[chosen_full - 1]
+                    );
+                }
+            }
+
+            const auto candidate = concave_transition(old_no_partial, partial, p, t);
+            for (int used = 0; used <= k; ++used) {
+                has_partial[used] = std::max(has_partial[used], candidate[used]);
+            }
+        }
+    }
+
+    std::cout << std::max(no_partial[k], has_partial[k]) << '\n';
+    return 0;
 }

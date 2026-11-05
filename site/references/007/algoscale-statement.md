@@ -1,57 +1,70 @@
 ## Problem Description
 
-For each positive integer $i$, let $a_i$ count the paths from $(0,0)$ to $(i,i)$ within the $i\times i$ grid using these moves:
+There are $n$ circles in the plane. Circle $i$ has center $(x_i,y_i)$, radius $r_i$, and travel cost $v_i$ per unit of arc length. Circle boundaries do not cross, but internal or external tangency is allowed. No two circles coincide.
 
-- $(x,y)\to(x,y+2)$.
-- $(x,y)\to(x+2,y)$.
-- $(x,y)\to(x+1,y+1)$.
+Points $S$ and $T$ lie on the circles' circumferences, possibly on the same circle. Movement is allowed only along these circumferences, in either direction, and the direction may be changed along the way. Changing circles is possible at a shared tangent point and has no additional cost.
 
-Different move sequences count as different paths.
-
-One **prefix-product operation** replaces the entire sequence by $b$, where
-
-$$b_i=\prod_{j=1}^{i}a_j.$$
-
-For each query $(n,c)$, apply this operation $c$ times and compute the resulting $n$-th term modulo the prime $11$. Each query starts from the original path-count sequence.
+Find the least total travel cost from $S$ to $T$, or determine that no route exists.
 
 ## Input Format
 
 Read from standard input.
 
-Read the query count $T$, followed by $T$ lines containing two integers $n,c$.
+The first line contains
+
+```text
+n Sx Sy Tx Ty
+```
+
+The next $n$ lines each contain $x_i,y_i,r_i,v_i$. All input quantities are integers.
 
 ## Output Format
 
 Write to standard output.
 
-Print one answer modulo $11$ for each query, on a separate line, represented by an integer from $0$ through $10$.
+Print `-1` if $T$ is unreachable. Otherwise, print the minimum cost as a finite real number, using decimal notation or decimal scientific notation. Do not print `NaN`, infinity, or any additional content. The value `-1` exclusively denotes unreachability and is not compared using the numerical tolerance.
+
+Reachability must match the judge's answer exactly. For a reachable instance with exact answer $A$ and reported answer $Y$, your answer is accepted if either
+
+$$\frac{|Y-A|}{A+1}\le10^{-6}\quad\text{or}\quad |Y-A|\le10^{-6}.$$
 
 ## Examples
 
 Input:
 
 ```text
-1
-5 1
+3 0 1 3 0
+1 1 1 1
+3 1 1 2
+4 1 4 3
 ```
 
 Output:
 
 ```text
-10
+6.283185307179586
 ```
 
 ## Explanation / Notes
 
-The original sequence begins $1,3,7,19,51$. After one prefix-product operation, these terms become $1,3,21,399,20349$. Therefore the query $(5,1)$ has answer $20349\bmod11=10$.
+A minimum route follows a semicircle on circle 1 to its tangency with circle 2, then a quarter-circle on circle 2 to $T$. Its cost is $\pi+2(\pi/2)=2\pi$.
 
 ## Constraints
 
-- $1\le T\le5$.
-- $1\le n\le10^{18}$.
-- $1\le c\le10^9$.
-- $T,n,c$ are integers.
-- Output values are reduced modulo $11$.
+| Parameter | Inclusive range |
+| --- | --- |
+| $n$ | $1\le n\le10^6$ |
+| $S_x,S_y,T_x,T_y$ | Each has absolute value at most $10^9$ |
+| $x_i,y_i$ | Each has absolute value at most $10^9$ |
+| $r_i$ | $1\le r_i\le10^8$ |
+| $v_i$ | $0\le v_i\le10^5$ |
 
-- Time limit: 1 second.
-- Memory limit: 256 MB.
+- Exactly one instance is provided; there is no test-count field.
+- Both endpoints lie on at least one supplied circle.
+- Circles may be nested, disjoint, internally tangent, or externally tangent, but their boundaries may not cross.
+- Coincident circles are forbidden: distinct circles cannot have both the same center and the same radius.
+- Zero travel cost is allowed, and $S$ and $T$ may coincide.
+- The error condition is given in Output Format, with denominator $A+1$.
+
+- Time limit: 10 seconds.
+- Memory limit: 512 MB.

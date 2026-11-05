@@ -1,70 +1,62 @@
 ## Problem Description
 
-A grid has $10^{18}$ rows and two columns. Each cell is black or white. Select a subset of black cells, using at most one cell from each row.
+There are $n$ cards. Card $i$ has an integer value $v_i$ and a positive point number $t_i$.
 
-Within each column, divide the selected cells into maximal runs of consecutive rows. A run of length $x$ contributes
+First choose at most $k$ distinct cards and double their point numbers, at most once each. Then choose two disjoint sets of cards $S,T$ whose point-number sums, after those doublings, are equal. Cards outside $S\cup T$ may be left unused.
 
-$$100^{100^x}.$$
+Maximize the total value
 
-The total score is the sum of these contributions over both columns. Find a selection of maximum total score. Because the score itself is extremely large, report the lengths of its selected runs in the compressed form specified below.
+$$\sum_{i\in S\cup T}v_i.$$
 
-The input also uses a compressed representation: each column is described by its maximal intervals of black cells; every other cell is white.
+Doubling changes a card's point number only, not its value.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the test-case count $t$. For each case:
-
-1. Read $n,m$, the counts of black intervals in columns 1 and 2.
-2. Read $n$ pairs $l_{1,i},r_{1,i}$ describing inclusive black intervals in column 1.
-3. Read $m$ pairs $l_{2,j},r_{2,j}$ describing inclusive black intervals in column 2.
-
-Intervals in a column are ordered by row and have at least one white row between consecutive intervals.
+The first line contains $n,k$. Each of the next $n$ lines contains $v_i,t_i$, in that order.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print two lines:
-
-1. The total number $c\ge1$ of maximal selected runs across both columns.
-2. Their lengths $x_1,\ldots,x_c$, sorted in non-increasing order.
-
-The lengths must describe a selection attaining the maximum total score. Do not print the enormous numeric score itself.
+Print the maximum total value of the selected cards as one integer.
 
 ## Examples
 
 Input:
 
 ```text
-1
-1 1
-1 4
-1 4
+4 1
+10 1
+-5 3
+5 1
+6 1
 ```
 
 Output:
 
 ```text
-1
-4
+21
 ```
 
 ## Explanation / Notes
 
-Both columns are black on rows 1 through 4. Selecting all four rows from one column gives a single run of length 4 and attains the maximum score.
+In the sample, double the point number of card 1. Then take $S=\{1\}$ and $T=\{3,4\}$. Both point sums are 2, and the combined value is $10+5+6=21$.
 
-Consecutive selected cells form a run only when they belong to the same column. The two columns may have overlapping black intervals, but the chosen cells still obey the one-per-row rule.
+It is not necessary to select all cards or to use all $k$ doublings. Both selected sets may be empty; therefore a zero-value choice is always available, even when some card values are negative.
 
 ## Constraints
 
-- $1\le t\le3000$.
-- $1\le n,m\le10^5$ for each case.
-- $\sum n\le10^5$ and, separately, $\sum m\le10^5$ across all cases.
-- Every interval endpoint is an integer satisfying $1\le l_{1,i}\le r_{1,i}\le10^{18}$ or $1\le l_{2,j}\le r_{2,j}\le10^{18}$.
-- Consecutive intervals within each column satisfy the **strict** separation conditions $r_{1,i}+1<l_{1,i+1}$ and $r_{2,j}+1<l_{2,j+1}$.
-- There is no restriction preventing an interval in column 1 from overlapping one in column 2.
-- Output lengths obey $x_1\ge x_2\ge\cdots\ge x_c\ge1$ and represent maximal selected runs.
-- Time limit: 3 seconds.
+- There is one input instance.
+- $1\le n\le5000$.
+- $0\le k\le n$.
+- $-10^9\le v_i\le10^9$.
+- Initially $1\le t_i\le13$.
+- All inputs are integers.
+- At most $k$ distinct cards are doubled; no card may be doubled more than once.
+- A doubled point number equals $2t_i$, hence lies in $[2,26]$; an undoubled one remains unchanged.
+- $S\cap T=\varnothing$, and their final point-number sums must be equal. Their union need not contain every card.
+- The answer may exceed the range of a signed 32-bit integer.
+- Time limit: 2.5 seconds.
 - Memory limit: 256 MB.

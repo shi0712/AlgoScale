@@ -1,71 +1,83 @@
 ## Problem Description
 
-An $n\times m$ grid of vertices has weighted undirected edges between every pair of orthogonally adjacent vertices. A journey may start at any vertex in column 1 and end at any vertex in column $m$. Its distance is the sum of the traversed edge weights, and the traveler chooses the shortest available journey over all such endpoints.
+You are given a directed graph. Find the infimum variance among all walks from vertex $1$ to vertex $n$.
 
-One operation increases one edge weight by one. Make the shortest possible journey longer by $k$, using the minimum number of operations. Output both that minimum and a resulting set of edge weights.
+A walk from vertex $1$ to vertex $n$ is a sequence of edges $p=(e_1,e_2,\ldots,e_l)$ such that:
+
+- the starting vertex of $e_1$ is vertex $1$;
+- the ending vertex of $e_l$ is vertex $n$;
+- for every consecutive pair, the ending vertex of $e_i$ is the starting vertex of $e_{i+1}$.
+
+Edges in a walk do not need to be distinct.
+
+The variance of a walk is
+
+$$
+D(p)=\frac{1}{l}\sum_{i=1}^{l}\left(w_{e_i}-\overline{w}\right)^2,
+$$
+
+where
+
+$$
+\overline{w}=\frac{1}{l}\sum_{i=1}^{l}w_{e_i}
+$$
+
+is the average edge weight of the walk.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $T$.
+The first line contains two integers $n$ and $m$, the number of vertices and directed edges.
 
-For each case:
-
-- Read $n,m,k$.
-- Read $n$ rows, each containing $m-1$ weights $r_{i,1},\ldots,r_{i,m-1}$. Weight $r_{i,j}$ belongs to the horizontal edge $(i,j)$–$(i,j+1)$.
-- Read $n-1$ rows, each containing $m$ weights $c_{i,1},\ldots,c_{i,m}$. Weight $c_{i,j}$ belongs to the vertical edge $(i,j)$–$(i+1,j)$.
+Each of the next $m$ lines contains three integers $x_i$, $y_i$, and $w_i$, describing a directed edge from $x_i$ to $y_i$ with weight $w_i$.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print the minimum operation count, then the modified weights in the same layout: $n$ rows of $m-1$ horizontal weights followed by $n-1$ rows of $m$ vertical weights.
+Print one real number: the infimum variance among all walks from vertex $1$ to vertex $n$. If no such walk exists, print `-1`.
 
-Only increases are allowed. Each resulting weight must lie in $[1,2\times10^9]$. Any optimal valid result is accepted.
+For a reported value $b$, let
 
-**Do not print trailing spaces at the ends of output lines.**
+$$
+\varepsilon=\max\{1,b\}\cdot10^{-9}.
+$$
+
+The answer is accepted when both of the following hold:
+
+- for every walk $p$ from vertex $1$ to vertex $n$, $D(p)>b-\varepsilon$;
+- there exists a walk $p_0$ from vertex $1$ to vertex $n$ such that $D(p_0)<b+\varepsilon$.
 
 ## Examples
 
 Input:
 
 ```text
-1
-3 3 3
-1 1
-2 2
-3 3
-1 1 1
-2 2 2
+4 4
+1 2 3
+1 3 4
+2 4 5
+3 4 7
 ```
 
 Output:
 
 ```text
-4
-4 1
-3 2
-3 3
-1 1 1
-2 2 2
+1.000000000000000
 ```
 
 ## Explanation / Notes
 
-The original minimum distance is 2 along the top row. The shown construction increases the first top-row edge by 3 and the first middle-row edge by 1, for four operations in total. The new minimum distance is 5, so it has increased by the requested 3.
+The walk $1\to2\to4$ uses edge weights $3$ and $5$. Its average weight is $4$, and its variance is $1$.
 
-The traveler may move in either direction along any edge, including leftward moves. Starting and ending rows need not agree. The operation count equals the sum of all weight increments.
+Because edges may be repeated, the set of attainable walk variances need not contain its greatest lower bound; therefore the problem asks for the infimum rather than necessarily a minimum.
 
 ## Constraints
 
-- Each test case has integer $n,m,k$.
-- $2\le n,m\le500$.
-- $1\le nm\le500$.
-- $1\le k\le100$.
-- Every original horizontal and vertical weight is an integer in $[1,10^9]$.
-- Across all cases, $\sum nm\le5\times10^3$.
-- Each output weight is an integer in $[1,2\times10^9]$ and must be at least its original value.
-- Horizontal weight arrays have dimensions $n\times(m-1)$; vertical arrays have dimensions $(n-1)\times m$.
-- The modified minimum distance between the first and last columns must increase by $k$.
-- Time limit: **1 second**. Memory limit: **1024 MB**.
+- $2\le n\le30$.
+- $1\le m\le200$.
+- $1\le x_i,y_i\le n$.
+- $x_i\ne y_i$.
+- $0\le w_i\le20$.
+- The required absolute or relative error is at most $10^{-9}$.

@@ -1,25 +1,25 @@
 ## Problem Description
 
-For a permutation $p$ of $1,\ldots,n$, define:
+A tree has vertices $1,\ldots,n$ and is rooted at vertex 1. Let $\operatorname{depth}(x)$ be the number of edges from $x$ to the root, and let $\operatorname{lca}(x,y)$ be the lowest common ancestor of $x$ and $y$.
 
-- Its number of excedances: the number of indices $i\in[1,n]$ with $p_i>i$.
-- Its number of descents: the number of indices $i\in[1,n-1]$ with $p_i>p_{i+1}$.
+Count permutations $p$ of all $n$ vertices for which the depths of consecutive-pair LCAs are nondecreasing. Formally, for every $1\le i<n-1$,
 
-Let $h(n,m,k)$ count the permutations with exactly $m$ excedances and $k$ descents. Compute every $h(n,m,k)$ for the given $n$, modulo $M$.
+$$\operatorname{depth}(\operatorname{lca}(p_i,p_{i+1}))\le
+\operatorname{depth}(\operatorname{lca}(p_{i+1},p_{i+2})).$$
+
+Return the count modulo $1000000007$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n,M$ on one line.
+Read $n$, followed by $n-1$ lines of edge endpoints $x,y$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ rows of $n$ integers. Entry $(i,j)$, using one-based row and column indices, must be
-
-$$h(n,i-1,j-1)\bmod M.$$
+Print the count modulo $1000000007$.
 
 ## Examples
 
@@ -28,31 +28,27 @@ $$h(n,i-1,j-1)\bmod M.$$
 Input:
 
 ```text
-3 998244353
+3
+1 2
+2 3
 ```
 
 Output:
 
 ```text
-1 0 0
-0 3 1
-0 1 0
+4
 ```
 
 ## Explanation / Notes
 
-For $n=3$, the permutations grouped by (excedances, descents) are:
-
-- $(0,0)$: $[1,2,3]$.
-- $(1,1)$: $[2,1,3]$, $[3,1,2]$, $[1,3,2]$.
-- $(1,2)$: $[3,2,1]$.
-- $(2,1)$: $[2,3,1]$.
+The root is fixed at vertex 1. Equal successive LCA depths are allowed. For $n=2$, the displayed condition has no indices to check.
 
 ## Constraints
 
 - One test case.
-- $1\le n\le60$.
-- $10^8\le M\le10^9$, and $M$ is prime.
-- Both output statistics range from 0 to $n-1$.
+- $2\le n\le80$.
+- $1\le u_i,v_i\le n$ and $u_i\ne v_i$ for every edge.
+- The input describes a tree.
+- Modulus: $1000000007$.
 
-- Time limit: 3 seconds; memory limit: 1024 MB.
+- Time limit: 2 seconds; memory limit: 1024 MB.

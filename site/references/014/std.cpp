@@ -1,215 +1,238 @@
 #include <bits/stdc++.h>
 using namespace std;
-using i64 = long long;
-using i128 = __int128_t;
+using int64 = long long;
+using Poly = vector<int>;
 
-// All scaled lengths, scan coordinates and scan accumulators are 128-bit.
-string decimal(i128 x) {
-    if (x == 0) return "0";
-    string s;
-    while (x) { s += char('0' + x % 10); x /= 10; }
-    reverse(s.begin(), s.end());
-    return s;
-}
-
-// Deterministic linear-time selection, in-place, [left,right), 0-based kth.
-i128 selectK(vector<i128>& v, int left, int right, int kth) {
-    while (true) {
-        if (right - left <= 32) {
-            sort(v.begin() + left, v.begin() + right);
-            return v[kth];
-        }
-        int groups = 0;
-        for (int i = left; i < right; i += 5) {
-            int end = min(i + 5, right);
-            sort(v.begin() + i, v.begin() + end);
-            swap(v[left + groups], v[i + (end - i) / 2]);
-            ++groups;
-        }
-        i128 pivot = selectK(v, left, left + groups, left + groups / 2);
-        int lt = left, cur = left, gt = right;
-        while (cur < gt) {
-            if (v[cur] < pivot) swap(v[lt++], v[cur++]);
-            else if (v[cur] > pivot) swap(v[cur], v[--gt]);
-            else ++cur;
-        }
-        if (kth < lt) right = lt;
-        else if (kth >= gt) left = gt;
-        else return pivot;
+template<int MOD, int G = 3>
+struct NTT {
+    static int power(int a, int e) {
+        int r = 1;
+        for (; e; e >>= 1, a = (int64)a * a % MOD)
+            if (e & 1) r = (int64)r * a % MOD;
+        return r;
     }
-}
 
-#ifdef LOCAL_DIAGNOSTICS
-struct Diagnostics {
-    i64 d = 0, initial_count = 0, final_count = 0, peak_elements = 0;
-    int streaming_rounds = 0;
-    bool upper_fallback = false, pivot_answer = false;
-    i128 w = 0, initial_l = 0, initial_r = 0;
-} diag;
-#endif
-
-i128 solve(i64 n, i64 k, i64 a, i64 b) {
-#ifdef LOCAL_DIAGNOSTICS
-    diag = Diagnostics{};
-#endif
-    i64 dl = 1, dr = min(n - 1, k);
-    while (dl < dr) {
-        i64 mid = dl + (dr - dl) / 2;
-        if ((i128)mid * (mid + 1) / 2 >= k) dr = mid;
-        else dl = mid + 1;
-    }
-    const i64 D = dl;
-    const i128 W = (i128)D * ((i128)a * (D + 2) + 2 * (i128)b);
-    auto start = [&](i64 d) -> i128 {
-        return (i128)d * ((i128)a * d + 2 * (i128)b);
-    };
-    auto finish = [&](i64 d) -> i128 {
-        return (i128)d * ((i128)a * (2 * (i128)n - d) + 2 * (i128)b);
-    };
-    auto weight = [&](i64 d) -> i128 { return W / (2 * (i128)a * d); };
-
-    const i128 targetL = (i128)(k - D) * W;
-    const i128 targetR = (i128)(k + D) * W;
-    i128 L = 0, R = W, x = 0, value = 0, slope = 0;
-    bool foundL = (targetL == 0), foundR = false;
-    i64 enter = 1, leave = 1;
-    while (x < W) {
-        i128 ns = enter <= D ? start(enter) : W + 1;
-        i128 ne = leave <= D ? finish(leave) : W + 1;
-        i128 nx = min(W, min(ns, ne)), dx = nx - x;
-        if (slope > 0) {
-            // For positive gap, ceil(gap/slope) <= dx iff (gap-1)/slope < dx.
-            // Test BEFORE multiplying. If the upper root is not reached,
-            // value + slope*dx < targetR < 2^127, so the update cannot overflow.
-            if (!foundL && (targetL - value - 1) / slope < dx) {
-                L = x + (targetL - value) / slope;
-                foundL = true;
-            }
-            if ((targetR - value - 1) / slope < dx) {
-                R = x + (targetR - value) / slope;
-                foundR = true;
-                break;
-            }
-        }
-        value += slope * dx;
-        x = nx;
-        if (x == W) break;
-        if (ns == x) { slope += weight(enter); ++enter; }
-        if (ne == x) { slope -= weight(leave); ++leave; }
-    }
-    assert(foundL);
-    (void)foundR;
-
-    // Count one row, avoiding negative division and saturating before narrowing.
-    auto rowCount = [&](i128 bound, i128 base, i64 step, i64 len) -> i64 {
-        if (bound <= base) return 0;
-        return (i64)min((i128)len, (bound - base) / step);
-    };
-    auto rankAndEqual = [&](i128 bound) -> pair<i64, i64> {
-        i64 rank = 0, equal = 0;
-        for (i64 d = 1; d <= D; ++d) {
-            i128 base = start(d);
-            if (base >= bound) break;
-            i64 step = 2 * a * d;
-            i64 c = rowCount(bound, base, step, n - d);
-            rank += c;
-            if (c > 0 && base + (i128)step * c == bound) ++equal;
-        }
-        return {rank, equal};
-    };
-    // Enumerate the CURRENT interval only; no row arrays are stored.
-    auto enumerate = [&](auto&& emit) {
-        for (i64 d = 1; d <= D; ++d) {
-            i128 base = start(d);
-            if (base >= R) break;
-            i64 step = 2 * a * d;
-            i64 first = rowCount(L, base, step, n - d) + 1;
-            i64 last = rowCount(R, base, step, n - d);
-            i128 v = base + (i128)step * first;
-            for (i64 i = first; i <= last; ++i, v += step) emit(v);
-        }
-    };
-    i64 rankL = rankAndEqual(L).first;
-    i64 rankR = rankAndEqual(R).first;
-    assert(rankL < k && k <= rankR && rankR - rankL < 4 * D);
-#ifdef LOCAL_DIAGNOSTICS
-    diag.d = D; diag.w = W; diag.initial_l = L; diag.initial_r = R;
-    diag.initial_count = rankR - rankL; diag.upper_fallback = !foundR;
-#endif
-    const i64 materializeLimit = max<i64>(D, 256);
-
-    // Retain the earlier O(sqrt(k)) scan + BFPRT algorithm, but stream a few
-    // BFPRT pivot rounds before materialization. At most one vector is alive.
-    // A group-of-five pivot leaves <= 7m/10+6 elements: <= 5 rounds suffice
-    // from m<4D until m<=max(D,256). This keeps worst-case memory below 256 MiB.
-    while (rankR - rankL > materializeLimit) {
-        const i64 count = rankR - rankL;
-        i128 pivot;
-        {
-            vector<i128> medians;
-            medians.reserve((size_t)((count + 4) / 5));
-            array<i128, 5> group{};
-            int used = 0;
-            enumerate([&](i128 v) {
-                group[used++] = v;
-                if (used == 5) {
-                    sort(group.begin(), group.end());
-                    medians.push_back(group[2]);
-                    used = 0;
+    static void transform(Poly &a, bool inverse) {
+        const int n = (int)a.size();
+        static Poly roots{0, 1};
+        if ((int)roots.size() < n) {
+            int k = __builtin_ctz((unsigned)roots.size());
+            roots.resize(n);
+            while ((1 << k) < n) {
+                int z = power(G, (MOD - 1) >> (k + 1));
+                for (int i = 1 << (k - 1); i < (1 << k); ++i) {
+                    roots[i << 1] = roots[i];
+                    roots[i << 1 | 1] = (int64)roots[i] * z % MOD;
                 }
-            });
-            if (used) {
-                sort(group.begin(), group.begin() + used);
-                medians.push_back(group[used / 2]);
+                ++k;
             }
-            assert((i64)medians.size() == (count + 4) / 5);
-#ifdef LOCAL_DIAGNOSTICS
-            ++diag.streaming_rounds;
-            diag.peak_elements = max(diag.peak_elements, (i64)medians.capacity());
-#endif
-            pivot = selectK(medians, 0, (int)medians.size(), (int)medians.size() / 2);
-        } // Release ALL medians before allocating any final candidate vector.
-        auto [le, eq] = rankAndEqual(pivot);
-        if (k <= le - eq) { R = pivot - 1; rankR = le - eq; }
-        else if (k <= le) {
-#ifdef LOCAL_DIAGNOSTICS
-            diag.pivot_answer = true;
-#endif
-            return pivot;
-        } else { L = pivot; rankL = le; }
-        assert(rankL < k && k <= rankR);
-        assert(rankR - rankL <= count * 7 / 10 + 6);
+        }
+        for (int i = 1, j = 0; i < n; ++i) {
+            int bit = n >> 1;
+            for (; j & bit; bit >>= 1) j ^= bit;
+            j ^= bit;
+            if (i < j) swap(a[i], a[j]);
+        }
+        for (int k = 1; k < n; k <<= 1) {
+            for (int i = 0; i < n; i += k << 1) {
+                for (int j = 0; j < k; ++j) {
+                    int u = a[i + j];
+                    int v = (int64)a[i + j + k] * roots[k + j] % MOD;
+                    int x = u + v;
+                    if (x >= MOD) x -= MOD;
+                    int y = u - v;
+                    if (y < 0) y += MOD;
+                    a[i + j] = x;
+                    a[i + j + k] = y;
+                }
+            }
+        }
+        if (inverse) {
+            reverse(a.begin() + 1, a.end());
+            int z = power(n, MOD - 2);
+            for (int &x : a) x = (int64)x * z % MOD;
+        }
     }
-    vector<i128> candidates;
-    candidates.reserve((size_t)(rankR - rankL));
-    enumerate([&](i128 v) { candidates.push_back(v); });
-    assert((i64)candidates.size() == rankR - rankL);
-#ifdef LOCAL_DIAGNOSTICS
-    diag.final_count = (i64)candidates.size();
-    diag.peak_elements = max(diag.peak_elements, (i64)candidates.capacity());
-    assert(diag.streaming_rounds <= 5);
-#endif
-    return selectK(candidates, 0, (int)candidates.size(), (int)(k - rankL - 1));
-}
+
+    static Poly multiply(const Poly &a, const Poly &b, int need) {
+        int len = 1;
+        while (len < (int)a.size() + (int)b.size() - 1) len <<= 1;
+        Poly x(len), y(len);
+        for (int i = 0; i < (int)a.size(); ++i) x[i] = a[i] % MOD;
+        for (int i = 0; i < (int)b.size(); ++i) y[i] = b[i] % MOD;
+        transform(x, false);
+        transform(y, false);
+        for (int i = 0; i < len; ++i) x[i] = (int64)x[i] * y[i] % MOD;
+        transform(x, true);
+        x.resize(need);
+        return x;
+    }
+};
+
+struct Solver {
+    static constexpr int M1 = 998244353;
+    static constexpr int M2 = 1004535809;
+    static constexpr int M3 = 469762049;
+    int n, mod;
+    Poly fact, ifact, inv;
+    int inv12, inv123, m1p, m12p;
+
+    static int power(int a, int e, int p) {
+        int r = 1;
+        for (; e; e >>= 1, a = (int64)a * a % p)
+            if (e & 1) r = (int64)r * a % p;
+        return r;
+    }
+
+    int add(int a, int b) const {
+        a += b;
+        if (a >= mod) a -= mod;
+        return a;
+    }
+    int sub(int a, int b) const {
+        a -= b;
+        if (a < 0) a += mod;
+        return a;
+    }
+
+    // Exact convolution modulo the input prime, truncated at x^limit.
+    Poly mul(Poly a, Poly b, int limit) const {
+        a.resize(min((int)a.size(), limit));
+        b.resize(min((int)b.size(), limit));
+        while (!a.empty() && a.back() == 0) a.pop_back();
+        while (!b.empty() && b.back() == 0) b.pop_back();
+        if (a.empty() || b.empty()) return Poly(limit, 0);
+
+        int need = min(limit, (int)a.size() + (int)b.size() - 1);
+        Poly c;
+        if (min(a.size(), b.size()) <= 12) {
+            c.assign(need, 0);
+            for (int i = 0; i < (int)a.size(); ++i)
+                for (int j = 0; j < (int)b.size() && i + j < need; ++j)
+                    c[i + j] = (c[i + j] + (int64)a[i] * b[j]) % mod;
+        } else if (mod == M1) {
+            c = NTT<M1>::multiply(a, b, need);
+        } else if (mod == M2) {
+            c = NTT<M2>::multiply(a, b, need);
+        } else if (mod == M3) {
+            c = NTT<M3>::multiply(a, b, need);
+        } else {
+            Poly a1 = NTT<M1>::multiply(a, b, need);
+            Poly a2 = NTT<M2>::multiply(a, b, need);
+            Poly a3 = NTT<M3>::multiply(a, b, need);
+            c.resize(need);
+            for (int i = 0; i < need; ++i) {
+                // Integer coefficient = a1 + M1*t + M1*M2*u.
+                int64 t = (int64)(a2[i] - a1[i] + M2) * inv12 % M2;
+                int64 r = (a1[i] + (int64)M1 * t) % M3;
+                int64 u = (a3[i] - r + M3) * inv123 % M3;
+                c[i] = (a1[i] % mod + (int64)m1p * (t % mod)
+                        + (int64)m12p * (u % mod)) % mod;
+            }
+        }
+        c.resize(limit, 0);
+        return c;
+    }
+
+    int run(int input_n, int input_mod) {
+        n = input_n;
+        mod = input_mod;
+        fact.assign(n + 1, 1);
+        ifact.assign(n + 1, 1);
+        inv.assign(n + 1, 1);
+        for (int i = 2; i <= n; ++i)
+            inv[i] = mod - (int64)(mod / i) * inv[mod % i] % mod;
+        for (int i = 1; i <= n; ++i) {
+            fact[i] = (int64)fact[i - 1] * i % mod;
+            ifact[i] = (int64)ifact[i - 1] * inv[i] % mod;
+        }
+        inv12 = power(M1, M2 - 2, M2);
+        inv123 = power((int64)M1 * M2 % M3, M3 - 2, M3);
+        m1p = M1 % mod;
+        m12p = (int64)M1 * M2 % mod;
+
+        Poly D(n + 1, 0); // Ordinary coefficients of D(x).
+        for (int m = 1; m < n + 1; ) {
+            int N = min(2 * m, n + 1);
+            int block = N - m;
+
+            // h[r][t] = [x^(r+t) y^r] exp(x + (y-1)D(x)).
+            int rows = (N - 1) / 2;
+            vector<Poly> h(rows + 1);
+            h[0].assign(N, 0);
+            h[0][0] = 1;
+
+            // h[0] = exp(x-D), computed in O(N^2).
+            Poly dg(N, 0);
+            for (int i = 1; i < N; ++i) {
+                int gi = sub(i == 1 ? 1 : 0, D[i]);
+                dg[i] = (int64)i * gi % mod;
+            }
+            for (int t = 1; t < N; ++t) {
+                int value = 0;
+                for (int i = 1; i <= t; ++i)
+                    value = (value + (int64)dg[i] * h[0][t - i]) % mod;
+                h[0][t] = (int64)value * inv[t] % mod;
+            }
+
+            Poly E(N - 1);
+            for (int i = 0; i < N - 1; ++i) E[i] = D[i + 1];
+            for (int r = 1; r <= rows; ++r) {
+                h[r] = mul(h[r - 1], E, N - 2 * r);
+                for (int &x : h[r]) x = (int64)x * inv[r] % mod;
+            }
+
+            // Residual R_s = [y^s](L(H)-1); only s>=m is needed.
+            Poly R(N, 0);
+            for (int r = 0; r <= rows; ++r) {
+                for (int t = 0; t < (int)h[r].size(); ++t) {
+                    int s = t + 2 * r;
+                    R[s] = (R[s] + (int64)fact[t + r] * h[r][t]) % mod;
+                }
+            }
+            R[0] = sub(R[0], 1);
+
+            auto coeffH = [&](int a, int b) -> int {
+                if (b < 0 || b > rows || a < b) return 0;
+                int t = a - b;
+                return t < (int)h[b].size() ? h[b][t] : 0;
+            };
+
+            // Store J_(m+i,m+j) / (m+i)! for j<i.
+            vector<Poly> mat(block, Poly(block, 0));
+            Poly W(fact.begin(), fact.begin() + N);
+            for (int d = 1; d < block; ++d) {
+                Poly Q((d + 1) / 2 + 1, 0);
+                for (int r = 0; r < (int)Q.size(); ++r) {
+                    int a = d - r;
+                    Q[r] = sub(coeffH(a, r - 1), coeffH(a, r));
+                }
+                Poly C = mul(W, Q, N);
+                for (int s = m + d; s < N; ++s)
+                    mat[s - m][s - m - d] = (int64)C[s] * ifact[s] % mod;
+            }
+
+            // The diagonal of J is -s!, so forward substitution suffices.
+            Poly delta(block, 0);
+            for (int i = 0; i < block; ++i) {
+                int value = (int64)R[m + i] * ifact[m + i] % mod;
+                for (int j = 0; j < i; ++j)
+                    value = (value + (int64)mat[i][j] * delta[j]) % mod;
+                delta[i] = value;
+                D[m + i] = value;
+            }
+            m = N;
+        }
+        return (int64)fact[n] * D[n] % mod;
+    }
+};
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    i64 n, k, a, b;
-    if (!(cin >> n >> k >> a >> b)) return 0;
-    i128 answer = solve(n, k, a, b);
-    i64 g = gcd((i64)(answer % a), a);
-    cout << decimal(answer / g) << ' ' << a / g << '\n';
-#ifdef LOCAL_DIAGNOSTICS
-    cerr << "{\"D\":" << diag.d << ",\"W\":\"" << decimal(diag.w)
-         << "\",\"L\":\"" << decimal(diag.initial_l)
-         << "\",\"R\":\"" << decimal(diag.initial_r)
-         << "\",\"initial_candidates\":" << diag.initial_count
-         << ",\"final_candidates\":" << diag.final_count
-         << ",\"streaming_rounds\":" << diag.streaming_rounds
-         << ",\"peak_vector_bytes\":" << diag.peak_elements * 16
-         << ",\"upper_fallback\":" << diag.upper_fallback
-         << ",\"pivot_answer\":" << diag.pivot_answer << "}\n";
-#endif
+    int n, P;
+    if (!(cin >> n >> P)) return 0;
+    Solver solver;
+    cout << solver.run(n, P) << '\n';
     return 0;
 }

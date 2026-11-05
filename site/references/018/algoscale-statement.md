@@ -1,22 +1,25 @@
 ## Problem Description
 
-Given nonnegative integers $a_1,\ldots,a_n$, define $B(l,r)$ as the set of all XOR values obtainable by choosing a subset of the entries in $a_l,\ldots,a_r$. The empty subset is allowed and contributes 0:
+A bracket sequence has $n$ positions. Each position contains an opening or closing parenthesis and has one of three fixed colors: lime, gray, or blue.
 
-$$B(l,r)=\left\{\bigoplus_{i=l}^{r}c_i a_i:\ c_i\in\{0,1\}\right\}.$$
+One change flips a parenthesis between `(` and `)`. Colors and positions cannot change. Find the minimum number of flips needed so that both of these statements hold:
 
-Count the distinct sets $B(l,r)$ over all nonempty contiguous intervals $1\le l\le r\le n$. In linear-algebra terminology, these are the distinct subspaces spanned by interval vectors in $\mathbb F_2^{32}$.
+1. Removing all lime brackets leaves a balanced bracket sequence.
+2. Removing all gray brackets leaves a balanced bracket sequence.
+
+Report impossibility if no choice of orientations satisfies both conditions. A balanced sequence may be empty; otherwise it is formed by concatenating balanced sequences or enclosing a balanced sequence in a matching opening and closing pair. The two brackets of such a pair need not have the same color.
 
 ## Input Format
 
 Read from standard input.
 
-Read the test count $T$. Each case contains $n$ on one line and $a_1,\ldots,a_n$ on the next line.
+Read $n$, a string $s$ of $n$ parentheses, then $n$ integers $c_1,\ldots,c_n$. Colors 0, 1, and 2 mean lime, gray, and blue, respectively.
 
 ## Output Format
 
 Write to standard output.
 
-For each test case, print one integer: the number of distinct sets $B(l,r)$.
+Print the minimum number of changes, or `-1` when impossible.
 
 ## Examples
 
@@ -25,29 +28,29 @@ For each test case, print one integer: the number of distinct sets $B(l,r)$.
 Input:
 
 ```text
-1
 3
-1 2 3
+()(
+0 2 1
 ```
 
 Output:
 
 ```text
-4
+-1
 ```
 
 ## Explanation / Notes
 
-In the example, the four sets are $\{0,1\}$, $\{0,2\}$, $\{0,3\}$, and $\{0,1,2,3\}$.
+Removing the lime bracket leaves positions 2 and 3, so position 2 must be an opening bracket. Removing the gray bracket leaves positions 1 and 2, so position 2 must be a closing bracket. These requirements conflict, and the answer is `-1`.
 
-The result counts different XOR-closure sets, not different intervals. XOR is the bitwise operation; for example, $4\oplus6=2$.
+The full sequence itself need not be balanced: the two required color-deleted subsequences must be balanced.
 
 ## Constraints
 
-- $1\le T\le10^6$.
-- $1\le n\le10^6$ per case.
-- $\sum n\le10^6$ over all test cases in the same input file.
-- $0\le a_i<2^{32}$, so the largest allowed value is $4294967295$.
-- Intervals are nonempty, but the subset used to form an XOR may be empty.
-- Print the exact count; no output modulus is specified. The answer is at most $n(n+1)/2$ and fits in a signed 64-bit integer.
-- Time limit: 5 seconds; memory limit: 768 MB.
+- One test case.
+- $1\le n\le500000$.
+- $|s|=n$, and every character is `(` or `)`.
+- $0\le c_i\le2$ for every position.
+- Only bracket orientations may change; order and colors are fixed.
+- Empty subsequences are balanced.
+- Time limit: 1.5 seconds; memory limit: 256 MB.

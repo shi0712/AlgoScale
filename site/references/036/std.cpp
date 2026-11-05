@@ -1,206 +1,236 @@
+// 时间复杂度 O(n log^2 n)，额外空间 O(n log n)。
 #include <bits/stdc++.h>
 using namespace std;
 
-static constexpr int MOD = 998244353;
+using i64 = long long;
+using i128 = __int128_t;
+const i64 INF = numeric_limits<i64>::max() / 4;
 
-struct Matrix {
-    int a = 0, b = 0, c = 0, d = 0;
-};
-
-Matrix multiply(const Matrix &x, const Matrix &y) {
-    return {
-        int((1LL * x.a * y.a + 1LL * x.b * y.c) % MOD),
-        int((1LL * x.a * y.b + 1LL * x.b * y.d) % MOD),
-        int((1LL * x.c * y.a + 1LL * x.d * y.c) % MOD),
-        int((1LL * x.c * y.b + 1LL * x.d * y.d) % MOD)
-    };
+static i64 isqrt(i64 v) {
+    i64 s = static_cast<i64>(sqrtl(static_cast<long double>(v)));
+    while ((s + 1) * (s + 1) <= v) ++s;
+    while (s * s > v) --s;
+    return s;
 }
 
-class DynamicDP {
-    struct Node {
-        int left = 0, right = 0, light = 0, parent = 0;
-        Matrix value;
-    };
+struct Radical {
+    i64 a, b; // 表示 a + sqrt(b)，其中 b >= 0
+};
 
-    int n, total, expressionRoot;
-    const vector<vector<int>> &graph;
-    vector<Node> tree;
-    vector<int> parent, size, heavy;
-    vector<unsigned char> active;
+// 精确比较两个带根式的数，返回 -1 / 0 / 1。
+static int compareRadical(Radical u, Radical v) {
+    if (u.a < v.a) return -compareRadical(v, u);
+    i128 d = static_cast<i128>(u.a) - v.a;
+    if (d == 0) return (u.b > v.b) - (u.b < v.b);
+    i128 q = static_cast<i128>(v.b) - u.b - d * d;
+    if (q < 0) return 1;
+    i128 lhs = 4 * d * d * u.b;
+    i128 rhs = q * q;
+    return (lhs > rhs) - (lhs < rhs);
+}
 
-    void pull(int u) {
-        Node &t = tree[u];
-        if (u > n) {
-            // 合并两组轻子树的贡献，只使用矩阵的第一列。
-            const Matrix &x = tree[t.left].value;
-            const Matrix &y = tree[t.right].value;
-            t.value = {
-                int(1LL * x.a * y.a % MOD), 0,
-                int((1LL * x.c * y.a + 1LL * x.a * y.c) % MOD), 0
-            };
+// 维护几何限制函数最小值的广义李超树。
+class GeometryHull {
+    const vector<i64>& x;
+    const vector<i64>& t;
+    int n;
+    vector<int> tree;
+
+    Radical value(int k, int p) const {
+        i64 a = x[k] - x[p];
+        // 辅助延拓：保证整个定义域上任意两函数至多交叉一次。
+        // 真实查询不会用到这一段。
+        if (a < 0) return {a, 0};
+        return {2 * (a + t[k]), 8LL * a * t[k]};
+    }
+
+    bool better(int a, int b, int p) const {
+        if (a == -1) return false;
+        if (b == -1) return true;
+        return compareRadical(value(a, p), value(b, p)) < 0;
+    }
+
+    void add(int v, int l, int r, int f) {
+        if (tree[v] == -1) {
+            tree[v] = f;
             return;
         }
-
-        // 轻子树合并结果为 (A, B)，空集合为 (1, 0)。
-        int A = tree[t.light].value.a;
-        int B = tree[t.light].value.c;
-        Matrix m;
-        if (active[u]) {
-            int s = A + B;
-            if (s >= MOD) s -= MOD;
-            m = {s, A, B, A};
-        } else {
-            m = {A, 0, A, 0};
-        }
-
-        // 按重链从上到下的顺序：左区间 * 当前点矩阵 * 右区间。
-        if (t.left)  m = multiply(tree[t.left].value, m);
-        if (t.right) m = multiply(m, tree[t.right].value);
-        t.value = m;
+        int m = (l + r) / 2;
+        bool left = better(f, tree[v], l);
+        bool middle = better(f, tree[v], m);
+        if (middle) swap(f, tree[v]);
+        if (l == r) return;
+        if (left != middle) add(v * 2, l, m, f);
+        else add(v * 2 + 1, m + 1, r, f);
     }
 
-    int joinRake(int x, int y) {
-        if (!x) return y;
-        if (!y) return x;
-        int u = ++total;
-        tree[u].left = x;
-        tree[u].right = y;
-        tree[x].parent = tree[y].parent = u;
-        pull(u);
-        return u;
-    }
-
-    // prefix 是正权值的前缀和，返回区间的带权中位数。
-    static int weightedMedian(const vector<int> &prefix, int l, int r) {
-        int target = prefix[l] + (prefix[r + 1] - prefix[l] + 1) / 2;
-        return int(lower_bound(prefix.begin() + l + 1,
-                               prefix.begin() + r + 2, target)
-                   - prefix.begin()) - 1;
-    }
-
-    int buildRake(const vector<int> &ids, const vector<int> &prefix,
-                  int l, int r) {
-        if (l > r) return 0;
-        if (l == r) return ids[l];
-        int m = weightedMedian(prefix, l, r);
-        int x = buildRake(ids, prefix, l, m - 1);
-        int y = ids[m];
-        int z = buildRake(ids, prefix, m + 1, r);
-        return joinRake(joinRake(x, y), z);
-    }
-
-    int buildCompress(const vector<int> &ids, const vector<int> &prefix,
-                      int l, int r) {
-        if (l > r) return 0;
-        int m = weightedMedian(prefix, l, r);
-        int u = ids[m];
-        int x = buildCompress(ids, prefix, l, m - 1);
-        int y = buildCompress(ids, prefix, m + 1, r);
-        tree[u].left = x;
-        tree[u].right = y;
-        if (x) tree[x].parent = u;
-        if (y) tree[y].parent = u;
-        pull(u);
-        return u;
-    }
-
-    int buildChain(int head) {
-        vector<int> ids;
-        vector<int> prefix(1, 0);
-        for (int u = head; u; u = heavy[u]) {
-            vector<int> lightIds;
-            vector<int> lightPrefix(1, 0);
-            for (int v : graph[u]) {
-                if (parent[v] == u && v != heavy[u]) {
-                    lightIds.push_back(buildChain(v));
-                    lightPrefix.push_back(lightPrefix.back() + size[v]);
-                }
-            }
-            int lightRoot = buildRake(lightIds, lightPrefix,
-                                      0, int(lightIds.size()) - 1);
-            tree[u].light = lightRoot;
-            if (lightRoot) tree[lightRoot].parent = u;
-
-            ids.push_back(u);
-            // 点权为当前点及其所有轻子树的大小之和。
-            prefix.push_back(prefix.back() + size[u] - size[heavy[u]]);
-        }
-        return buildCompress(ids, prefix, 0, int(ids.size()) - 1);
+    int query(int v, int l, int r, int p) const {
+        int ans = tree[v];
+        if (l == r) return ans;
+        int m = (l + r) / 2;
+        int other = p <= m ? query(v * 2, l, m, p)
+                           : query(v * 2 + 1, m + 1, r, p);
+        return better(other, ans, p) ? other : ans;
     }
 
 public:
-    DynamicDP(int n_, const vector<vector<int>> &g)
-        : n(n_), total(n_), graph(g), tree(2 * n_ + 5),
-          parent(n_ + 1), size(n_ + 1), heavy(n_ + 1), active(n_ + 1) {
-        // 空链取单位矩阵，其第一列也恰好是空轻子树集合 (1, 0)。
-        tree[0].value = {1, 0, 0, 1};
+    GeometryHull(const vector<i64>& xs, const vector<i64>& ts)
+        : x(xs), t(ts), n(static_cast<int>(xs.size())), tree(4 * n, -1) {}
 
-        vector<int> order;
-        order.reserve(n);
-        order.push_back(1);
-        for (int i = 0; i < int(order.size()); ++i) {
-            int u = order[i];
-            for (int v : graph[u]) {
-                if (v == parent[u]) continue;
-                parent[v] = u;
-                order.push_back(v);
-            }
-        }
-        for (int i = n - 1; i >= 0; --i) {
-            int u = order[i];
-            size[u] = 1;
-            for (int v : graph[u]) {
-                if (parent[v] != u) continue;
-                size[u] += size[v];
-                if (size[v] > size[heavy[u]]) heavy[u] = v;
-            }
-        }
-        expressionRoot = buildChain(1);
+    void add(int k) { add(1, 0, n - 1, k); }
+    int query(int p) const { return query(1, 0, n - 1, p); }
+};
+
+static vector<i64> rightLimits(const vector<i64>& x, const vector<i64>& t) {
+    int n = static_cast<int>(x.size());
+    vector<i64> limit(n);
+    GeometryHull hull(x, t);
+    for (int i = n - 1; i >= 0; --i) {
+        hull.add(i);
+        int k = hull.query(i);
+        i64 a = x[k] - x[i];
+        limit[i] = 2 * (a + t[k]) + isqrt(8LL * a * t[k]);
+    }
+    return limit;
+}
+
+class BridgeDP {
+    int n;
+    i64 alpha, beta;
+    const vector<i64>& x;
+    const vector<i64>& t;
+    vector<int> L, R;
+    vector<i64> dp, best, slope, intercept;
+    vector<vector<int>> pending;
+
+    i64 value(int k, i64 at) const {
+        return slope[k] * at + intercept[k];
     }
 
-    bool isActive(int u) const { return active[u] != 0; }
-
-    void activate(int u) {
-        active[u] = 1;
-        for (int x = u; x; x = tree[x].parent) pull(x);
+    // a、b、c 的斜率严格递增，判断中间直线 b 是否冗余。
+    bool redundant(int a, int b, int c) const {
+        return (static_cast<i128>(intercept[a]) - intercept[b]) *
+                   (slope[c] - slope[b]) <=
+               (static_cast<i128>(intercept[b]) - intercept[c]) *
+                   (slope[b] - slope[a]);
     }
 
-    int forestCount() const {
-        // 根所在重链的矩阵积乘 (1, 0)^T，第二维就是 f_1[root]。
-        return tree[expressionRoot].value.c;
+    void addRange(int v, int l, int r, int ql, int qr, int id) {
+        if (ql <= l && r <= qr) {
+            pending[v].push_back(id);
+            return;
+        }
+        int m = (l + r) / 2;
+        if (ql <= m) addRange(v * 2, l, m, ql, qr, id);
+        if (qr > m) addRange(v * 2 + 1, m + 1, r, ql, qr, id);
+    }
+
+    // 进入节点时，属于该节点的所有直线都已经加入。
+    void apply(int v, int l, int r) {
+        auto& ids = pending[v];
+        if (ids.empty()) return;
+
+        vector<int> order(r - l + 1);
+        iota(order.begin(), order.end(), l);
+        sort(order.begin(), order.end(), [&](int a, int b) {
+            return L[a] > L[b];
+        });
+
+        vector<int> hull;
+        hull.reserve(ids.size());
+        int p = static_cast<int>(ids.size()) - 1;
+        for (int j : order) {
+            while (p >= 0 && ids[p] >= L[j]) {
+                int k = ids[p--];
+                while (hull.size() >= 2 &&
+                       redundant(hull[hull.size() - 2], hull.back(), k)) {
+                    hull.pop_back();
+                }
+                hull.push_back(k);
+            }
+            if (hull.empty()) continue;
+
+            int a = 0, b = static_cast<int>(hull.size()) - 1;
+            while (a < b) {
+                int m = (a + b) / 2;
+                if (value(hull[m], x[j]) <= value(hull[m + 1], x[j])) b = m;
+                else a = m + 1;
+            }
+            best[j] = min(best[j], value(hull[a], x[j]));
+        }
+        vector<int>().swap(ids);
+    }
+
+    void solve(int v, int l, int r) {
+        apply(v, l, r);
+        if (l == r) {
+            if (l == 0) dp[l] = alpha * t[l];
+            else if (best[l] != INF) {
+                dp[l] = best[l] + beta * x[l] * x[l] + alpha * t[l];
+            }
+            if (dp[l] != INF && l < R[l]) {
+                intercept[l] = dp[l] + beta * x[l] * x[l];
+                addRange(1, 0, n - 1, l + 1, R[l], l);
+            }
+            return;
+        }
+        int m = (l + r) / 2;
+        solve(v * 2, l, m);
+        solve(v * 2 + 1, m + 1, r);
+    }
+
+public:
+    BridgeDP(const vector<i64>& xs, const vector<i64>& ts, i64 a, i64 b,
+             vector<int> left, vector<int> right)
+        : n(static_cast<int>(xs.size())), alpha(a), beta(b), x(xs), t(ts),
+          L(move(left)), R(move(right)), dp(n, INF), best(n, INF),
+          slope(n), intercept(n), pending(4 * n) {
+        for (int i = 0; i < n; ++i) slope[i] = -2 * beta * x[i];
+    }
+
+    i64 run() {
+        solve(1, 0, n - 1);
+        return dp[n - 1];
     }
 };
 
+static i64 minimumBridge(const vector<i64>& x, const vector<i64>& t,
+                         i64 alpha, i64 beta) {
+    int n = static_cast<int>(x.size());
+    auto right = rightLimits(x, t);
+    vector<i64> rx(n), rt(n);
+    for (int i = 0; i < n; ++i) {
+        rx[i] = -x[n - 1 - i];
+        rt[i] = t[n - 1 - i];
+    }
+    auto left = rightLimits(rx, rt);
+    vector<int> L(n), R(n);
+    for (int i = 0; i < n; ++i) {
+        L[i] = static_cast<int>(lower_bound(x.begin(), x.end(),
+                         x[i] - left[n - 1 - i]) - x.begin());
+        R[i] = static_cast<int>(upper_bound(x.begin(), x.end(),
+                         x[i] + right[i]) - x.begin()) - 1;
+    }
+    BridgeDP solver(x, t, alpha, beta, move(L), move(R));
+    return solver.run();
+}
+
+#ifndef BRIDGE_SOLVER_NO_MAIN
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
     int n;
-    if (!(cin >> n)) return 0;
-    vector<vector<int>> graph(n + 1);
-    for (int i = 1; i < n; ++i) {
-        int u, v;
-        cin >> u >> v;
-        graph[u].push_back(v);
-        graph[v].push_back(u);
+    i64 h, alpha, beta;
+    if (!(cin >> n >> h >> alpha >> beta)) return 0;
+    vector<i64> x(n), t(n);
+    for (int i = 0; i < n; ++i) {
+        i64 y;
+        cin >> x[i] >> y;
+        t[i] = h - y;
     }
-
-    vector<int> power2(n + 1, 1);
-    for (int i = 1; i <= n; ++i)
-        power2[i] = int(2LL * power2[i - 1] % MOD);
-
-    DynamicDP dp(n, graph);
-    int exponent = 0; // 未操作点诱导森林的连通块数减一。
-    for (int i = 1; i < n; ++i) {
-        int x;
-        cin >> x;
-        int unoperatedNeighbors = 0;
-        for (int v : graph[x])
-            if (!dp.isActive(v)) ++unoperatedNeighbors;
-
-        exponent += unoperatedNeighbors - 1;
-        dp.activate(x);
-        cout << 1LL * power2[exponent] * dp.forestCount() % MOD << '\n';
-    }
+    i64 ans = minimumBridge(x, t, alpha, beta);
+    if (ans == INF) cout << "impossible\n";
+    else cout << ans << '\n';
     return 0;
 }
+#endif

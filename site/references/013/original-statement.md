@@ -1,24 +1,22 @@
 ## Problem Description
 
-There are $k$ independent trees. Tree $i$ has $n_i$ vertices, with vertex 1 designated as its hole, and a ball initially at vertex $s_i$.
+For each index $i\in[1,n]$, define a height
 
-For each stroke, choose one tree. Its ball moves uniformly at random to one of the adjacent vertices. The other balls stay where they are. The process stops as soon as any ball reaches vertex 1 of its tree.
+$$h_i=\left(i+\frac ba\right)^2.$$
 
-Choices may depend on the current positions. Find the minimum possible expected number of strokes before the process stops.
+For every unordered pair of distinct indices, create one ladder of length $|h_i-h_j|$. Sort the resulting $n(n-1)/2$ lengths in nondecreasing order, counting equal lengths separately. Find the $k$-th length and express it as a reduced fraction.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $k$. For each tree, read a line containing $n_i,s_i$, then $n_i-1$ lines containing edge endpoints $u_{i,j},v_{i,j}$.
+Read one line containing four integers $n,k,a,b$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum expected number of strokes as a real number. If your answer is $a$ and the reference answer is $b$, it is accepted when
-
-$$\frac{|a-b|}{\max(1,|b|)}\le10^{-6}.$$
+Print integers $p,q$ such that the requested length is $p/q$, $p\ge0$, $q\ge1$, and $\gcd(p,q)=1$.
 
 ## Examples
 
@@ -27,34 +25,26 @@ $$\frac{|a-b|}{\max(1,|b|)}\le10^{-6}.$$
 Input:
 
 ```text
-2
-4 2
-1 2
-2 3
-3 4
-4 3
-1 2
-2 3
-3 4
+3 1 3 1
 ```
 
 Output:
 
 ```text
-4.666666666666666
+11 3
 ```
 
 ## Explanation / Notes
 
-Only one ball moves on a stroke. The stopping condition is the first ball to enter a hole; reaching every hole is not required. Each initial vertex differs from the hole.
+Each pair contributes its own ladder, even if its length equals another ladder's length. The rank $k$ is one-based. The offset inside the square is $b/a$.
 
 ## Constraints
 
-- The input contains exactly one test case.
-- $1\le k\le300$.
-- For every tree, $2\le s_i\le n_i\le300$.
-- Every edge endpoint lies in $[1,n_i]$.
-- The listed $n_i-1$ edges are guaranteed to form a tree.
-
-- Required absolute-or-relative tolerance: $10^{-6}$, with the acceptance formula above.
+- One test case.
+- $2\le n\le10^{12}$.
+- $1\le k\le\min\{n(n-1)/2,10^{12}\}$.
+- $1\le a\le10^6$.
+- $0\le b\le10^{12}$.
+- All four input parameters are integers.
+- The output fraction must be reduced, with a positive denominator.
 - Time limit: 4 seconds; memory limit: 1024 MB.

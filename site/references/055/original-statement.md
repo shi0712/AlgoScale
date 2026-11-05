@@ -1,53 +1,51 @@
 ## Problem Description
 
-An $L\times L$ grid has one hospital at each corner: $(1,1)$, $(1,L)$, $(L,1)$, and $(L,L)$. Each hospital has one ambulance. At time zero, $N$ patients request transport; patient $k$ is at $(X_k,Y_k)$.
+You are given a permutation $p$ of $1,\ldots,n$. In one operation, choose $i$ uniformly from $1,\ldots,n$, sort the prefix $p_1,\ldots,p_i$ in ascending order, and separately sort the suffix $p_{i+1},\ldots,p_n$ in ascending order.
 
-An ambulance may start at time zero or later and make any number of trips. Each trip begins at its own hospital, visits a patient, and returns that patient to the same hospital. It can carry at most one patient and cannot drop a patient elsewhere. Moving between orthogonally adjacent cells costs one unit of time; picking up and dropping off a patient takes no time. Different ambulances may share cells simultaneously.
-
-Determine whether every patient can reach a hospital by time $T$.
+Repeat until the entire permutation is increasing. Find the expected number of operations, represented modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $L$, $N$, and $T$. The next $N$ lines contain the patient coordinates $X_k,Y_k$.
+The first line contains $T$, the number of test cases. Each case has a line containing $n$, followed by a line containing the permutation $p_1,\ldots,p_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print `Yes` if all patients can be delivered by time $T$, and `No` otherwise.
+For each test case, print the expected operation count modulo $998244353$ on a separate line.
 
 ## Examples
 
 Input:
 
 ```text
-6 4 8
-1 3
-2 2
-3 4
-5 5
+1
+2
+2 1
 ```
 
 Output:
 
 ```text
-Yes
+2
 ```
 
 ## Explanation / Notes
 
-Assign patients 1 and 2 to $(1, 1)$, patient 3 to $(1, 6)$, and patient 4 to $(6, 6)$. The ambulance at $(1, 1)$ can collect patient 2 at time 2 and return at time 4, then collect patient 1 at time 6 and return at time 8. All four deliveries meet the deadline.
+For the shown permutation, choosing $i=1$ changes nothing, while choosing $i=2$ sorts the whole permutation. Each choice has probability $1/2$, so the expected number of operations is 2.
+
+When $i=n$, the suffix is empty and the operation sorts the whole permutation. Sorting the prefix and suffix separately does not otherwise sort across their boundary.
+
+If the initial permutation is already increasing, no operation is needed. Division in a rational expectation modulo a prime uses a modular multiplicative inverse.
 
 ## Constraints
 
-All input values are integers. There is one scenario per input.
-
-- $3\le L\le10000$.
-- $1\le N\le160$.
-- $1\le T\le20000$.
-- $1\le X_k,Y_k\le L$ for every patient.
-- No patient is initially at a hospital corner.
-- Patient locations are **not required to be distinct**.
-- All requests are present at time zero; every delivery, including the return to a hospital, must finish at or before $T$.
+- $1\le T\le100$.
+- $1\le n\le500$ in each test case.
+- $1\le p_j\le n$ and every number in $1,\ldots,n$ appears exactly once.
+- Across all test cases in one input, $\sum n\le2000$.
+- The random split is chosen uniformly from the **$n$ indices $1,\ldots,n$**; index zero is not an option.
+- Answer modulus: $998244353$.
+- Time limit: **4 seconds**. Memory limit: **512 MB**.

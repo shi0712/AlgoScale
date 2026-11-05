@@ -1,26 +1,37 @@
 ## Problem Description
 
-A tree has $n$ vertices numbered $1$ through $n$. The numbers $1,2,\ldots,n$ occupy its vertices, with each number occurring exactly once.
+A grid has $10^{18}$ rows and two columns. Each cell is black or white. Select a subset of black cells, using at most one cell from each row.
 
-Perform exactly $n-1$ operations. In each operation, choose an edge that has not yet been deleted, swap the numbers on its endpoints, and then delete the edge. Thus every original edge is used once.
+Within each column, divide the selected cells into maximal runs of consecutive rows. A run of length $x$ contributes
 
-After all operations, let $P_i$ be the vertex containing number $i$. Find the lexicographically smallest possible sequence $(P_1,P_2,\ldots,P_n)$.
+$$100^{100^x}.$$
+
+The total score is the sum of these contributions over both columns. Find a selection of maximum total score. Because the score itself is extremely large, report the lengths of its selected runs in the compressed form specified below.
+
+The input also uses a compressed representation: each column is described by its maximal intervals of black cells; every other cell is white.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $T$. Each test case consists of:
+The first line contains the test-case count $t$. For each case:
 
-1. A line containing $n$.
-2. A line of $n$ integers; its $i$-th integer is the **initial vertex containing number $i$**, not the number initially stored at vertex $i$.
-3. $n-1$ lines containing endpoints $x,y$ of the tree's edges.
+1. Read $n,m$, the counts of black intervals in columns 1 and 2.
+2. Read $n$ pairs $l_{1,i},r_{1,i}$ describing inclusive black intervals in column 1.
+3. Read $m$ pairs $l_{2,j},r_{2,j}$ describing inclusive black intervals in column 2.
+
+Intervals in a column are ordered by row and have at least one white row between consecutive intervals.
 
 ## Output Format
 
 Write to standard output.
 
-For each test case, print one line containing $n$ space-separated integers: the lexicographically smallest possible final position sequence $P_1,\ldots,P_n$.
+For each case, print two lines:
+
+1. The total number $c\ge1$ of maximal selected runs across both columns.
+2. Their lengths $x_1,\ldots,x_c$, sorted in non-increasing order.
+
+The lengths must describe a selection attaining the maximum total score. Do not print the enormous numeric score itself.
 
 ## Examples
 
@@ -28,34 +39,32 @@ Input:
 
 ```text
 1
-5
-2 1 3 5 4
-1 3
+1 1
 1 4
-2 4
-4 5
+1 4
 ```
 
 Output:
 
 ```text
-1 3 4 2 5
+1
+4
 ```
 
 ## Explanation / Notes
 
-Lexicographic comparison uses the first position at which two sequences differ. The smaller vertex number at that position makes the whole sequence smaller.
+Both columns are black on rows 1 through 4. Selecting all four rows from one column gives a single run of length 4 and attains the maximum score.
 
-In the example, numbers $1,2,3,4,5$ initially occupy vertices $2,1,3,5,4$. An optimal ordering of edge deletions leaves them at vertices $1,3,4,2,5$, respectively.
-
-When $n=1$, there are no edges to process and the only output is `1`. Output only the final position sequence, not an edge-deletion order.
+Consecutive selected cells form a run only when they belong to the same column. The two columns may have overlapping black intervals, but the chosen cells still obey the one-per-row rule.
 
 ## Constraints
 
-- There are $1\le T\le10$ test cases.
-- Each case is a tree: it has $n$ vertices and $n-1$ undirected edges and is connected.
-- Vertex labels and initial positions lie in $[1,n]$; the initial position list is a permutation of $1,\ldots,n$.
-- $1\le n\le10^5$.
-- Across all test cases in one input file, $\sum n\le10^5$.
-- Time limit: 1.5 seconds.
+- $1\le t\le3000$.
+- $1\le n,m\le10^5$ for each case.
+- $\sum n\le10^5$ and, separately, $\sum m\le10^5$ across all cases.
+- Every interval endpoint is an integer satisfying $1\le l_{1,i}\le r_{1,i}\le10^{18}$ or $1\le l_{2,j}\le r_{2,j}\le10^{18}$.
+- Consecutive intervals within each column satisfy the **strict** separation conditions $r_{1,i}+1<l_{1,i+1}$ and $r_{2,j}+1<l_{2,j+1}$.
+- There is no restriction preventing an interval in column 1 from overlapping one in column 2.
+- Output lengths obey $x_1\ge x_2\ge\cdots\ge x_c\ge1$ and represent maximal selected runs.
+- Time limit: 3 seconds.
 - Memory limit: 256 MB.

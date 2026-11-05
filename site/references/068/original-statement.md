@@ -1,55 +1,53 @@
 ## Problem Description
 
-Choose an $n$-element subset of $\{1,\ldots,m\}$ uniformly at random. Apply these steps:
+Two connected simple undirected graphs, $A$ and $B$, each have $n$ vertices and $m$ edges. Their edges are indexed $1$ through $m$; equal indices do not necessarily have equal endpoints in the two graphs.
 
-1. Sort the selected numbers as $a_1<\cdots<a_n$.
-2. Form $d_1=a_1$ and $d_i=a_i-a_{i-1}$ for $i\ge2$.
-3. Sort the $n$ differences in nondecreasing order, obtaining $b_1,\ldots,b_n$.
-4. Form the final sequence $c_i=\sum_{j=1}^{i}b_j$.
-
-Compute the expected value of every final entry $c_i$.
+Determine whether there is a set of edge indices that forms a spanning tree in $A$ but does not form a spanning tree in $B$.
 
 ## Input Format
 
 Read from standard input.
 
-One line contains the integers $n$ and $m$.
+The first line contains the number of test cases $t$.
+
+Each case begins with $n,m$. Each of the next $m$ lines contains $u_A,v_A,u_B,v_B$. The $i$-th line gives the endpoints of edge $i$ in $A$ and edge $i$ in $B$ respectively.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ lines. Line $i$ contains the expected value of $c_i$ as a real number. Each answer may have absolute or relative error at most $10^{-6}$.
+For each case, print `YES` if such an index set exists, and `NO` otherwise. You do not need to construct or print the set.
 
 ## Examples
 
 Input:
 
 ```text
-3 5
+1
+2 1
+1 2 2 1
 ```
 
 Output:
 
 ```text
-1
-2.3
-4.5
+NO
 ```
 
 ## Explanation / Notes
 
-There are ten equally likely three-element subsets of $\{1, 2, 3, 4, 5\}$. Averaging the final sequence over these choices gives $1$, $2.3$, and $4.5$.
+Both graphs consist of the same undirected edge between vertices 1 and 2. Their only spanning tree uses edge 1, so it cannot be a spanning tree in $A$ and fail in $B$.
 
-The difference sequence contains exactly $n$ terms: it includes the initial gap from zero to $a_1$ but does **not** append a gap from $a_n$ to $m$.
+The condition is directional: it specifically requires a spanning tree of the first graph that fails in the second.
 
 ## Constraints
 
-- $1\le n\le50$.
-- $n\le m\le10000$.
-- $n,m$ are integers.
-- The initially selected integers are distinct and belong to $[1,m]$.
-- Every valid $n$-element subset has the same selection probability.
-- Output tolerance: absolute or relative error at most $10^{-6}$ for each of the $n$ expectations.
-- There is one instance per input.
-- Time limit: **1 second**.
+- $1\le t\le2500$.
+- $2\le n\le5000$ per case.
+- $n-1\le m\le\min\left(5000,\frac{n(n-1)}2\right)$.
+- Every endpoint lies in $[1,n]$.
+- $u_A\ne v_A$ and $u_B\ne v_B$ for every edge.
+- Both graphs are undirected, connected, and simple: no self-loops or parallel edges.
+- Across all cases, $\sum n\le5000$ and, independently, $\sum m\le5000$.
+- A spanning tree includes every vertex and exactly $n-1$ of the indexed edges.
+- Time limit: **1 second**. Memory limit: **1024 MiB**.

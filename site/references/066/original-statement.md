@@ -1,49 +1,51 @@
 ## Problem Description
 
-There are $N$ topping types, numbered $0$ through $N-1$, with $a_i$ pieces of type $i$. A cake's tastiness is the largest number of pieces of a single topping type on that cake.
+A rectangular sheet has integer height $h$ and width $w$, subdivided into unit cells. A cut is made along an entire horizontal or vertical grid line and cuts every existing piece intersected by that line.
 
-For each of $Q$ independent requested counts $K_j$, determine whether all available topping pieces can be distributed among exactly $K_j$ nonempty cakes so that every cake has the same tastiness. Cakes may have different total numbers of pieces and different sets of topping types. No piece may be left over.
+A horizontal cut may use an integer coordinate from $1$ to $h-1$, and a vertical cut may use one from $1$ to $w-1$. Thus $c_h$ distinct horizontal cuts and $c_w$ distinct vertical cuts produce $(c_h+1)(c_w+1)$ rectangles.
+
+Find the minimum total number of cuts needed so that every resulting rectangle has area at most $s$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $N,Q$. The second contains $a_0,\ldots,a_{N-1}$. Each of the next $Q$ lines contains one requested cake count $K_j$.
+The first line contains $t$, the number of test cases. Each of the next $t$ lines contains $h,w,s$.
 
 ## Output Format
 
 Write to standard output.
 
-For every query, print `YES` if such a distribution exists, and `NO` otherwise.
+Print one integer per test case: the minimum number of cuts.
 
 ## Examples
 
 Input:
 
 ```text
-1 1
-4
-2
+1
+2 2 1
 ```
 
 Output:
 
 ```text
-YES
+2
 ```
 
 ## Explanation / Notes
 
-Give each of the two cakes two pieces of the only topping type. Both cakes then have tastiness 2, and all four pieces are used.
+One horizontal cut and one vertical cut divide the $2\times 2$ sheet into four unit squares, so two cuts suffice. One cut would leave rectangles of area 2, which exceeds the permitted area 1.
 
-Each query starts with the original inventory; it does not consume pieces for subsequent queries.
+A cut is counted once even when its line passes through several pieces created earlier. Cuts use global horizontal or vertical grid lines, rather than independent cuts on individual rectangles.
 
 ## Constraints
 
-- $1\le N,Q\le100000$.
-- $1\le a_i\le100000$ for all topping types.
-- $1\le K_j\le10^{18}$ for all queries.
-- All values are integers.
-- Every cake must receive at least one topping piece.
-- All topping pieces must be used exactly once within a scenario.
-- The tastiness must be equal across cakes, but it may differ between scenarios.
+- $1\le t\le1000$.
+- $1\le h,w,s\le10^9$ in every test case.
+- All input values are integers.
+- Horizontal coordinates must be integers in $[1,h-1]$; when $h=1$, there is no horizontal cut position.
+- Vertical coordinates must be integers in $[1,w-1]$; when $w=1$, there is no vertical cut position.
+- Every final rectangle must individually have area at most $s$.
+- Zero cuts are allowed.
+- Time limit: **3 seconds**. Memory limit: **256 MB**.

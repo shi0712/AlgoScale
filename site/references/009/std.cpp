@@ -1,211 +1,304 @@
-// Source: user-provided final OptimizedSolver; executable algorithm preserved.
-// 2e6 release: 1 <= n <= 2,000,000; 0 <= P,Q,h[i] <= 2,000,000.
-// Audit: <=5 effective square roots/item; <=21 halvings/item; total sum <=4e12.
-// Counts in int are <=10,000,000; aggregate costs and threshold squares use int64.
-// No precomputed answers. See admin/range_audit.md for the expansion audit.
 #include <bits/stdc++.h>
 using namespace std;
-using ll = long long;
 
-struct Result {
-    ll val, qmin;
-};
+constexpr int MOD = 998244353;
+constexpr int G = 3;
+using Poly = vector<int>;
 
-// 一个固定高度分布的除法收益后缀表。
-struct HalfTable {
-    ll sum = 0;
-    vector<ll> cnt, gain;
+int addmod(int a, int b) {
+    int s = a + b;
+    return s >= MOD ? s - MOD : s;
+}
+int submod(int a, int b) {
+    int s = a - b;
+    return s < 0 ? s + MOD : s;
+}
+int mulmod(int a, int b) { return int(1LL * a * b % MOD); }
+int modpow(int a, int e) {
+    int r = 1;
+    for (; e; e >>= 1, a = mulmod(a, a))
+        if (e & 1) r = mulmod(r, a);
+    return r;
+}
+void trim(Poly &a) {
+    while (!a.empty() && a.back() == 0) a.pop_back();
+}
 
-    void build(const vector<int>& freq) {
-        int h = static_cast<int>(freq.size()) - 1;
-        vector<ll> c(freq.begin(), freq.end());
-        cnt.assign(h + 2, 0);
-        gain.assign(h + 2, 0);
-        sum = 0;
-        for (int x = h; x >= 1; --x) {
-            sum += 1LL * x * freq[x];
-            cnt[(x + 1) / 2] += c[x];
-            c[x / 2] += c[x];
-        }
-        for (int x = h; x >= 0; --x) {
-            gain[x] = gain[x + 1] + 1LL * x * cnt[x];
-            cnt[x] += cnt[x + 1];
-        }
-    }
-
-    Result query(int w) const {
-        int pos = min(w + 1, static_cast<int>(cnt.size()) - 1);
-        return {sum - gain[pos] + 1LL * w * cnt[pos], cnt[pos]};
-    }
-};
-
-struct Item {
-    int d, k, count;
-};
-
-struct OptimizedSolver {
-    int H, P, total, border = 0, threshold;
-    vector<int> rt, lg, cnt, pref, chosen;
-    HalfTable original, baseline;
-
-    OptimizedSolver(vector<int> freq, int p) : P(p) {
-        H = static_cast<int>(freq.size()) - 1;
-        rt.assign(H + 1, 0);
-        lg.assign(H + 1, 0);
-        for (int x = 1; x <= H; ++x) {
-            rt[x] = rt[x - 1];
-            if (1LL * (rt[x] + 1) * (rt[x] + 1) <= x) ++rt[x];
-            lg[x] = lg[x / 2] + 1;
-        }
-        threshold = rt[H] + (1LL * rt[H] * rt[H] < H);
-        original.build(freq);
-        cnt = freq;
-        for (int x = H; x >= 2; --x) cnt[rt[x]] += cnt[x];
-        pref.assign(H + 1, 0);
-        for (int x = 2; x <= H; ++x) pref[x] = pref[x - 1] + cnt[x];
-        total = H >= 2 ? pref[H] : 0;
-        P = min(P, total);
-        if (!P) return;
-
-        // 按步骤起始高度选最大的 P 份，并真正更新基准高度分布。
-        chosen.assign(H + 1, 0);
-        int need = P;
-        for (int x = H; x >= 2; --x) {
-            int take = min(need, cnt[x]);
-            chosen[x] = take;
-            if (take) border = x;
-            freq[x] -= take;
-            freq[rt[x]] += take;
-            need -= take;
-        }
-        baseline.build(freq);
-    }
-
-    // lg[t] 是 t 的二进制位数，lg[0]=0。
-    int divisions(int x, int w) const {
-        return lg[x / (2 * w + 1)];
-    }
-
-    int value(int x, int w, int b) const {
-        return (x >> b) + w * b;
-    }
-
-    // 按 (d,k) 降序选 need 份，返回总收益和节省的除法次数。
-    pair<ll, ll> select(const vector<Item>& items, int need) const {
-        if (!need) return {0, 0};
-        int low = H, high = 0;
-        for (const auto& t : items) {
-            low = min(low, t.d);
-            high = max(high, t.d);
-        }
-        vector<int> amount(high - low + 1, 0);
-        vector<ll> saved(high - low + 1, 0);
-        for (const auto& t : items) {
-            amount[t.d - low] += t.count;
-            saved[t.d - low] += 1LL * t.count * t.k;
-        }
-        ll gain_sum = 0, saved_sum = 0;
-        for (int d = high; d >= low; --d) {
-            if (need > amount[d - low]) {
-                gain_sum += 1LL * d * amount[d - low];
-                saved_sum += saved[d - low];
-                need -= amount[d - low];
-                continue;
+void ntt(Poly &a, bool invert) {
+    const int n = int(a.size());
+    static Poly roots{0, 1};
+    static vector<Poly> revs(24);
+    if (int(roots.size()) < n) {
+        int s = __builtin_ctz((unsigned)roots.size());
+        roots.resize(n);
+        while ((1 << s) < n) {
+            int z = modpow(G, (MOD - 1) >> (s + 1));
+            for (int i = 1 << (s - 1); i < (1 << s); ++i) {
+                roots[i << 1] = roots[i];
+                roots[i << 1 | 1] = mulmod(roots[i], z);
             }
-            gain_sum += 1LL * d * need;
-            vector<int> by_k(lg[H] + 1, 0);
-            for (const auto& t : items)
-                if (t.d == d) by_k[t.k] += t.count;
-            for (int k = lg[H]; k >= 0; --k) {
-                int take = min(need, by_k[k]);
-                saved_sum += 1LL * take * k;
-                need -= take;
-            }
-            return {gain_sum, saved_sum};
+            ++s;
         }
-        return {gain_sum, saved_sum};
+    }
+    int lg = __builtin_ctz((unsigned)n);
+    Poly &rev = revs[lg];
+    if (int(rev.size()) != n) {
+        rev.resize(n);
+        for (int i = 1; i < n; ++i)
+            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (lg - 1));
+    }
+    for (int i = 0; i < n; ++i)
+        if (i < rev[i]) swap(a[i], a[rev[i]]);
+    for (int len = 1; len < n; len <<= 1) {
+        for (int i = 0; i < n; i += len << 1) {
+            for (int j = 0; j < len; ++j) {
+                int u = a[i + j];
+                int v = mulmod(a[i + j + len], roots[len + j]);
+                a[i + j] = addmod(u, v);
+                a[i + j + len] = submod(u, v);
+            }
+        }
+    }
+    if (invert) {
+        reverse(a.begin() + 1, a.end());
+        int invn = modpow(n, MOD - 2);
+        for (int &x : a) x = mulmod(x, invn);
+    }
+}
+
+Poly multiply(const Poly &a, const Poly &b) {
+    if (a.empty() || b.empty()) return {};
+    if (min(a.size(), b.size()) <= 24) {
+        Poly c(a.size() + b.size() - 1);
+        for (int i = 0; i < int(a.size()); ++i)
+            if (a[i])
+                for (int j = 0; j < int(b.size()); ++j)
+                    c[i + j] = addmod(c[i + j], mulmod(a[i], b[j]));
+        trim(c);
+        return c;
+    }
+    int need = int(a.size() + b.size() - 1), len = 1;
+    while (len < need) len <<= 1;
+    Poly x(a), y(b);
+    x.resize(len); y.resize(len);
+    ntt(x, false); ntt(y, false);
+    for (int i = 0; i < len; ++i) x[i] = mulmod(x[i], y[i]);
+    ntt(x, true);
+    x.resize(need);
+    trim(x);
+    return x;
+}
+
+Poly inverse_series(const Poly &a, int need) {
+    Poly r{modpow(a[0], MOD - 2)};
+    while (int(r.size()) < need) {
+        int len = min(need, int(r.size()) * 2);
+        Poly f(a.begin(), a.begin() + min(int(a.size()), len));
+        Poly t = multiply(f, r);
+        t.resize(len);
+        for (int &x : t) if (x) x = MOD - x;
+        t[0] = addmod(t[0], 2);
+        r = multiply(r, t);
+        r.resize(len);
+    }
+    return r;
+}
+
+// b 为首一多项式；其翻转多项式的逆在不同枚举中可以复用。
+Poly remainder(Poly a, const Poly &b, Poly &cached_inv) {
+    trim(a);
+    const int d = int(b.size()) - 1;
+    if (int(a.size()) <= d) return a;
+    int need = int(a.size()) - d;
+    if (d <= 16 || 1LL * d * need <= 4096) {
+        for (int i = int(a.size()) - 1; i >= d; --i) {
+            int v = a[i];
+            if (!v) continue;
+            for (int j = 0; j < d; ++j)
+                a[i - d + j] = submod(a[i - d + j], mulmod(v, b[j]));
+        }
+        a.resize(d);
+        trim(a);
+        return a;
+    }
+    if (int(cached_inv.size()) < need) {
+        int len = 1;
+        while (len < need) len <<= 1;
+        Poly rb(b.rbegin(), b.rend());
+        cached_inv = inverse_series(rb, len);
+    }
+    Poly ra(need), ri(cached_inv.begin(), cached_inv.begin() + need);
+    for (int i = 0; i < need; ++i) ra[i] = a[a.size() - 1 - i];
+    Poly quotient = multiply(ra, ri);
+    quotient.resize(need);
+    reverse(quotient.begin(), quotient.end());
+    Poly prod = multiply(quotient, b);
+    prod.resize(d);
+    a.resize(d);
+    for (int i = 0; i < d; ++i) a[i] = submod(a[i], prod[i]);
+    trim(a);
+    return a;
+}
+
+void add_shifted(Poly &a, const Poly &b, int shift) {
+    if (b.empty()) return;
+    if (a.size() < b.size() + shift) a.resize(b.size() + shift);
+    for (int i = 0; i < int(b.size()); ++i)
+        a[i + shift] = addmod(a[i + shift], b[i]);
+}
+
+struct FastDP {
+    static constexpr int SMALL = 12;
+    int q, k, start = 0, active = 0, sum = 0;
+    vector<int> b, r, f;
+    const vector<Poly> &pw;
+    vector<Poly> product, inv_product;
+
+    FastDP(const vector<int> &points, int upper, const vector<Poly> &powers)
+        : q(int(points.size())), k(upper), b(points), r(q), f(q),
+          pw(powers), product(4 * q), inv_product(4 * q) {
+        build(1, 0, q - 1);
     }
 
-    Result calc(int w) const {
-        if (!P) return original.query(w);
-        if (P == total) return baseline.query(w);
-        vector<Item> items;
-        Result res;
-        int need;
-        if (w < threshold) {
-            res = original.query(w);
-            need = P;
-            for (int x = 2; x <= H;) {
-                int s = rt[x];
-                int l = divisions(x, w), m = divisions(s, w);
-                ll a = 2LL * w + 1;
-                ll next_s = (1LL * (s >> m) + 1) << m;
-                ll next_m = a << m;
-                ll r = min({
-                    H + 1LL,
-                    (1LL * (x >> l) + 1) << l,
-                    a << l,
-                    next_s * next_s,
-                    next_m * next_m
-                });
-                int end = static_cast<int>(r);
-                int count = pref[end - 1] - pref[x - 1];
-                if (count) {
-                    int d = value(x, w, l) - value(s, w, m);
-                    items.push_back({d, l - m, count});
+    void build(int id, int l, int rr) {
+        if (rr - l + 1 <= SMALL) {
+            Poly p{1};
+            for (int i = l; i <= rr; ++i) {
+                Poly t(p.size() + 1);
+                for (int j = 0; j < int(p.size()); ++j) {
+                    t[j] = submod(t[j], mulmod(b[i], p[j]));
+                    t[j + 1] = addmod(t[j + 1], p[j]);
                 }
-                x = end;
+                p.swap(t);
             }
-        } else {
-            res = baseline.query(w);
-            need = 0;
-            int radius = static_cast<int>(4LL * H / w + 1);
-            int left = max(2, border - radius);
-            int right = min(H, border + radius);
-            for (int x = left; x <= right; ++x) {
-                if (!cnt[x]) continue;
-                int k = divisions(x, w);
-                int d = value(x, w, k) - rt[x];
-                items.push_back({d, k, cnt[x]});
-                // 撤回窗口内基准方案的选择，再统一重新选取。
-                res.val += 1LL * chosen[x] * d;
-                res.qmin += 1LL * chosen[x] * k;
-                need += chosen[x];
-            }
+            product[id] = move(p);
+            return;
         }
-        auto [gain_sum, saved_sum] = select(items, need);
-        res.val -= gain_sum;
-        res.qmin -= saved_sum;
-        return res;
+        int mid = (l + rr) / 2;
+        build(id * 2, l, mid);
+        build(id * 2 + 1, mid + 1, rr);
+        product[id] = multiply(product[id * 2], product[id * 2 + 1]);
     }
 
-    ll solve(int q) const {
-        Result first = calc(1);
-        if (q >= first.val) return 0;
-        int left = 1, right = max(1, H);
-        while (left < right) {
-            int mid = (left + right) / 2;
-            if (calc(mid).qmin <= q) right = mid;
-            else left = mid + 1;
+    // Q 以 r[l] 为指数基准，表示左侧已计算状态的贡献。
+    // 返回 sum_{i in [l,rr]} f[i] * z^(r[rr]-r[i])。
+    Poly solve(int id, int l, int rr, const Poly &Q) {
+        if (rr < start) return {};
+        if (rr - l + 1 <= SMALL) {
+            int first = max(l, start);
+            for (int i = first; i <= rr; ++i) {
+                int v = 0;
+                for (int j = int(Q.size()) - 1; j >= 0; --j)
+                    v = addmod(mulmod(v, b[i]), Q[j]);
+                v = mulmod(v, pw[b[i]][r[i] - r[l]]);
+                if (i == start) v = addmod(v, pw[b[i]][r[i]]);
+                for (int j = first; j < i; ++j)
+                    v = addmod(v, mulmod(f[j], pw[b[i]][r[i] - r[j]]));
+                f[i] = v ? MOD - v : 0;
+                sum = addmod(sum, mulmod(f[i], pw[k][active - r[i]]));
+            }
+            Poly ret(r[rr] - r[first] + 1);
+            for (int i = first; i <= rr; ++i)
+                ret[r[rr] - r[i]] = addmod(ret[r[rr] - r[i]], f[i]);
+            trim(ret);
+            return ret;
         }
-        return calc(left).val - 1LL * left * q;
+        int mid = (l + rr) / 2;
+        // start 之前的状态都为 0，因此此时 Q 也为 0。
+        if (mid < start) return solve(id * 2 + 1, mid + 1, rr, {});
+
+        Poly leftQ = remainder(Q, product[id * 2], inv_product[id * 2]);
+        Poly leftP = solve(id * 2, l, mid, leftQ);
+
+        Poly rightQ;
+        add_shifted(rightQ, Q, r[mid + 1] - r[l]);
+        add_shifted(rightQ, leftP, r[mid + 1] - r[mid]);
+        rightQ = remainder(move(rightQ), product[id * 2 + 1],
+                           inv_product[id * 2 + 1]);
+        Poly rightP = solve(id * 2 + 1, mid + 1, rr, rightQ);
+        add_shifted(rightP, leftP, r[rr] - r[mid]);
+        trim(rightP);
+        return rightP;
+    }
+
+    int run(int s, int h, const vector<int> &prefix_counts) {
+        start = s; active = h; r = prefix_counts; sum = 0;
+        solve(1, 0, q - 1, {});
+        return sum;
     }
 };
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int n, p, q, H = 0;
-    cin >> n >> p >> q;
-    vector<int> freq(1, 0);
-    for (int i = 0, x; i < n; ++i) {
-        cin >> x;
-        if (x >= static_cast<int>(freq.size()))
-            freq.resize(max(x + 1, 2 * static_cast<int>(freq.size())), 0);
-        ++freq[x];
-        H = max(H, x);
+    int n, m, k;
+    if (!(cin >> n >> m >> k)) return 0;
+    vector<int> L(k + 1, n + 1), R(k + 1, 0);
+    for (int i = 1, a; i <= n; ++i) {
+        cin >> a;
+        L[a] = min(L[a], i);
+        R[a] = i;
     }
-    freq.resize(H + 1);
-    cout << OptimizedSolver(std::move(freq), p).solve(q) << '\n';
+    vector<pair<int, int>> trains(m);
+    vector<int> farthest(k + 1, 0), total_le(k + 1, 0);
+    for (auto &[p, x] : trains) {
+        cin >> p >> x;
+        farthest[x] = max(farthest[x], p);
+        ++total_le[x];
+    }
+    for (int c = 1; c <= k; ++c) {
+        farthest[c] = max(farthest[c], farthest[c - 1]);
+        total_le[c] += total_le[c - 1];
+    }
+
+    // 按等级递增扫描，只保留 L 严格下降的必要约束。
+    vector<pair<int, int>> event;
+    int bestL = n + 1;
+    for (int c = 1; c < k; ++c) {
+        if (L[c] >= R[c] || farthest[c] >= R[c]) continue;
+        if (L[c] < bestL) {
+            event.emplace_back(c, L[c]);
+            bestL = L[c];
+        }
+    }
+    int answer = modpow(k, m);
+    if (event.empty()) {
+        cout << answer << '\n';
+        return 0;
+    }
+    reverse(event.begin(), event.end());
+    int q = int(event.size());
+
+    vector<Poly> powers(k + 1, Poly(m + 1, 1));
+    for (int a = 0; a <= k; ++a)
+        for (int e = 1; e <= m; ++e)
+            powers[a][e] = mulmod(powers[a][e - 1], a);
+
+    // pref[i][c]：满足 p < L_i 且 x <= c 的列车数量。
+    sort(trains.begin(), trains.end());
+    vector<Poly> pref(q, Poly(k + 1));
+    vector<int> freq(k + 1);
+    int ptr = 0;
+    for (int i = 0; i < q; ++i) {
+        while (ptr < m && trains[ptr].first < event[i].second) {
+            ++freq[trains[ptr].second];
+            ++ptr;
+        }
+        for (int c = 1; c <= k; ++c)
+            pref[i][c] = pref[i][c - 1] + freq[c];
+    }
+    vector<int> points(q), counts(q);
+    for (int i = 0; i < q; ++i) points[i] = k - event[i].first;
+    FastDP dp(points, k, powers);
+
+    for (int s = 0; s < q; ++s) {
+        int c = event[s].first;
+        int h = m - total_le[c];
+        for (int i = 0; i < q; ++i)
+            counts[i] = pref[i][k] - pref[i][c];
+        int value = dp.run(s, h, counts);
+        answer = addmod(answer, mulmod(value, powers[k - c][m - h]));
+    }
+    cout << answer << '\n';
     return 0;
 }

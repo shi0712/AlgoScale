@@ -1,227 +1,308 @@
-// 星网配能
-//
-// Maximise  F = sum_{i<j} e_i e_j w_ij   subject to  e_i >= 0, sum e_i = 1,
-// i.e. the standard quadratic program   max (1/2) x^T W x   on the simplex.
-//
-// Theory used
-// -----------
-// At a global maximiser x* with support S (x*_i > 0 for i in S) the KKT
-// conditions give W_SS x* = lambda * 1.  If W_SS is invertible then
-// y = W_SS^{-1} 1 = x*/lambda > 0 and the optimal value is 1/(2 * 1^T y).
-// If W_SS is singular, every null vector n satisfies 1^T n = 0 (otherwise
-// sliding x* along n changes the value, contradicting optimality), so the
-// solution can be slid to a *smaller* support while keeping the same value.
-// Hence the answer equals
-//        max { 1/(2 1^T y) : S,  W_SS invertible, y = W_SS^{-1} 1 > 0 }.
-// Every such candidate corresponds to an explicitly feasible point, so it is
-// never an overestimate.  Moreover the optimum can always be attained on a
-// clique of the graph of positive weights (if w_ij = 0 the objective is exactly
-// flat along e_i - e_j), which is used for pruning.
-//
-// Algorithm
-// ---------
-// DFS over all subsets (in increasing index order), maintaining the inverse of
-// W_SS together with u = W_SS^{-1} 1 incrementally through the Schur complement
-// of the bordered matrix (O(k^2) per subset, O(2^n n^2) overall).  A tiny eps*I
-// is added to make every intermediate matrix invertible; this perturbs the
-// answer by at most eps/2 (generically only O(eps^2), since the optimum is a
-// stationary point).  Since W'u = 1, one has u^T W u = s - eps*||u||^2 with
-// s = 1^T u, so 1/(2s) is an upper bound for the value of the feasible point
-// x = u/s; it serves as a trigger, and every candidate reaching it is evaluated
-// exactly in O(k^2) at that genuine feasible point (never an overestimate).
-// Finally the most promising supports are re-solved from scratch without
-// perturbation in extended precision, which removes the perturbation error.
-
-#include <cstdio>
-#include <cmath>
-#include <cstring>
-#include <algorithm>
+#include <bits/stdc++.h>
 using namespace std;
+typedef long long ll;
 
-static const int MAXN = 20;
-static const int TOPK = 64;
+static const int MOD = 998244353;
 
-int n;
-int A[MAXN][MAXN];       // original weights
-int adjm[MAXN];          // bitmask of positive-weight neighbours
+struct Mat { int a, b, c, d; };
 
-static const double EPS = 1e-7;
+static inline Mat mmul(const Mat &x, const Mat &y) {
+    return Mat{
+        (int)(((ll)x.a * y.a + (ll)x.b * y.c) % MOD),
+        (int)(((ll)x.a * y.b + (ll)x.b * y.d) % MOD),
+        (int)(((ll)x.c * y.a + (ll)x.d * y.c) % MOD),
+        (int)(((ll)x.c * y.b + (ll)x.d * y.d) % MOD)};
+}
+static const Mat IDM{1, 0, 0, 1};
 
-double WD[MAXN][MAXN];   // W + EPS*I
+static int n;
+static vector<int> adjHead, adjNext, adjTo; // CSR adjacency
+static vector<int> par_, heavy, szs, ordr;
+static vector<char> mem_;
+static vector<int> kL;
+static vector<int> lightOff, lightPow, lidx;
+static vector<Mat> ltree;
+static vector<int> chainId, cpos, chainOff, chainPow;
+static vector<Mat> ctree;
+static vector<vector<int> > chains;
+static vector<int> inv2p;
+static vector<Mat> nodeM;
+static int root_;
+static int answer;
 
-// ---- DFS state (indexed by |S|) ----
-double invst[MAXN + 1][MAXN][MAXN];  // inverse of WD[S,S]
-double uarr[MAXN + 1][MAXN];         // inverse * ones
-int slist[MAXN];
-int curmask;
+static inline int nextpow2(int x) { int s = 1; while (s < x) s <<= 1; return s; }
 
-double bestVal = 0.0;                // best verified achievable value
-
-// top candidate supports discovered so far
-int topCnt = 0;
-double topVal[TOPK];
-int topMask[TOPK];
-int worstIdx = 0;
-
-void recordCandidate(double val, int mask) {
-    if (topCnt < TOPK) {
-        topVal[topCnt] = val;
-        topMask[topCnt] = mask;
-        topCnt++;
-        if (topCnt == TOPK) {
-            worstIdx = 0;
-            for (int i = 1; i < TOPK; i++) if (topVal[i] < topVal[worstIdx]) worstIdx = i;
-        }
-        return;
-    }
-    if (val <= topVal[worstIdx]) return;
-    topVal[worstIdx] = val;
-    topMask[worstIdx] = mask;
-    worstIdx = 0;
-    for (int i = 1; i < TOPK; i++) if (topVal[i] < topVal[worstIdx]) worstIdx = i;
+static inline void lightAgg(int x, int &AL, int &BL) {
+    if (lightPow[x] == 0) { AL = 1; BL = 0; return; }
+    const Mat &m = ltree[lightOff[x] + 1];
+    AL = m.a; BL = m.c;
 }
 
-// Exact (unperturbed) value of the stationary point on support `mask`, using
-// extended precision and Gaussian elimination with partial pivoting.
-bool exactValue(int mask, long double& out) {
-    int idx[MAXN], k = 0;
-    for (int i = 0; i < n; i++) if (mask >> i & 1) idx[k++] = i;
-    if (k == 0) return false;
-    long double M[MAXN][MAXN + 1];
-    for (int i = 0; i < k; i++) {
-        for (int j = 0; j < k; j++) M[i][j] = (long double)A[idx[i]][idx[j]];
-        M[i][k] = 1.0L;
+static inline void computeNodeM(int x) {
+    int AL, BL;
+    lightAgg(x, AL, BL);
+    if (mem_[x]) {
+        int t = (int)(((ll)2 * BL + AL) % MOD);
+        nodeM[x] = Mat{AL, (int)(2LL * AL % MOD), BL, t};
+    } else {
+        int k = kL[x];
+        int h = heavy[x];
+        if (h != -1 && !mem_[h]) k++;
+        int coef = inv2p[k];
+        int v1 = (int)((ll)AL * coef % MOD);
+        nodeM[x] = Mat{0, 0, v1, (int)(2LL * v1 % MOD)};
     }
-    for (int col = 0; col < k; col++) {
-        int piv = col;
-        long double bv = fabsl(M[col][col]);
-        for (int r = col + 1; r < k; r++)
-            if (fabsl(M[r][col]) > bv) { bv = fabsl(M[r][col]); piv = r; }
-        if (!(bv > 1e-15L)) return false;     // singular
-        if (piv != col) for (int j = col; j <= k; j++) swap(M[piv][j], M[col][j]);
-        long double d = M[col][col];
-        for (int r = col + 1; r < k; r++) {
-            long double f = M[r][col] / d;
-            if (f == 0) continue;
-            for (int j = col; j <= k; j++) M[r][j] -= f * M[col][j];
-        }
-    }
-    long double y[MAXN], s = 0;
-    for (int i = k - 1; i >= 0; i--) {
-        long double v = M[i][k];
-        for (int j = i + 1; j < k; j++) v -= M[i][j] * y[j];
-        y[i] = v / M[i][i];
-        if (!(y[i] > 0)) return false;
-        s += y[i];
-    }
-    if (!(s > 0)) return false;
-    out = 1.0L / (2.0L * s);
-    return out >= 0 && out < 1e9L;
 }
 
-void dfs(int k, int last, int common) {
-    double* u = uarr[k];
-    if (k > 0) {
-        bool pos = true;
-        double s = 0.0;
-        for (int i = 0; i < k; i++) { if (!(u[i] > 0.0)) { pos = false; break; } s += u[i]; }
-        if (pos && s > 0.0) {
-            // u solves W'u = 1, hence u^T W u = s - EPS*|u|^2 and the value of the
-            // feasible point x = u/s is (s - EPS*|u|^2) / (2 s^2) <= 1/(2s).
-            // 1/(2s) is therefore a safe upper bound used as the trigger.
-            if (0.5 / s > bestVal) {
-                double iv = 1.0 / s, exact = 0.0;
-                for (int i = 0; i < k; i++) {
-                    double xi = u[i] * iv;
-                    int si = slist[i];
-                    const int* Ai = A[si];
-                    for (int j = i + 1; j < k; j++)
-                        exact += xi * (u[j] * iv) * (double)Ai[slist[j]];
-                }
-                if (exact >= bestVal) {   // >= also keeps tied (equally good) supports
-                    bestVal = max(bestVal, exact);
-                    recordCandidate(exact, curmask);
-                }
-            }
-        }
-    }
-    if (k == n) return;
+static inline void updateNode(int x) {
+    computeNodeM(x);
+    int c = chainId[x], base = chainOff[c], S = chainPow[c];
+    int j = S + cpos[x];
+    ctree[base + j] = nodeM[x];
+    for (j >>= 1; j >= 1; j >>= 1)
+        ctree[base + j] = mmul(ctree[base + 2 * j], ctree[base + 2 * j + 1]);
+}
 
-    for (int j = last + 1; j < n; j++) {
-        if (!((common >> j) & 1)) continue;
+static inline void setLightLeaf(int q, int y, int u, int J) {
+    int base = lightOff[q], S = lightPow[q];
+    int j = S + lidx[y];
+    ltree[base + j] = Mat{u, 0, J, u};
+    for (j >>= 1; j >= 1; j >>= 1)
+        ltree[base + j] = mmul(ltree[base + 2 * j], ltree[base + 2 * j + 1]);
+}
 
-        double b[MAXN], c[MAXN];
-        for (int i = 0; i < k; i++) b[i] = WD[slist[i]][j];
-        for (int i = 0; i < k; i++) {
-            const double* row = invst[k][i];
-            double s = 0.0;
-            for (int t = 0; t < k; t++) s += row[t] * b[t];
-            c[i] = s;
-        }
-        double bc = 0.0;
-        for (int i = 0; i < k; i++) bc += b[i] * c[i];
+static inline void setLightLeafRaw(int q, int y, int u, int J) {
+    int base = lightOff[q], S = lightPow[q];
+    ltree[base + S + lidx[y]] = Mat{u, 0, J, u};
+}
 
-        double sigma = EPS - bc;               // Schur complement
-        if (!(fabs(sigma) > 1e-300)) continue; // only an exact zero is hopeless
-        double invs = 1.0 / sigma;
-
-        for (int i = 0; i < k; i++) {
-            double ci = c[i] * invs;
-            const double* prow = invst[k][i];
-            double* row = invst[k + 1][i];
-            for (int t = 0; t < k; t++) row[t] = prow[t] + ci * c[t];
-            row[k] = -ci;
-            invst[k + 1][k][i] = -ci;
-        }
-        invst[k + 1][k][k] = invs;
-
-        double c1 = 0.0;
-        for (int i = 0; i < k; i++) c1 += c[i];
-        double f = (c1 - 1.0) * invs;
-        double* nu = uarr[k + 1];
-        const double* pu = uarr[k];
-        for (int i = 0; i < k; i++) nu[i] = pu[i] + c[i] * f;
-        nu[k] = -f;
-
-        slist[k] = j;
-        curmask |= (1 << j);
-        dfs(k + 1, j, k == 0 ? adjm[j] : (common & adjm[j]));
-        curmask &= ~(1 << j);
+static void flip(int x) {
+    mem_[x] = 1;
+    updateNode(x);
+    int p = par_[x];
+    if (p != -1 && heavy[p] == x) updateNode(p);
+    int c = chainId[x];
+    while (true) {
+        const Mat &pr = ctree[chainOff[c] + 1];
+        int P = pr.a, J = pr.c;
+        int top = chains[c][0];
+        if (top == root_) { answer = J; return; }
+        int q = par_[top];
+        int u = (int)((2LL * J + P) % MOD);
+        setLightLeaf(q, top, u, J);
+        if (top == x) kL[q]--;
+        updateNode(q);
+        c = chainId[q];
     }
 }
 
 int main() {
-    if (scanf("%d", &n) != 1) return 0;
-    bool allZero = true;
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < n; j++) {
-            if (scanf("%d", &A[i][j]) != 1) A[i][j] = 0;
-            if (i != j && A[i][j] != 0) allZero = false;
-        }
-    if (n <= 1 || allZero) {
-        printf("0.000000000000\n");
-        return 0;
+    // ---- fast input ----
+    static string sbuf;
+    {
+        sbuf.reserve(1 << 22);
+        char tmp[1 << 16];
+        size_t r;
+        while ((r = fread(tmp, 1, sizeof(tmp), stdin)) > 0) sbuf.append(tmp, r);
     }
+    const char *buf = sbuf.data();
+    size_t bufLen = sbuf.size();
+    size_t bufPos = 0;
+    auto readInt = [&]() -> int {
+        while (bufPos < bufLen && (buf[bufPos] < '0' || buf[bufPos] > '9')) bufPos++;
+        int v = 0;
+        while (bufPos < bufLen && buf[bufPos] >= '0' && buf[bufPos] <= '9') {
+            v = v * 10 + (buf[bufPos] - '0');
+            bufPos++;
+        }
+        return v;
+    };
+
+    n = readInt();
+
+    adjHead.assign(n, -1);
+    adjTo.reserve(2 * max(0, n - 1));
+    adjNext.reserve(2 * max(0, n - 1));
+    for (int i = 0; i < n - 1; i++) {
+        int u = readInt() - 1, v = readInt() - 1;
+
+        adjTo.push_back(v); adjNext.push_back(adjHead[u]); adjHead[u] = (int)adjTo.size() - 1;
+        adjTo.push_back(u); adjNext.push_back(adjHead[v]); adjHead[v] = (int)adjTo.size() - 1;
+    }
+    vector<int> ops(n > 1 ? n - 1 : 0);
+    vector<char> isOp(n, 0);
+    for (int i = 0; i < n - 1; i++) { ops[i] = readInt() - 1; isOp[ops[i]] = 1; }
+    if (n == 1) return 0;
+    int r = 0;
+    while (isOp[r]) r++;
+    root_ = r;
+
+    // ---- root the tree ----
+    par_.assign(n, -1);
+    ordr.reserve(n);
+    vector<int> stk;
+    stk.push_back(r);
+    vector<char> vis(n, 0);
+    vis[r] = 1;
+    while (!stk.empty()) {
+        int x = stk.back(); stk.pop_back();
+        ordr.push_back(x);
+        for (int e = adjHead[x]; e != -1; e = adjNext[e]) {
+            int y = adjTo[e];
+            if (!vis[y]) { vis[y] = 1; par_[y] = x; stk.push_back(y); }
+        }
+    }
+
+    // ---- sizes and heavy child ----
+    szs.assign(n, 1);
+    heavy.assign(n, -1);
+    for (int i = n - 1; i >= 0; i--) {
+        int x = ordr[i];
+        int best = -1, bestSz = 0;
+        for (int e = adjHead[x]; e != -1; e = adjNext[e]) {
+            int y = adjTo[e];
+            if (par_[y] == x) {
+                szs[x] += szs[y];
+                if (szs[y] > bestSz) { bestSz = szs[y]; best = y; }
+            }
+        }
+        heavy[x] = best;
+    }
+
+    // ---- HLD chains ----
+    chainId.assign(n, -1);
+    cpos.assign(n, 0);
+    chains.clear();
     for (int i = 0; i < n; i++) {
-        adjm[i] = 0;
-        for (int j = 0; j < n; j++) {
-            WD[i][j] = (double)A[i][j];
-            if (i != j && A[i][j] > 0) adjm[i] |= (1 << j);
+        int x = ordr[i];
+        if (par_[x] == -1 || heavy[par_[x]] != x) {
+            // x is chain head
+            int cid = (int)chains.size();
+            chains.push_back(vector<int>());
+            int y = x;
+            while (y != -1) {
+                chainId[y] = cid;
+                cpos[y] = (int)chains.back().size();
+                chains.back().push_back(y);
+                y = heavy[y];
+            }
         }
-        WD[i][i] = EPS;
     }
 
-    bestVal = 0.0;
-    curmask = 0;
-    dfs(0, -1, (1 << n) - 1);
-
-    // remove the perturbation error: re-solve the most promising supports exactly
-    for (int i = 0; i < topCnt; i++) {
-        long double v;
-        if (exactValue(topMask[i], v) && (double)v > bestVal) bestVal = (double)v;
+    // ---- light children blocks ----
+    // count light children
+    lightOff.assign(n, 0);
+    lightPow.assign(n, 0);
+    lidx.assign(n, 0);
+    {
+        vector<int> cnt(n, 0);
+        for (int x = 0; x < n; x++) {
+            int p = par_[x];
+            if (p != -1 && heavy[p] != x) cnt[p]++;
+        }
+        // assign indices in a stable order: iterate over children in reverse-order list
+        vector<int> fill(n, 0);
+        for (int i = n - 1; i >= 0; i--) {
+            int x = ordr[i];
+            int p = par_[x];
+            if (p != -1 && heavy[p] != x) lidx[x] = fill[p]++;
+        }
+        long long total = 0;
+        for (int x = 0; x < n; x++) {
+            if (cnt[x] > 0) {
+                lightPow[x] = nextpow2(cnt[x]);
+                total += 2LL * lightPow[x];
+            }
+        }
+        ltree.assign(total, IDM);
+        long long off = 0;
+        for (int x = 0; x < n; x++) {
+            if (lightPow[x] > 0) { lightOff[x] = (int)off; off += 2LL * lightPow[x]; }
+        }
     }
 
-    if (!(bestVal > 0.0)) bestVal = 0.0;
-    printf("%.12f\n", bestVal);
+    // ---- chain segment trees ----
+    {
+        int nc = (int)chains.size();
+        chainOff.assign(nc, 0);
+        chainPow.assign(nc, 0);
+        long long total = 0;
+        for (int c = 0; c < nc; c++) {
+            chainPow[c] = nextpow2((int)chains[c].size());
+            total += 2LL * chainPow[c];
+        }
+        ctree.assign(total, IDM);
+        long long off = 0;
+        for (int c = 0; c < nc; c++) { chainOff[c] = (int)off; off += 2LL * chainPow[c]; }
+    }
+
+    // ---- inverse powers of 2 ----
+    inv2p.assign(n + 2, 1);
+    {
+        int inv2 = (MOD + 1) / 2;
+        for (int i = 1; i <= n + 1; i++) inv2p[i] = (int)((ll)inv2p[i - 1] * inv2 % MOD);
+    }
+
+    // ---- initial bottom-up DP ----
+    mem_.assign(n, 0);
+    kL.assign(n, 0);
+    nodeM.assign(n, IDM);
+    {
+        vector<int> Pv(n, 0), Jv(n, 0), Uv(n, 0);
+        // kL init: count light children (none in S yet)
+        for (int x = 0; x < n; x++) {
+            int p = par_[x];
+            if (p != -1 && heavy[p] != x) kL[p]++;
+        }
+        for (int i = n - 1; i >= 0; i--) {
+            int x = ordr[i];
+            if (lightPow[x] > 0) {
+                int base = lightOff[x], S = lightPow[x];
+                for (int j = S - 1; j >= 1; j--)
+                    ltree[base + j] = mmul(ltree[base + 2 * j], ltree[base + 2 * j + 1]);
+            }
+            computeNodeM(x);
+            int h = heavy[x];
+            int Px, Jx;
+            if (h == -1) { Px = nodeM[x].a; Jx = nodeM[x].c; }
+            else {
+                Px = (int)(((ll)nodeM[x].a * Pv[h] + (ll)nodeM[x].b * Jv[h]) % MOD);
+                Jx = (int)(((ll)nodeM[x].c * Pv[h] + (ll)nodeM[x].d * Jv[h]) % MOD);
+            }
+            Pv[x] = Px; Jv[x] = Jx;
+            Uv[x] = (int)((2LL * Jx + Px) % MOD);
+            int p = par_[x];
+            if (p != -1 && heavy[p] != x) setLightLeafRaw(p, x, Uv[x], Jv[x]);
+        }
+        answer = Jv[r];
+    }
+
+    // ---- build chain segment trees ----
+    {
+        int nc = (int)chains.size();
+        for (int c = 0; c < nc; c++) {
+            int base = chainOff[c], S = chainPow[c];
+            int L = (int)chains[c].size();
+            for (int i = 0; i < L; i++) ctree[base + S + i] = nodeM[chains[c][i]];
+            for (int j = S + L; j < 2 * S; j++) ctree[base + j] = IDM;
+            for (int j = S - 1; j >= 1; j--)
+                ctree[base + j] = mmul(ctree[base + 2 * j], ctree[base + 2 * j + 1]);
+        }
+    }
+
+    // ---- process operations ----
+    string out;
+    out.reserve((size_t)(n - 1) * 11);
+    char tmp[16];
+    for (int i = 0; i < n - 1; i++) {
+        flip(ops[i]);
+        int v = answer;
+        int len = 0;
+        if (v == 0) tmp[len++] = '0';
+        while (v > 0) { tmp[len++] = char('0' + v % 10); v /= 10; }
+        while (len > 0) out.push_back(tmp[--len]);
+        out.push_back('\n');
+    }
+    fwrite(out.data(), 1, out.size(), stdout);
     return 0;
 }

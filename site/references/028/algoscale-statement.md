@@ -1,22 +1,25 @@
 ## Problem Description
 
-For each value $i\in[1,n]$, there are $a_i$ copies. Let $m=\sum_i a_i$. Arrange this multiset into a sequence $b$ of length $m$.
+Let $[n]=\{1,\ldots,n\}$. Arrange all nonempty subsets of $[n]$ of size at most two into a sequence. Each singleton and each unordered pair appears exactly once, so the sequence has $n(n+1)/2$ entries.
 
-To sort it, start with two empty FIFO queues. Process $b$ from left to right and append each entry to one of the queues. Only after every entry has been inserted, repeatedly remove the front entry from either nonempty queue and append it to the output sequence.
+The arrangement must obey two rules:
 
-A sequence $b$ is valid if some choices of queues and removals produce a nondecreasing output. Count the distinct valid value sequences modulo $998244353$. Sequences differ if their values differ at any position; identical copies are not separately labeled. Count sequences only, not the choices of insertions and removals. Either queue may remain empty throughout.
+- For each $x<y$, the pair $\{x,y\}$ appears between the singletons $\{x\}$ and $\{y\}$.
+- The singleton $\{x\}$ appears before $\{x+1\}$ for every $x<n$.
+
+For every $1\le i\le n$ and every position $1\le j\le n(n+1)/2$, count the valid arrangements in which singleton $\{i\}$ is at position $j$. Return all counts modulo the given prime $p$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by $a_1,\ldots,a_n$.
+Read $n,p$ on one line.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of valid sequences modulo $998244353$, as an integer in $[0,998244352]$.
+Print $n$ rows, each with $n(n+1)/2$ integers. Row $i$, column $j$ is the number of valid arrangements placing $\{i\}$ at position $j$, modulo $p$. Each entry must lie in $[0,p-1]$; print 0 if no such arrangement exists.
 
 ## Examples
 
@@ -25,26 +28,27 @@ Print the number of valid sequences modulo $998244353$, as an integer in $[0,998
 Input:
 
 ```text
-4
-1 1 1 1
+1 851214401
 ```
 
 Output:
 
 ```text
-14
+1
 ```
 
 ## Explanation / Notes
 
-Each queue supports insertion only at the back and removal only at the front. No removal is allowed until all entries have been inserted.
+For $n=1$, the only subset is $\{1\}$, and it occupies position 1 in the unique valid arrangement.
+
+Positions are one-based. Because the singletons occur in increasing order, a pair $\{x,y\}$ with $x<y$ must be after $\{x\}$ and before $\{y\}$.
 
 ## Constraints
 
 - One test case.
-- $1\le n\le10^6$.
-- $0\le a_i\le n$ for every value $i$.
-- $1\le m=\sum_{i=1}^n a_i\le10^6$.
-- A value may be absent because its multiplicity can be zero.
-- Modulus: $998244353$.
-- Time limit: 5 seconds; memory limit: 256 MB.
+- $1\le n\le100$.
+- $10^8<p<10^9$; both inequalities are strict.
+- $p$ is guaranteed to be prime.
+- There are $n(n+1)/2$ positions in every arrangement.
+
+- Time limit: 1 second; memory limit: 256 MB.

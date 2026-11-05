@@ -1,31 +1,22 @@
 ## Problem Description
 
-A card has one of $n$ suits and a rank in $[1,m]$. Each suit is either a trump or a regular suit; there may be several trump suits or none. Multiple physical cards may have the same suit and rank. Both players know both hands.
+For given positive integers $n,m$, count arrays $a_1,\ldots,a_n$ with $1\le a_i\le m$ for which there is no pair $1\le i<j\le n$ satisfying
 
-A card $(s_1,r_1)$ beats $(s_2,r_2)$ exactly when either $s_1=s_2$ and $r_1>r_2$, or $s_1$ is a trump suit and $s_2$ is not.
+$$\max_{1\le k\le i}a_k=\min_{j\le k\le n}a_k.$$
 
-The game proceeds as follows:
-
-1. The attacker chooses any card in their hand as the initial attack.
-2. The defender must play an unused card that beats the attacker's most recent card. If no such card exists, the defender loses.
-3. The attacker must play an unused card whose rank equals the rank of some card previously played by either player. If no such card exists, the attacker loses.
-4. Repeat from step 2.
-
-Count the initial attacks from which the attacker can force a win when both players make optimal later choices. Different physical copies count as different starting attacks, even when suit and rank coincide.
+Return the count modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n,m$. Next read $n$ flags $t_i$, where 1 marks a trump suit and 0 a regular suit.
-
-Read an $n\times m$ matrix of attacker counts, followed by an $n\times m$ matrix of defender counts. Entry $(i,j)$ is the number of cards with suit $i$ and rank $j$ in that hand.
+Read $T$, followed by $T$ lines, each containing $n,m$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of winning initial attacks as an integer.
+For each test case, print its count modulo $998244353$ on a separate line.
 
 ## Examples
 
@@ -34,31 +25,27 @@ Print the number of winning initial attacks as an integer.
 Input:
 
 ```text
-1 2
-0
-4294967296 0
-0 2147483647
+1
+3 2
 ```
 
 Output:
 
 ```text
-4294967296
+2
 ```
 
 ## Explanation / Notes
 
-An already played card cannot be reused. Ranks from all earlier attacks and defenses remain available for checking the attacker's rank restriction.
-
-Different trump suits do not automatically beat each other: the ordinary higher-rank rule requires the same suit.
+The forbidden equality compares a nonempty prefix with a nonempty suffix, and their endpoints must satisfy $i<j$. They need not be adjacent. Arrays are distinguished by their ordered entries.
 
 ## Constraints
 
-- One test case.
-- $1\le n\le100$ and $1\le m\le18$.
-- Every $t_i$ is either 0 or 1.
-- Every entry in each hand matrix is an integer in $[0,10^{12}]$.
-- Each player's total number of cards is positive.
-- Duplicate cards are allowed and count separately in the answer.
-- No output modulus is specified; print the exact count. The answer may exceed the signed 32-bit integer range, but is at most $1.8\times10^{15}$.
-- Time limit: 0.5 seconds; memory limit: 256 MB.
+- $1\le T\le10^6$.
+- $1\le n\le1000$.
+- Queries are independent, and there is no additional bound on $\sum n$.
+- $1\le m\le10^9$.
+- Every counted array entry lies in $[1,m]$.
+
+- Modulus: $998244353$.
+- Time limit: 5 seconds; memory limit: 256 MB.

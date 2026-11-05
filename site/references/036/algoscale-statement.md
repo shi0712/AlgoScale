@@ -1,62 +1,67 @@
 ## Problem Description
 
-Initially, an undirected tree has vertices $1,\ldots,n$. Process a sequence of $n-1$ distinct original vertices.
+The ground is a piecewise-linear profile through points $(x_1,y_1),\ldots,(x_n,y_n)$ in increasing horizontal order. Build a horizontal bridge at elevation $h$ from $x_1$ to $x_n$.
 
-When processing vertex $x$, first create a new vertex $x+n$. For every original vertex $i$ adjacent to $x$ in the original tree:
+Pillars must be placed at the first and last profile points; additional pillars may be placed only at other supplied points. A pillar at $(x_i,y_i)$ has height $h-y_i$. Between consecutive pillars a distance $d$ apart, the bridge has a semicircular arch of radius $r=d/2$, with its highest point at elevation $h$. The arch may touch the ground but may never lie below it.
 
-- If vertex $i+n$ does not yet exist, add edge $(x+n,i)$.
-- Otherwise, add edge $(x+n,i+n)$ and delete edge $(x,i+n)$. The latter edge is guaranteed to exist at this stage.
+For pillar heights $h_1,\ldots,h_k$ and consecutive horizontal gaps $d_1,\ldots,d_{k-1}$, the cost is
 
-After each operation, report the number of spanning trees of the current graph modulo $998244353$.
+$$\alpha\sum_{j=1}^{k}h_j+\beta\sum_{j=1}^{k-1}d_j^2.$$
+
+Find the minimum cost, or determine that no valid bridge can be built.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$. The next $n-1$ lines contain tree edges $u,v$. If $n>1$, the final line contains $n-1$ distinct integers $b_1,\ldots,b_{n-1}$, the original vertices to process in order. If $n=1$, the operation sequence is empty and the input ends after the first line.
+Read $n,h,\alpha,\beta$. The next $n$ lines contain $x_i,y_i$ in increasing order of $x_i$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n-1$ lines. Line $i$ contains the spanning-tree count after processing $b_i$, modulo $998244353$.
+Print the minimum cost as an integer. If no valid construction exists, print the lowercase word `impossible`.
 
 ## Examples
 
 Input:
 
 ```text
-5
-1 2
-1 3
-2 4
-2 5
-1 5 2 3
+4 10 1 1
+0 0
+1 9
+9 9
+10 0
 ```
 
 Output:
 
 ```text
-4
-4
-6
-1
+impossible
 ```
 
 ## Explanation / Notes
 
-An operation preserves the original edges $(x,i)$. The edge deletion in the second rule concerns $(x,i+n)$, which was created earlier; no other edge is removed.
+For pillars at horizontal positions $a<b$, put $r=(b-a)/2$ and $c=(a+b)/2$. The arch elevation at $x\in[a,b]$ is
 
-A spanning tree includes every vertex currently present. After $j$ operations, the graph has $n+j$ vertices. When $n=1$, the operation sequence and required output are both empty.
+$$h-r+\sqrt{r^2-(x-c)^2}.$$
+
+The ground profile must be at or below this curve throughout the span. The bridge height $h$ is an elevation above sea level, not a clearance measured independently from the changing ground.
+
+For the example, no valid bridge can be constructed, so the answer is `impossible`.
 
 ## Constraints
 
-- $1\le n\le100000$.
-- Every input edge has endpoints in $[1,n]$.
-- The $n-1$ input edges form a valid tree.
-- $1\le b_i\le n$, and the $n-1$ sequence entries are pairwise distinct.
-- Each original vertex is processed at most once; exactly one original vertex is never processed.
-- New vertex labels are $n+1$ through $2n$, but only labels corresponding to processed vertices are created.
-- Counts are taken modulo $998244353$.
+- There is one input instance.
+- $2\le n\le10^5$.
+- $1\le h\le10^5$.
+- $1\le\alpha,\beta\le10^4$.
+- $0\le x_1<x_2<\cdots<x_n\le10^5$.
+- Every ground elevation satisfies $0\le y_i<h$; the upper inequality is strict.
+- All supplied values are integers.
+- Only supplied profile points may support pillars; the first and last must do so.
+- Contact between an arch and the ground is allowed. Extending below the ground is forbidden.
+- The problem does not guarantee that a feasible bridge exists.
+- If a feasible bridge exists, its minimum cost fits in a signed 64-bit integer.
 - Time limit: 1 second.
 - Memory limit: 256 MB.

@@ -1,20 +1,22 @@
 ## Problem Description
 
-A lake occupies the interior of a simple polygon in the Cartesian plane. A runner starts at $(0,0)$, travels outward along a land-only path of length $k$, and then returns. The origin is not strictly inside the lake.
+Given nonnegative integers $a_1,\ldots,a_n$, define $B(l,r)$ as the set of all XOR values obtainable by choosing a subset of the entries in $a_l,\ldots,a_r$. The empty subset is allowed and contributes 0:
 
-Find the minimum area of a region that contains every possible such route, regardless of how the runner chooses the path. Travel through the lake's interior is forbidden. Equivalently, the region must contain the land locations reachable from the origin with a path length of at most $k$.
+$$B(l,r)=\left\{\bigoplus_{i=l}^{r}c_i a_i:\ c_i\in\{0,1\}\right\}.$$
+
+Count the distinct sets $B(l,r)$ over all nonempty contiguous intervals $1\le l\le r\le n$. In linear-algebra terminology, these are the distinct subspaces spanned by interval vectors in $\mathbb F_2^{32}$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n,k$. Then read $n$ pairs $(x_i,y_i)$, the polygon's vertices in clockwise order.
+Read the test count $T$. Each case contains $n$ on one line and $a_1,\ldots,a_n$ on the next line.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum area as a real number. The absolute error or relative error must be less than $10^{-6}$.
+For each test case, print one integer: the number of distinct sets $B(l,r)$.
 
 ## Examples
 
@@ -23,33 +25,29 @@ Print the minimum area as a real number. The absolute error or relative error mu
 Input:
 
 ```text
-4 2
-0 0
-0 1
-1 1
-1 0
+1
+3
+1 2 3
 ```
 
 Output:
 
 ```text
-10.995574287564
+4
 ```
 
 ## Explanation / Notes
 
-The minimum area in the example is $7\pi/2$.
+In the example, the four sets are $\{0,1\}$, $\{0,2\}$, $\{0,3\}$, and $\{0,1,2,3\}$.
 
-The origin may lie on the lake boundary. In this example, it is a polygon vertex.
+The result counts different XOR-closure sets, not different intervals. XOR is the bitwise operation; for example, $4\oplus6=2$.
 
 ## Constraints
 
-- One test case.
-- $3\le n\le50$.
-- $1\le k\le3000$.
-- All coordinates are integers, with $|x_i|,|y_i|\le200$.
-- The polygon is simple and its vertices are given clockwise.
-- No three consecutive polygon vertices are collinear.
-- $(0,0)$ is not strictly inside the polygon; it may be on the boundary.
-- Required absolute or relative error: strictly less than $10^{-6}$.
-- Time limit: 4 seconds; memory limit: 512 MB.
+- $T\ge1$.
+- $1\le n\le10^5$ per case.
+- $\sum n\le10^5$ over all test cases.
+- $0\le a_i<2^{32}$, so the largest allowed value is $4294967295$.
+- Intervals are nonempty, but the subset used to form an XOR may be empty.
+- Print the exact count; no output modulus is specified.
+- Time limit: 4 seconds; memory limit: 1024 MB.

@@ -1,115 +1,224 @@
 #include <bits/stdc++.h>
 using namespace std;
+using ll = long long;
 
-static const long long MOD = 998244353;
-static const int MAXF = 8005;
+struct Tree {
+    int N;
+    vector<vector<pair<int,ll>>> ch;   // (child, weight) left-to-right
+    vector<ll> inw;                    // in-edge weight per original vertex
+    int root = -1;
+    // postorder-indexed
+    vector<int> lft, sz;
+    vector<ll> win;
+};
 
-long long fact[MAXF], invfact[MAXF], invnum[MAXF], pow2v[MAXF];
-
-long long modpow(long long a, long long e) {
-    long long r = 1 % MOD;
-    a %= MOD;
-    while (e) {
-        if (e & 1) r = r * a % MOD;
-        a = a * a % MOD;
-        e >>= 1;
+static void buildPost(Tree& T) {
+    int N = T.N;
+    vector<int> post(N, -1);
+    vector<int> ord; ord.reserve(N);
+    T.lft.assign(N, 0);
+    T.sz.assign(N, 0);
+    T.win.assign(N, 0);
+    vector<int> it(N, 0), st;
+    st.reserve(N);
+    st.push_back(T.root);
+    while (!st.empty()) {
+        int u = st.back();
+        if (it[u] < (int)T.ch[u].size()) {
+            int v = T.ch[u][it[u]].first;
+            ++it[u];
+            st.push_back(v);
+        } else {
+            int idx = (int)ord.size();
+            ord.push_back(u);
+            post[u] = idx;
+            int ls = idx, s = 1;
+            for (auto& e : T.ch[u]) {
+                int c = e.first;
+                ls = min(ls, T.lft[post[c]]);
+                s += T.sz[post[c]];
+            }
+            T.lft[idx] = ls;
+            T.sz[idx] = s;
+            T.win[idx] = T.inw[u];
+            st.pop_back();
+        }
     }
-    return r;
+    T.root = post[T.root];
 }
 
-inline long long Cmod(int n, int k) {
-    if (k < 0 || k > n || n < 0) return 0;
-    return fact[n] * invfact[k] % MOD * invfact[n - k] % MOD;
+static Tree readTree() {
+    Tree T;
+    int N;
+    if (scanf("%d", &N) != 1) exit(1);
+    T.N = N;
+    T.ch.assign(N, {});
+    T.inw.assign(N, 0);
+    vector<char> hasPar(N, 0);
+    for (int i = 0; i < N; i++) {
+        int k;
+        if (scanf("%d", &k) != 1) exit(1);
+        T.ch[i].reserve(k);
+        for (int j = 0; j < k; j++) {
+            int v; ll w;
+            if (scanf("%d %lld", &v, &w) != 2) exit(1);
+            --v;
+            T.ch[i].push_back({v, w});
+            hasPar[v] = 1;
+            T.inw[v] = w;
+        }
+    }
+    for (int i = 0; i < N; i++) if (!hasPar[i]) { T.root = i; break; }
+    buildPost(T);
+    return T;
 }
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+    ll c1, c2, c3;
+    if (scanf("%lld %lld %lld", &c1, &c2, &c3) != 3) return 0;
 
-    fact[0] = 1;
-    for (int i = 1; i < MAXF; ++i) fact[i] = fact[i - 1] * i % MOD;
-    invfact[MAXF - 1] = modpow(fact[MAXF - 1], MOD - 2);
-    for (int i = MAXF - 1; i >= 1; --i) invfact[i - 1] = invfact[i] * i % MOD;
-    for (int i = 1; i < MAXF; ++i) invnum[i] = fact[i - 1] * invfact[i] % MOD;
-    pow2v[0] = 1;
-    for (int i = 1; i < MAXF; ++i) pow2v[i] = pow2v[i - 1] * 2 % MOD;
+    Tree A = readTree();
+    Tree B = readTree();
+    const int n = A.N, m = B.N;
+    const int rootA = A.root, rootB = B.root;
 
-    int T;
-    cin >> T;
-    while (T--) {
-        int n, m;
-        cin >> n >> m;
-        vector<int> a(n);
-        for (int &x : a) cin >> x;
-        int N = 2 * m;
+    // base cost: contract every non-root node of A, insert every non-root node of B
+    ll base = 0;
+    for (int i = 0; i < n; i++) if (i != rootA) base += c2 * A.win[i];
+    for (int j = 0; j < m; j++) if (j != rootB) base += c1 * B.win[j];
 
-        if (n == 1) {
-            cout << 0 << '\n';
-            continue;
+    // keyroots: for each distinct leftmost-leaf value, the node with maximal postorder index
+    auto keyroots = [](const Tree& T) {
+        vector<int> best(T.N, -1), kr;
+        for (int i = 0; i < T.N; i++) best[T.lft[i]] = i;
+        for (int i = 0; i < T.N; i++) if (best[T.lft[i]] == i) kr.push_back(i);
+        return kr;
+    };
+    vector<int> krA = keyroots(A), krB = keyroots(B);
+
+    const size_t PM = (size_t)m + 1;             // padded stride so row pointers stay in-bounds
+    vector<ll> P((size_t)(n + 1) * PM, 0);       // max savings matching subtree(i) <-> subtree(j)
+    vector<ll> fd((size_t)(n + 1) * (m + 1));    // scratch forest DP table
+
+    vector<int> colJump(m + 2);
+    vector<char> specCol(m + 2);
+
+    for (int j1 : krB) {
+        const int l2 = B.lft[j1];
+        const int W = j1 - l2 + 2;               // relative cols 0..W-1, col 0 = empty
+        for (int b = 1; b < W; b++) {
+            const int j = l2 + b - 1;
+            colJump[b] = B.lft[j] - l2;
+            specCol[b] = (B.lft[j] == l2);
         }
+        const bool forbidIns = (j1 == rootB);    // last column j == rootB cannot be inserted
+        const int blast = forbidIns ? W - 1 : W; // normal columns are [1, blast), tail is b=W-1
 
-        // b(t) = t/m for 1 <= t <= m-1, and b(0) = b(m) = 0.
-        vector<long long> b(m + 1, 0);
-        long long invm = invnum[m];
-        for (int t = 1; t < m; ++t) b[t] = (long long)t * invm % MOD;
+        for (int i1 : krA) {
+            const int l1 = A.lft[i1];
+            const int H = i1 - l1 + 2;           // relative rows 0..H-1, row 0 = empty
+            ll* tab = fd.data();
+            memset(tab, 0, sizeof(ll) * W);      // row 0 = all zeros
+            for (int a = 1; a < H; a++) {
+                const int i = l1 + a - 1;
+                const bool forbidDel = (i == rootA);  // contracting the root of A is forbidden
+                ll* cur  = tab + (size_t)a * W;
+                ll* prev = cur - W;
+                ll* jrow = cur - (size_t)A.sz[i] * W;        // row (lft[i]-1)
+                ll* Prow = &P[(size_t)(i + 1) * PM + l2 - 1]; // Prow[b] = P[i][l2+b-1]
+                const bool specRow = (A.lft[i] == l1);
+                const ll wi = A.win[i];
+                cur[0] = 0;
+                ll run = 0;
 
-        // Newton coefficients beta_j = Delta^j b(0).
-        vector<long long> beta(m + 1);
-        vector<long long> cur = b;
-        for (int j = 0; j <= m; ++j) {
-            beta[j] = cur[0];
-            for (int i = 0; i < m - j; ++i) {
-                cur[i] = cur[i + 1] - cur[i];
-                if (cur[i] < 0) cur[i] += MOD;
+                if (!forbidDel) {
+                    if (specRow) {
+                        for (int b = 1; b < blast; b++) {
+                            ll v;
+                            if (specCol[b]) {
+                                const ll wj = B.win[l2 + b - 1];
+                                const ll sav = c2*wi + c1*wj - c3*(wi > wj ? wi - wj : wj - wi);
+                                v = prev[b-1] + sav;
+                                if (prev[b] > v) v = prev[b];
+                                if (run > v) v = run;
+                                Prow[b] = v;
+                            } else {
+                                v = prev[b];
+                                const ll u = jrow[colJump[b]] + Prow[b];
+                                if (u > v) v = u;
+                                if (run > v) v = run;
+                            }
+                            cur[b] = v; run = v;
+                        }
+                    } else {
+                        for (int b = 1; b < blast; b++) {
+                            ll v = prev[b];
+                            const ll u = jrow[colJump[b]] + Prow[b];
+                            if (u > v) v = u;
+                            if (run > v) v = run;
+                            cur[b] = v; run = v;
+                        }
+                    }
+                    if (forbidIns) {   // tail column: no insert transition, no run
+                        const int b = W - 1;
+                        ll v;
+                        if (specRow && specCol[b]) {
+                            const ll wj = B.win[l2 + b - 1];
+                            const ll sav = c2*wi + c1*wj - c3*(wi > wj ? wi - wj : wj - wi);
+                            v = prev[b-1] + sav;
+                            if (prev[b] > v) v = prev[b];
+                            Prow[b] = v;
+                        } else {
+                            v = prev[b];
+                            const ll u = jrow[colJump[b]] + Prow[b];
+                            if (u > v) v = u;
+                        }
+                        cur[b] = v;
+                    }
+                } else {
+                    // last row: "delete i" forbidden, and this row's P is not meaningful for jumps;
+                    // it only needs to produce the root cell value (and special-cell P values).
+                    if (specRow) {
+                        for (int b = 1; b < blast; b++) {
+                            ll v;
+                            if (specCol[b]) {
+                                const ll wj = B.win[l2 + b - 1];
+                                const ll sav = c2*wi + c1*wj - c3*(wi > wj ? wi - wj : wj - wi);
+                                v = prev[b-1] + sav;
+                                if (run > v) v = run;
+                                Prow[b] = v;
+                            } else {
+                                v = jrow[colJump[b]] + Prow[b];
+                                if (run > v) v = run;
+                            }
+                            cur[b] = v; run = v;
+                        }
+                    } else {
+                        for (int b = 1; b < blast; b++) {
+                            ll v = jrow[colJump[b]] + Prow[b];
+                            if (run > v) v = run;
+                            cur[b] = v; run = v;
+                        }
+                    }
+                    if (forbidIns) {
+                        const int b = W - 1;
+                        ll v;
+                        if (specRow && specCol[b]) {
+                            const ll wj = B.win[l2 + b - 1];
+                            const ll sav = c2*wi + c1*wj - c3*(wi > wj ? wi - wj : wj - wi);
+                            v = prev[b-1] + sav;
+                            Prow[b] = v;
+                        } else {
+                            v = jrow[colJump[b]] + Prow[b];
+                        }
+                        cur[b] = v;
+                    }
+                }
             }
         }
-
-        // lambda_j = C(m,j) / C(2m,j)
-        vector<long long> lam(m + 1);
-        lam[0] = 1;
-        for (int j = 1; j <= m; ++j) {
-            lam[j] = lam[j - 1] * (m - j + 1) % MOD * invnum[N - j + 1] % MOD;
-        }
-
-        // Solve (I-K)a = b in the Newton basis C(t,j).
-        vector<long long> c(m + 1, 0);
-        for (int k = m; k >= 2; --k) {
-            long long s = beta[k];
-            int jmax = min(m, 2 * k);
-            for (int j = k + 1; j <= jmax; ++j) {
-                long long Bjk = Cmod(k, j - k) * pow2v[2 * k - j] % MOD;
-                s += lam[j] * Bjk % MOD * c[j] % MOD;
-                if (s >= MOD) s -= MOD;
-            }
-            long long mu = lam[k] * pow2v[k] % MOD; // diagonal eigenvalue
-            long long den = (1 - mu + MOD) % MOD;
-            c[k] = s * modpow(den, MOD - 2) % MOD;
-        }
-
-        // c[0] = a(0) = 0; c[1] is fixed by a(m) = 0.
-        long long sm = 0;
-        for (int j = 2; j <= m; ++j) {
-            sm += c[j] * Cmod(m, j) % MOD;
-            if (sm >= MOD) sm -= MOD;
-        }
-        c[1] = (MOD - sm) % MOD * invnum[m] % MOD;
-
-        long long invN = invnum[N];
-        long long ans = 0;
-        for (int s : a) {
-            if (s == N) continue; // f(N)=0
-            long long val = (long long)s * invN % MOD;
-            int lim = min(m, s);
-            long long comb = 1;
-            for (int j = 1; j <= lim; ++j) {
-                comb = comb * ((s - j + 1) % MOD) % MOD * invnum[j] % MOD;
-                val += c[j] * lam[j] % MOD * comb % MOD;
-                if (val >= MOD) val -= MOD;
-            }
-            ans += val;
-            if (ans >= MOD) ans -= MOD;
-        }
-        cout << ans % MOD << '\n';
     }
+
+    ll best = P[(size_t)(rootA + 1) * PM + rootB];
+    printf("%lld\n", base - best);
     return 0;
 }

@@ -1,64 +1,180 @@
-// QOJ 7875 / Hefei 2023 B. O(n + M log(M+1)), M = sum(a).
 #include <bits/stdc++.h>
 using namespace std;
-using ll = long long;
-const int MOD = 998244353;
-using Poly = vector<int>;
-int power(int a, int b) { int r=1; for(;b;b>>=1,a=(ll)a*a%MOD) if(b&1) r=(ll)r*a%MOD; return r; }
-void ntt(Poly& a, bool inverse) {
-    int n=a.size();
-    for(int i=1,j=0;i<n;++i){int b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j)swap(a[i],a[j]);}
-    for(int len=2;len<=n;len<<=1){
-        int w=power(3,(MOD-1)/len);if(inverse)w=power(w,MOD-2);
-        for(int i=0;i<n;i+=len){int x=1;for(int j=0;j<len/2;++j){
-            int u=a[i+j],v=(ll)a[i+j+len/2]*x%MOD;
-            a[i+j]=u+v>=MOD?u+v-MOD:u+v;
-            a[i+j+len/2]=u-v<0?u-v+MOD:u-v;x=(ll)x*w%MOD;
-        }}
+
+using i64 = long long;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, P;
+    cin >> n >> P;
+
+    const int m = n - 1;
+    const int M = n * (n + 1) / 2;
+    const int d = M - 1;
+    const int lim = max(M, 2 * n + 2);
+
+    // 所有需要的小整数逆元。
+    vector<int> inv(lim + 1);
+    inv[1] = 1;
+    for (int i = 2; i <= lim; ++i) {
+        inv[i] = P - (i64)(P / i) * inv[P % i] % P;
     }
-    if(inverse){int z=power(n,MOD-2);for(int&x:a)x=(ll)x*z%MOD;}
-}
-Poly mul(Poly a, Poly b, int cap) {
-    if(a.empty()||b.empty()||!cap)return {};
-    int need=min(cap,(int)a.size()+(int)b.size()-1);
-    if(min(a.size(),b.size())<=24){Poly c(need);for(int i=0;i<(int)a.size()&&i<need;++i)
-        for(int j=0;j<(int)b.size()&&i+j<need;++j)c[i+j]=(c[i+j]+(ll)a[i]*b[j])%MOD;return c;}
-    int n=1;while(n<(int)a.size()+(int)b.size()-1)n<<=1;
-    assert(n<=(1<<23));a.resize(n);b.resize(n);ntt(a,false);ntt(b,false);
-    for(int i=0;i<n;++i)a[i]=(ll)a[i]*b[i]%MOD;ntt(a,true);a.resize(need);return a;
-}
-Poly inv_series(const Poly& a,int n){
-    Poly b{power(a[0],MOD-2)};
-    while((int)b.size()<n){int k=min(n,2*(int)b.size());Poly c(a.begin(),a.begin()+min(k,(int)a.size()));
-        c=mul(c,b,k);c.resize(k);for(int&x:c)x=x?MOD-x:0;c[0]=(c[0]+2)%MOD;
-        b=mul(b,c,k);b.resize(k);
-    }return b;
-}
-Poly exp_series(const Poly& h,const Poly& inv){
-    int n=h.size();Poly f{1};
-    while((int)f.size()<n){int s=f.size(),k=min(n,2*s);Poly df(max(0,s-1));
-        for(int j=1;j<s;++j)df[j-1]=(ll)f[j]*j%MOD;
-        Poly dl=mul(df,inv_series(f,k),k-1);dl.resize(k-1);Poly correction(k-s);
-        for(int j=s;j<k;++j)correction[j-s]=(h[j]-(ll)dl[j-1]*inv[j]%MOD+MOD)%MOD;
-        correction=mul(f,correction,k-s);correction.resize(k-s);f.resize(k);
-        for(int j=s;j<k;++j)f[j]=correction[j-s];
-    }return f;
-}
-int main(){
-    ios::sync_with_stdio(false);cin.tie(nullptr);
-    int n;if(!(cin>>n))return 0;vector<int>a(n);int m=0,r=0;
-    for(int&x:a){cin>>x;m+=x;r+=x>0;}
-    int k=m/2;Poly inv(m+2),fact(m+1,1),ifact(m+1,1),freq(k+1),h(k+1);
-    inv[1]=1;for(int j=2;j<=m+1;++j)inv[j]=MOD-(ll)(MOD/j)*inv[MOD%j]%MOD;
-    for(int j=1;j<=m;++j)fact[j]=(ll)fact[j-1]*j%MOD;
-    ifact[m]=power(fact[m],MOD-2);for(int j=m;j;--j)ifact[j-1]=(ll)ifact[j]*j%MOD;
-    for(int x:a)if(x>0&&x+1<=k)++freq[x+1];
-    for(int j=1;j<=k;++j)h[j]=r;
-    for(int d=2;d<=k;++d)if(freq[d])for(int j=d;j<=k;j+=d)h[j]=(h[j]-(ll)d*freq[d]%MOD+MOD)%MOD;
-    for(int j=1;j<=k;++j)h[j]=(ll)h[j]*inv[j]%MOD;
-    Poly c=exp_series(h,inv);int ans=0,previous_c=0,previous_choose=0;
-    for(int j=0;j<=k;++j){int choose=(ll)fact[m]*ifact[j]%MOD*ifact[m-j]%MOD;
-        ans=(ans+(ll)(c[j]-previous_c+MOD)*(choose-previous_choose+MOD))%MOD;
-        previous_c=c[j];previous_choose=choose;
-    }cout<<ans<<'\n';
+
+    vector<int> L(n);
+    for (int k = 0; k <= m; ++k) {
+        L[k] = k * (k + 3) / 2;
+    }
+
+    // 同时返回 I(s,a) 和它的逆元。
+    // 直接分别累乘分子、分母，不需要快速幂。
+    auto integral = [&](int s, int a) -> pair<int, int> {
+        i64 v = 1, iv = 1;
+
+        for (int i = 1; i <= s; ++i) {
+            v = v * inv[a + i] % P;
+            iv = iv * (a + i) % P;
+
+            for (int j = i + 1; j <= s; ++j) {
+                int numerator = j - i;
+                int denominator = 2 * a + i + j;
+
+                v = v * numerator % P;
+                v = v * inv[denominator] % P;
+
+                iv = iv * denominator % P;
+                iv = iv * inv[numerator] % P;
+            }
+        }
+
+        return {(int)v, (int)iv};
+    };
+
+    // C[k]：G_k 的最低次项系数。
+    // seed[k]：构造第 k 个基时，唯一非零的自由量。
+    vector<int> C(n), invC(n), seed(n);
+
+    for (int k = 0; k <= m; ++k) {
+        auto [a, ia] = integral(k, 1);
+        auto [b, ib] = integral(m - k, k + 1);
+
+        C[k] = (i64)a * b % P;
+        invC[k] = (i64)ia * ib % P;
+
+        i64 v = C[k];
+
+        for (int r = k + 1; r <= m; ++r) {
+            v = v * (P + k - r) % P;
+            v = v * (k + r + 3) % P;
+            v = v * inv[r] % P;
+            v = v * inv[m + r + 4] % P;
+        }
+
+        seed[k] = (int)v;
+    }
+
+    vector<int> D(n), K(n);
+
+    for (int s = 0; s <= m; ++s) {
+        D[s] = (i64)s * (m - s + 4) % P * inv[2] % P;
+
+        K[s] = (i64)(m - s) * (2 * m + 4 - s)
+             % P * inv[2] % P;
+    }
+
+    // B[k][q]：第 k 个基多项式的 z^q 系数。
+    vector<vector<int>> B(n, vector<int>(M));
+
+    // 辅助下标 s 存在 s+1 行。
+    // 第 0 行和第 n+1 行作为全零哨兵。
+    //
+    // pre[s+1][k]：第 k 个基，上一层次数的辅助状态 s。
+    // cur[s+1][k]：第 k 个基，当前层次数的辅助状态 s。
+    vector<vector<int>> pre(n + 2, vector<int>(n));
+    vector<vector<int>> cur(n + 2, vector<int>(n));
+
+    for (int q = 0; q <= d; ++q) {
+        for (auto &row : cur) {
+            fill(row.begin(), row.end(), 0);
+        }
+
+        // 当前层依赖 s+1，因此 s 必须倒序。
+        for (int s = m; s >= 0; --s) {
+            int r = m - s;
+            int u = s + 1;
+
+            if (q == L[r]) {
+                // 特殊位置：自由量。
+                // 只有第 r 个基在这里取非零值。
+                cur[u][r] = seed[r];
+                continue;
+            }
+
+            int delta = q - L[r];
+            int id = delta > 0
+                   ? inv[delta]
+                   : P - inv[-delta];
+
+            int a = d + s - L[r] - q + 1;
+            if (a < 0) a += P;
+
+            for (int k = 0; k <= m; ++k) {
+                // P < 1e9，三个乘积之和不会溢出 long long。
+                i64 rhs = (i64)a * pre[u][k]
+                        + (i64)D[s] * pre[u - 1][k]
+                        + (i64)K[s] * cur[u + 1][k];
+
+                cur[u][k] = (rhs % P) * id % P;
+            }
+        }
+
+        // 只保存辅助状态 s=0，它就是所需基多项式。
+        for (int k = 0; k <= m; ++k) {
+            B[k][q] = cur[1][k];
+        }
+
+        pre.swap(cur);
+    }
+
+    // 倒序消元。
+    // 处理完 k 后，B[k] 就是真正的目标多项式 G_k。
+    for (int k = m; k >= 0; --k) {
+        for (int r = m; r > k; --r) {
+            int right = d - L[m - r];
+
+            // G_r 的最高次项系数为 C[m-r]。
+            int factor = (i64)B[k][right] * invC[m - r] % P;
+
+            if (factor == 0) continue;
+
+            // 已求出的 G_r 只在 [L[r], right] 内非零。
+            for (int q = L[r]; q <= right; ++q) {
+                int sub = (i64)factor * B[r][q] % P;
+
+                B[k][q] -= sub;
+                if (B[k][q] < 0) B[k][q] += P;
+            }
+        }
+    }
+
+    vector<int> fact(M + 1, 1);
+
+    for (int i = 1; i <= M; ++i) {
+        fact[i] = (i64)fact[i - 1] * i % P;
+    }
+
+    // 单点 {k+1} 位于第 q+1 位。
+    for (int k = 0; k <= m; ++k) {
+        for (int q = 0; q <= d; ++q) {
+            int ans = (i64)B[k][q] * fact[q] % P
+                    * fact[d - q] % P;
+
+            if (q) cout << ' ';
+            cout << ans;
+        }
+        cout << '\n';
+    }
+
+    return 0;
 }

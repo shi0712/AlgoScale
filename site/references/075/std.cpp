@@ -1,244 +1,174 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-class Solver {
-    using ll = long long;
-    static constexpr ll INF = (1LL << 62);
+using int64 = long long;
+static constexpr int64 NEG = -(1LL << 60);
 
-    class SegTree {
-        struct Node {
-            ll minB = 0, maxB = 0;
-            ll minW = 0, minBW = 0;
-            ll mn = 0, mx = 0;
-            ll maxDiff = 0;
-            ll best = 0;
-            ll lazy = 0;
-            int kind = 0; // 0:none, 1:A=c, 2:A=beta+c
-        };
-
-        int n;
-        vector<Node> tr;
-
-        void apply(int p, int kind, ll c) {
-            Node &u = tr[p];
-            u.kind = kind;
-            u.lazy = c;
-            if (kind == 1) {
-                u.mn = u.mx = c;
-                u.maxDiff = c - u.minB;
-                u.best = c + u.minW;
-            } else {
-                u.mn = u.minB + c;
-                u.mx = u.maxB + c;
-                u.maxDiff = c;
-                u.best = c + u.minBW;
-            }
-        }
-
-        void push(int p) {
-            if (!tr[p].kind) return;
-            apply(p << 1, tr[p].kind, tr[p].lazy);
-            apply(p << 1 | 1, tr[p].kind, tr[p].lazy);
-            tr[p].kind = 0;
-        }
-
-        void pull(int p) {
-            const Node &L = tr[p << 1], &R = tr[p << 1 | 1];
-            Node &u = tr[p];
-            u.mn = min(L.mn, R.mn);
-            u.mx = max(L.mx, R.mx);
-            u.maxDiff = max(L.maxDiff, R.maxDiff);
-            u.best = min(L.best, R.best);
-        }
-
-        void build(int p, int l, int r,
-                   const vector<ll> &beta,
-                   const vector<ll> &w,
-                   const vector<ll> &initial) {
-            if (l == r) {
-                Node &u = tr[p];
-                u.minB = u.maxB = beta[l];
-                u.minW = w[l];
-                u.minBW = beta[l] + w[l];
-                apply(p, 1, initial[l]);
-                return;
-            }
-            int mid = (l + r) >> 1;
-            build(p << 1, l, mid, beta, w, initial);
-            build(p << 1 | 1, mid + 1, r, beta, w, initial);
-            Node &u = tr[p];
-            u.minB = min(tr[p << 1].minB, tr[p << 1 | 1].minB);
-            u.maxB = max(tr[p << 1].maxB, tr[p << 1 | 1].maxB);
-            u.minW = min(tr[p << 1].minW, tr[p << 1 | 1].minW);
-            u.minBW = min(tr[p << 1].minBW, tr[p << 1 | 1].minBW);
-            pull(p);
-        }
-
-        void assignRange(int p, int l, int r, int ql, int qr, int kind, ll c) {
-            if (qr < l || r < ql) return;
-            if (ql <= l && r <= qr) {
-                apply(p, kind, c);
-                return;
-            }
-            push(p);
-            int mid = (l + r) >> 1;
-            assignRange(p << 1, l, mid, ql, qr, kind, c);
-            assignRange(p << 1 | 1, mid + 1, r, ql, qr, kind, c);
-            pull(p);
-        }
-
-        ll queryBest(int p, int l, int r, int ql, int qr) {
-            if (qr < l || r < ql) return INF;
-            if (ql <= l && r <= qr) return tr[p].best;
-            push(p);
-            int mid = (l + r) >> 1;
-            return min(queryBest(p << 1, l, mid, ql, qr),
-                       queryBest(p << 1 | 1, mid + 1, r, ql, qr));
-        }
-
-        // type 0: first A-beta > v
-        // type 1: last A > v
-        // type 2: first A < v
-        int findPos(int p, int l, int r, int ql, int qr, int type, ll v) {
-            if (qr < l || r < ql) return -1;
-            if (type == 0 && tr[p].maxDiff <= v) return -1;
-            if (type == 1 && tr[p].mx <= v) return -1;
-            if (type == 2 && tr[p].mn >= v) return -1;
-            if (l == r) return l;
-            push(p);
-            int mid = (l + r) >> 1;
-            if (type == 1) {
-                int res = findPos(p << 1 | 1, mid + 1, r, ql, qr, type, v);
-                if (res != -1) return res;
-                return findPos(p << 1, l, mid, ql, qr, type, v);
-            }
-            int res = findPos(p << 1, l, mid, ql, qr, type, v);
-            if (res != -1) return res;
-            return findPos(p << 1 | 1, mid + 1, r, ql, qr, type, v);
-        }
-
-        ll getValue(int p, int l, int r, int idx) {
-            if (l == r) return tr[p].mn;
-            push(p);
-            int mid = (l + r) >> 1;
-            if (idx <= mid) return getValue(p << 1, l, mid, idx);
-            return getValue(p << 1 | 1, mid + 1, r, idx);
-        }
-
-    public:
-        SegTree(const vector<ll> &beta,
-                const vector<ll> &w,
-                const vector<ll> &initial)
-            : n((int)beta.size() - 1), tr(4 * n + 16) {
-            build(1, 1, n, beta, w, initial);
-        }
-
-        void assignRange(int l, int r, int kind, ll c) {
-            if (l <= r) assignRange(1, 1, n, l, r, kind, c);
-        }
-        ll queryBest(int l, int r) {
-            return l <= r ? queryBest(1, 1, n, l, r) : INF;
-        }
-        int findPos(int l, int r, int type, ll v) {
-            return l <= r ? findPos(1, 1, n, l, r, type, v) : -1;
-        }
-        ll getValue(int idx) { return getValue(1, 1, n, idx); }
-    };
-
-public:
-    long long solve(int n, int start, const vector<pair<int,int>> &requests) {
-        auto noravelqui = tie(n, start, requests);
-        (void)noravelqui;
-
-        vector<pair<ll,ll>> points;
-        points.reserve(requests.size());
-        for (auto [arrival, floor] : requests)
-            points.emplace_back((ll)floor, (ll)arrival);
-        sort(points.begin(), points.end());
-
-        // Same floor: only the latest arrival matters.
-        vector<ll> x(1, 0), release(1, 0);
-        for (auto [floor, arrival] : points) {
-            if (x.size() == 1 || x.back() != floor) {
-                x.push_back(floor);
-                release.push_back(arrival);
-            } else {
-                release.back() = max(release.back(), arrival);
-            }
-        }
-
-        int k = (int)x.size() - 1;
-        if (k == 1)
-            return max(llabs((ll)start - x[1]), release[1]);
-
-        vector<ll> beta(k + 1), w(k + 1), initial(k + 1);
-        beta[k] = release[k] + x[k];
-        for (int j = k - 1; j >= 1; --j)
-            beta[j] = max(beta[j + 1], release[j] + x[j]);
-
-        ll alpha = release[1] - x[1];
-        ll tail = max(alpha, llabs((ll)start - x[1]) - x[1]);
-        ll rightOnly = llabs((ll)start - x[k]) + x[k];
-
-        for (int j = 1; j <= k; ++j) {
-            initial[j] = max(alpha, max(beta[j], rightOnly) - 2 * x[1]);
-            w[j] = 2 * x[j - 1];
-        }
-
-        SegTree seg(beta, w, initial);
-        ll answer = seg.getValue(2) + x[1];
-
-        for (int i = 2; i <= k; ++i) {
-            alpha = max(alpha, release[i] - x[i]);
-            int lo = i + 1;
-
-            if (lo <= k) {
-                ll P = min(seg.queryBest(lo, k), tail + 2 * x[k]);
-                ll shift = -2 * x[i];
-                ll C = P + shift;
-
-                int l = seg.findPos(lo, k, 0, shift);
-                int r = seg.findPos(lo, k, 1, C);
-
-                if (l != -1 && r != -1 && l <= r) {
-                    // beta is non-increasing: last p with beta[p] >= P.
-                    int left = lo, right = k, p = lo - 1;
-                    while (left <= right) {
-                        int mid = (left + right) >> 1;
-                        if (beta[mid] >= P) {
-                            p = mid;
-                            left = mid + 1;
-                        } else {
-                            right = mid - 1;
-                        }
-                    }
-                    seg.assignRange(l, min(r, p), 2, shift);
-                    seg.assignRange(max(l, p + 1), r, 1, C);
-                }
-
-                int q = seg.findPos(lo, k, 2, alpha);
-                if (q != -1) seg.assignRange(q, k, 1, alpha);
-            }
-
-            tail = max(tail, alpha);
-            ll cur = (lo <= k ? seg.getValue(lo) : tail) + x[i];
-            answer = min(answer, cur);
-        }
-
-        return answer;
-    }
+struct Player {
+    int e, junior;
 };
 
+vector<int64> solve(int n, int d, vector<int> limit, vector<Player> input) {
+    sort(limit.begin(), limit.end());
+    vector<Player> a(1, {0, 0});  // Global player indices are 1-based.
+    for (const auto &p : input)
+        if (p.e <= limit.back()) a.push_back(p);
+    sort(a.begin() + 1, a.end(), [](const Player &x, const Player &y) {
+        return x.e < y.e;
+    });
+    const int m = (int)a.size() - 1;
+    const int W = 2 * n + 1;
+    if (m < 2 * n) return vector<int64>(W, -1);
+
+    // id[c][k]: global index of the k-th player of category c.
+    // Category 1 is junior; category 0 is senior.
+    vector<int> id[2] = {vector<int>(1, 0), vector<int>(1, 0)};
+    vector<array<int, 2>> pre(m + 1);
+    array<int, 2> last = {0, 0};
+    for (int i = 1; i <= m; ++i) {
+        pre[i] = last;
+        id[a[i].junior].push_back(i);
+        last[a[i].junior] = i;
+    }
+    const int sz[2] = {(int)id[0].size() - 1, (int)id[1].size() - 1};
+
+    // same[c][k]: last feasible adjacent same-category pair ending at/before k.
+    vector<int> same[2];
+    for (int c = 0; c < 2; ++c) {
+        same[c].assign(sz[c] + 1, 0);
+        for (int k = 1; k <= sz[c]; ++k) {
+            same[c][k] = same[c][k - 1];
+            if (k >= 2 && a[id[c][k]].e - a[id[c][k - 1]].e <= d)
+                same[c][k] = k;
+        }
+    }
+
+    // reach[c][k]: number of opposite-category players with ability <= e[c][k]+d.
+    vector<int> reach[2];
+    for (int c = 0; c < 2; ++c) {
+        reach[c].assign(sz[c] + 1, 0);
+        int p = 0;
+        for (int k = 1; k <= sz[c]; ++k) {
+            while (p < sz[c ^ 1] &&
+                   (int64)a[id[c ^ 1][p + 1]].e <= (int64)a[id[c][k]].e + d)
+                ++p;
+            reach[c][k] = p;
+        }
+    }
+
+    // good[k]: last category-0 player at/before k having any compatible category-1 player.
+    vector<int> good(sz[0] + 1, 0);
+    for (int k = 1; k <= sz[0]; ++k) {
+        good[k] = good[k - 1];
+        int p = reach[0][k];
+        if (p > 0 && (int64)a[id[1][p]].e >= (int64)a[id[0][k]].e - d)
+            good[k] = k;
+    }
+
+    // Sparse prefix DP for the preceding match layer.
+    vector<int> oldPos(1, 0);
+    vector<int64> oldDP(W, NEG);
+    oldDP[0] = 0;
+    int count[2] = {0, 0};
+    const int K = 2 * n - 1;
+
+    for (int j = 1; j <= n; ++j) {
+        for (int c = 0; c < 2; ++c)
+            while (count[c] < sz[c] && a[id[c][count[c] + 1]].e <= limit[j - 1])
+                ++count[c];
+
+        vector<int> pos(1, 0);
+        pos.reserve(18 * K + 1);
+        auto add = [&](int v) {
+            pos.push_back(v);
+            if (pre[v][0]) pos.push_back(pre[v][0]);
+            if (pre[v][1]) pos.push_back(pre[v][1]);
+        };
+
+        // At most K disjoint greedy maximum pairs of each homogeneous type.
+        for (int c = 0; c < 2; ++c) {
+            int p = count[c];
+            for (int k = 0; k < K; ++k) {
+                int r = same[c][p];
+                if (!r) break;
+                add(id[c][r - 1]);
+                add(id[c][r]);
+                p = r - 2;
+            }
+        }
+
+        // At most K disjoint greedy maximum mixed-category pairs.
+        int x = count[0], y = count[1];
+        for (int k = 0; k < K && x > 0 && y > 0; ++k) {
+            int u = good[min(x, reach[1][y])];
+            if (!u) break;
+            int v = min(y, reach[0][u]);
+            add(id[0][u]);
+            add(id[1][v]);
+            x = u - 1;
+            y = v - 1;
+        }
+
+        sort(pos.begin(), pos.end());
+        pos.erase(unique(pos.begin(), pos.end()), pos.end());
+        int s = (int)pos.size();
+        vector<int64> curDP((size_t)s * W, NEG);
+
+        // before[i]: last oldPos strictly smaller than pos[i].
+        vector<int> before(s, 0);
+        int p = 0;
+        for (int i = 1; i < s; ++i) {
+            while (p + 1 < (int)oldPos.size() && oldPos[p + 1] < pos[i]) ++p;
+            before[i] = p;
+        }
+
+        int prevType[2] = {0, 0};
+        for (int i = 1; i < s; ++i) {
+            int64 *dst = curDP.data() + (size_t)i * W;
+            copy_n(dst - W, W, dst);  // Do not use pos[i].
+            int v = pos[i];
+            for (int c = 0; c < 2; ++c) {
+                int k = prevType[c];
+                if (!k) continue;
+                int u = pos[k];
+                if (a[v].e - a[u].e > d) continue;
+                int delta = a[u].junior + a[v].junior;
+                const int64 *src = oldDP.data() + (size_t)before[k] * W;
+                int64 gain = (int64)a[u].e + a[v].e;
+                for (int t = 0; t <= 2 * (j - 1); ++t)
+                    if (src[t] != NEG)
+                        dst[t + delta] = max(dst[t + delta], src[t] + gain);
+            }
+            prevType[a[v].junior] = i;
+        }
+        oldPos.swap(pos);
+        oldDP.swap(curDP);
+    }
+
+    vector<int64> ans(W);
+    size_t base = (oldPos.size() - 1) * W;
+    for (int t = 0; t < W; ++t)
+        ans[t] = oldDP[base + t] == NEG ? -1 : oldDP[base + t];
+    return ans;
+}
+
+#ifndef TENNIS_TEST
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
-    int n, start, m;
-    if (!(cin >> n >> start >> m)) return 0;
-    vector<pair<int,int>> requests(m);
-    for (auto &[arrival, floor] : requests) cin >> arrival >> floor;
-
-    Solver solver;
-    cout << solver.solve(n, start, requests) << '\n';
+    int n, m, d;
+    cin >> n >> m >> d;
+    vector<int> limit(n);
+    for (int &x : limit) cin >> x;
+    vector<Player> a(m);
+    for (auto &p : a) {
+        int type;
+        cin >> p.e >> type;
+        p.junior = (type == 1);
+    }
+    auto ans = solve(n, d, std::move(limit), std::move(a));
+    for (int t = 0; t <= 2 * n; ++t)
+        cout << ans[t] << (t == 2 * n ? '\n' : ' ');
     return 0;
 }
+#endif

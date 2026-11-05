@@ -1,179 +1,307 @@
-// Dark Queue / 暗匣中的指令
-// O(m + n log^2 n) time, O(m+n) working space. No answer tables.
-// Constraints: 2 <= n <= 100000, 1 <= m <= 200000.
-// Adapted from the algorithm finalized in the accompanying conversation.
+// 树海归航 / standard solution. Expected Treap-union algorithm.
+// No answer tables. C++17; see admin/editorial.md for proof and arithmetic model.
 #include <bits/stdc++.h>
 using namespace std;
+using Real = long double;
 
-using int64 = long long;
-constexpr int MOD = 998244353;
-constexpr int ROOT = 3;
+// 一段函数：y(x) = m*x + b；起点收益函数的导数为 p。
+struct Line {
+    Real m = 0, b = 0, p = 0;
+};
 
-int mod_pow(int a, int e) {
-    int r = 1;
-    while (e > 0) {
-        if (e & 1) r = int((int64)r * a % MOD);
-        a = int((int64)a * a % MOD);
-        e >>= 1;
+// x' = a*x + b*y + c
+// y' = d*x + e*y + f
+// m_new = (d + e*m) / (a + b*m)
+// p_new = (g + h*m + i*p) / (a + b*m)
+struct Tag {
+    Real a = 1, b = 0, c = 0;
+    Real d = 0, e = 1, f = 0;
+    Real g = 0, h = 0, i = 1;
+};
+
+struct Node {
+    int l = 0, r = 0;
+    uint64_t priority = 0;
+    Real x = 0, y = 0, m = 0, p = 0;
+    Tag tag;
+    bool dirty = false;
+};
+
+struct Event {
+    Real x, p;
+};
+
+class CurveTreap {
+    vector<Node> tr;
+    mt19937_64 &rng;
+
+    static Tag compose(const Tag &u, const Tag &v) {
+        // 返回复合变换 u(v(.))
+        Tag w;
+        w.a = u.a*v.a + u.b*v.d;
+        w.b = u.a*v.b + u.b*v.e;
+        w.c = u.a*v.c + u.b*v.f + u.c;
+        w.d = u.d*v.a + u.e*v.d;
+        w.e = u.d*v.b + u.e*v.e;
+        w.f = u.d*v.c + u.e*v.f + u.f;
+        w.g = u.g*v.a + u.h*v.d + u.i*v.g;
+        w.h = u.g*v.b + u.h*v.e + u.i*v.h;
+        w.i = u.i*v.i;
+        return w;
     }
-    return r;
-}
 
-void ntt(vector<int>& a, bool inverse) {
-    int n = (int)a.size();
-    for (int i = 1, j = 0; i < n; ++i) {
-        int bit = n >> 1;
-        while (j & bit) { j ^= bit; bit >>= 1; }
-        j ^= bit;
-        if (i < j) swap(a[i], a[j]);
+    void apply(int u, const Tag &t) {
+        if (!u) return;
+        Node &v = tr[u];
+        Real x = v.x, y = v.y, m = v.m, p = v.p;
+        Real den = t.a + t.b*m;
+        v.x = t.a*x + t.b*y + t.c;
+        v.y = t.d*x + t.e*y + t.f;
+        v.m = (t.d + t.e*m) / den;
+        v.p = (t.g + t.h*m + t.i*p) / den;
+        v.tag = v.dirty ? compose(t, v.tag) : t;
+        v.dirty = true;
     }
-    for (int len = 2; len <= n; len <<= 1) {
-        int step = mod_pow(ROOT, (MOD - 1) / len);
-        if (inverse) step = mod_pow(step, MOD - 2);
-        for (int l = 0; l < n; l += len) {
-            int64 w = 1;
-            for (int j = 0; j < len / 2; ++j) {
-                int u = a[l + j];
-                int v = int(w * a[l + j + len / 2] % MOD);
-                int x = u + v;
-                if (x >= MOD) x -= MOD;
-                int y = u - v;
-                if (y < 0) y += MOD;
-                a[l + j] = x;
-                a[l + j + len / 2] = y;
-                w = w * step % MOD;
+
+    void push(int u) {
+        if (!u || !tr[u].dirty) return;
+        Tag t = tr[u].tag;
+        apply(tr[u].l, t);
+        apply(tr[u].r, t);
+        tr[u].tag = Tag{};
+        tr[u].dirty = false;
+    }
+
+    Line rightLine(int u) const {
+        const Node &v = tr[u];
+        return {v.m, v.y - v.m*v.x, v.p};
+    }
+
+    // 整棵 Treap：y += s.m*x + s.b，p += s.p。
+    void addLine(int u, const Line &s) {
+        if (!u || (s.m == 0 && s.b == 0 && s.p == 0)) return;
+        Node &v = tr[u];
+        v.y += s.m*v.x + s.b;
+        v.m += s.m;
+        v.p += s.p;
+        Tag &t = v.tag;
+        t.d += s.m*t.a;
+        t.e += s.m*t.b;
+        t.f += s.m*t.c + s.b;
+        t.g += s.p*t.a;
+        t.h += s.p*t.b;
+        v.dirty = true;
+    }
+
+    // 按横坐标 x 分裂，同时返回 x 右侧的线性段。
+    // 恰好位于 x 的断点会与另一棵 Treap 的根合并。
+    void split(int u, Real x, int &l, int &r, Line &mid) {
+        if (!u) {
+            l = r = 0;
+            return;
+        }
+        push(u);
+        if (tr[u].x == x) {
+            l = tr[u].l;
+            r = tr[u].r;
+            mid = rightLine(u);
+        } else if (tr[u].x < x) {
+            mid = rightLine(u);
+            int a, b;
+            split(tr[u].r, x, a, b, mid);
+            tr[u].r = a;
+            l = u;
+            r = b;
+        } else {
+            int a, b;
+            split(tr[u].l, x, a, b, mid);
+            tr[u].l = b;
+            l = a;
+            r = u;
+        }
+    }
+
+    int join(int a, int b) {
+        if (!a || !b) return a ? a : b;
+        if (tr[a].priority > tr[b].priority) {
+            push(a);
+            tr[a].r = join(tr[a].r, b);
+            return a;
+        }
+        push(b);
+        tr[b].l = join(a, tr[b].l);
+        return b;
+    }
+
+    void collect(int u, vector<Event> &out) {
+        if (!u) return;
+        push(u);
+        collect(tr[u].l, out);
+        out.push_back({tr[u].x, tr[u].p});
+        collect(tr[u].r, out);
+    }
+
+public:
+    CurveTreap(int n, mt19937_64 &generator) : rng(generator) {
+        tr.reserve(n + 1);
+        tr.emplace_back();
+    }
+
+    // 两个分段线性函数逐点相加。
+    // la、lb 分别是各自第一个断点之前的线性段。
+    int meld(int a, int b, Line la, Line lb) {
+        if (!a) {
+            addLine(b, la);
+            return b;
+        }
+        if (!b) {
+            addLine(a, lb);
+            return a;
+        }
+        if (tr[a].priority < tr[b].priority) {
+            swap(a, b);
+            swap(la, lb);
+        }
+        push(a);
+        Line ar = rightLine(a);
+        Line br = lb;
+        int bl, rr;
+        split(b, tr[a].x, bl, rr, br);
+
+        tr[a].l = meld(tr[a].l, bl, la, lb);
+        tr[a].r = meld(tr[a].r, rr, ar, br);
+        tr[a].y += br.m*tr[a].x + br.b;
+        tr[a].m += br.m;
+        tr[a].p += br.p;
+        return a;
+    }
+
+    // 将孩子函数之和 S(t) 转成当前顶点的函数：
+    // X = t + S(t) + degree，Y = S(t) + degree。
+    int extend(int root, int degree, int children, bool isStart) {
+        if (root) {
+            Node &v = tr[root];
+            Tag &t = v.tag;
+            if (isStart) {
+                v.p = 1;
+                t.g = t.a;
+                t.h = t.b;
+                t.i = 0;
             }
+            Real den = 1 + v.m;
+            v.x += v.y + degree;
+            v.y += degree;
+            v.m /= den;
+            v.p /= den;
+            t.a += t.d;
+            t.b += t.e;
+            t.c += t.f + degree;
+            t.f += degree;
+            v.dirty = true;
         }
-    }
-    if (inverse) {
-        int inv_n = mod_pow(n, MOD - 2);
-        for (int& x : a) x = int((int64)x * inv_n % MOD);
-    }
-}
-
-vector<int> convolution(vector<int> a, vector<int> b) {
-    int need = (int)a.size() + (int)b.size() - 1;
-    if (min(a.size(), b.size()) <= 32) {
-        vector<int> c(need, 0);
-        for (int i = 0; i < (int)a.size(); ++i)
-            for (int j = 0; j < (int)b.size(); ++j)
-                c[i + j] = int((c[i + j] + (int64)a[i] * b[j]) % MOD);
-        return c;
-    }
-    int len = 1;
-    while (len < need) len <<= 1;
-    a.resize(len);
-    b.resize(len);
-    ntt(a, false);
-    ntt(b, false);
-    for (int i = 0; i < len; ++i)
-        a[i] = int((int64)a[i] * b[i] % MOD);
-    ntt(a, true);
-    a.resize(need);
-    return a;
-}
-
-struct Solver {
-    int n;
-    vector<int> inv, fac, ifac;
-    vector<int> q, F;
-
-    explicit Solver(int n_) : n(n_), inv(2*n + 1), fac(2*n + 1),
-                              ifac(2*n + 1), q(n, 0), F(n) {
-        inv[1] = 1;
-        for (int i = 2; i <= 2*n; ++i)
-            inv[i] = int(MOD - (int64)(MOD / i) * inv[MOD % i] % MOD);
-        fac[0] = ifac[0] = 1;
-        for (int i = 1; i <= 2*n; ++i) {
-            fac[i] = int((int64)fac[i - 1] * i % MOD);
-            ifac[i] = int((int64)ifac[i - 1] * inv[i] % MOD);
-        }
+        Node v;
+        v.priority = rng();
+        v.x = v.y = degree;
+        v.m = Real(children) / (children + 1);
+        v.p = isStart ? Real(1) / (children + 1) : 0;
+        tr.push_back(v);
+        int u = int(tr.size()) - 1;
+        return join(u, root);
     }
 
-    // 已知次数不超过 s-1 的多项式在 0,...,s-1 的取值。
-    // 用一次卷积补出 s,...,count-1 的取值。
-    vector<int> extend_right(vector<int> f, int count) {
-        int s = (int)f.size();
-        if (s == count) return f;
-        vector<int> a(s), b(count, 0);
-        for (int i = 0; i < s; ++i) {
-            a[i] = int((int64)f[i] * ifac[i] % MOD * ifac[s - 1 - i] % MOD);
-            if ((s - 1 - i) & 1)
-                a[i] = (a[i] == 0 ? 0 : MOD - a[i]);
+    vector<Event> events(int root) {
+        vector<Event> out;
+        collect(root, out);
+        // 数学上横坐标和 p 都不下降；修正浮点舍入造成的微小偏差。
+        Real lastX = 0, lastP = 0;
+        for (auto &e : out) {
+#ifdef LOCAL_CHECK
+            assert(isfinite(e.x) && isfinite(e.p));
+            assert(e.x >= lastX - 1e-10L * max(1.0L, lastX));
+            assert(e.p >= lastP - 1e-10L && e.p <= 1 + 1e-10L);
+#endif
+            e.x = max(e.x, lastX);
+            e.p = max(lastP, min(Real(1), max(Real(0), e.p)));
+            lastX = e.x;
+            lastP = e.p;
         }
-        for (int i = 1; i < count; ++i) b[i] = inv[i];
-        vector<int> c = convolution(move(a), move(b));
-        f.resize(count);
-        for (int i = s; i < count; ++i)
-            f[i] = int((int64)c[i] * fac[i] % MOD * ifac[i - s] % MOD);
-        return f;
+        if (!out.empty()) out.back().p = 1;
+        return out;
     }
+};
 
-    // 返回区间乘积多项式在 l,...,r+1 的取值。
-    // 同时向 F[t] 中乘入当前区间内所有下标不小于 t 的因子。
-    vector<int> divide(int l, int r) {
-        if (l == r) {
-            int x = 1 - q[l];
-            if (x < 0) x += MOD;
-            F[l] = x;
-            return {x, 1};
-        }
-        int mid = (l + r) / 2;
-        vector<int> left = divide(l, mid);
-        vector<int> right = divide(mid + 1, r);
-        int count = r - l + 2;
-
-        left = extend_right(move(left), count);
-        // 反转样本，把向左扩展转化为向右扩展。
-        reverse(right.begin(), right.end());
-        right = extend_right(move(right), count);
-        reverse(right.begin(), right.end());
-
-        for (int t = l; t <= mid; ++t)
-            F[t] = int((int64)F[t] * right[t - l] % MOD);
-        for (int i = 0; i < count; ++i)
-            left[i] = int((int64)left[i] * right[i] % MOD);
-        return left;
-    }
-
-    int solve(const vector<int>& a) {
-        int m = (int)a.size();
-        vector<int64> b(m + 1, 0), next_value(2*n + 1, 0);
-        for (int i = m - 1; i >= 0; --i) {
-            b[i] = b[i + 1] + 1;
-            if (next_value[a[i]] != 0)
-                b[i] = max(b[i], next_value[a[i]] + n + 1);
-            next_value[a[i]] = b[i];
-        }
-        int64 base = b[0];
-        // 有贡献的任务构成一个前缀，且其中的牌互不相同。
-        for (int i = 0; i < m && base - b[i] < n; ++i) {
-            int c = int(base - b[i]);
-            int u = n - 1 - c;
-            q[u] = inv[2*n - i];
-        }
-        divide(0, n - 1);
-        int answer = int((base + n) % MOD);
-        for (int x : F) {
-            answer -= x;
-            if (answer < 0) answer += MOD;
-        }
-        return answer;
-    }
+struct HeapItem {
+    Real x;
+    int tree, pos;
+    bool operator>(const HeapItem &o) const { return x > o.x; }
 };
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int T;
-    if (!(cin >> T)) return 0;
-    while (T--) {
-        int n, m;
-        cin >> n >> m;
-        vector<int> a(m);
-        for (int& x : a) cin >> x;
-        Solver solver(n);
-        cout << solver.solve(a) << '\n';
+    int k;
+    if (!(cin >> k)) return 0;
+    // Only Treap priorities depend on this seed; no Monte Carlo estimation.
+    uint64_t seed = chrono::steady_clock::now().time_since_epoch().count();
+    if (const char *e = getenv("TREAP_SEED")) seed = strtoull(e, nullptr, 10);
+    mt19937_64 rng(seed);
+    vector<vector<Event>> all(k);
+    for (int i = 0; i < k; ++i) {
+        int n, s;
+        cin >> n >> s;
+        vector<vector<int>> adj(n + 1);
+        for (int j = 1; j < n; ++j) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+        CurveTreap curves(n, rng);
+        // Iterative postorder: safe even when the input tree is a long path.
+        vector<int> parent(n + 1), order{1}, rt(n + 1);
+        for (size_t j = 0; j < order.size(); ++j) {
+            int u = order[j];
+            for (int v : adj[u]) if (v != parent[u]) {
+                parent[v] = u;
+                order.push_back(v);
+            }
+        }
+        for (int j = n - 1; j >= 0; --j) {
+            int u = order[j], root = 0, children = 0;
+            for (int v : adj[u]) if (parent[v] == u) {
+                root = curves.meld(root, rt[v],
+                                   {Real(children), 0, 0}, {1, 0, 0});
+                ++children;
+            }
+            rt[u] = (u == 1) ? root : curves.extend(
+                root, int(adj[u].size()), children, u == s);
+        }
+        all[i] = curves.events(rt[1]);
     }
+
+    priority_queue<HeapItem, vector<HeapItem>, greater<HeapItem>> heap;
+    for (int i = 0; i < k; ++i) {
+        heap.push({all[i][0].x, i, 0});
+    }
+    vector<Real> q(k, 1);
+    Real product = 1, previous = 0, answer = 0;
+    while (!heap.empty()) {
+        auto [x, i, pos] = heap.top();
+        heap.pop();
+        answer += (x - previous)*product;
+        previous = x;
+        Real nextQ = 1 - all[i][pos].p;
+        if (nextQ <= 0) break;
+        product = product / q[i] * nextQ;
+        q[i] = nextQ;
+        if (product == 0) break;
+        if (pos + 1 < int(all[i].size())) {
+            heap.push({all[i][pos + 1].x, i, pos + 1});
+        }
+    }
+#ifdef LOCAL_CHECK
+    assert(isfinite(answer) && answer >= 1 - 1e-9L && answer <= 998001.01L);
+#endif
+    cout << fixed << setprecision(15) << answer << '\n';
     return 0;
 }

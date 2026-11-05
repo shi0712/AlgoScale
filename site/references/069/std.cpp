@@ -1,99 +1,149 @@
 #include <bits/stdc++.h>
 using namespace std;
-using i128 = __int128_t;
-using int64 = long long;
 
-static long long isqrt_u64(unsigned long long x) {
-    unsigned long long lo = 0, hi = 4000000001ULL;
-    while (lo + 1 < hi) {
-        unsigned long long md = (lo + hi) >> 1;
-        if ((__uint128_t)md * md <= x) lo = md;
-        else hi = md;
-    }
-    return (long long)lo;
-}
+static constexpr int MOD = 1'000'000'007;
 
-static unsigned long long floor_sqrt_ratio(long long h, long long s, long long w) {
-    i128 q = (i128)h * s / w;
-    unsigned long long lo = 0, hi = 1000000000000000001ULL;
-    while (lo + 1 < hi) {
-        unsigned long long md = (lo + hi) >> 1;
-        i128 z = (i128)md * md;
-        if (z <= q) lo = md; else hi = md;
-    }
-    return lo;
-}
+class Solver {
+private:
+    int n = 0;
+    vector<vector<unsigned char>> ok;
+    vector<int> R;
+    vector<vector<int>> children;
 
-static long long ceil_div(long long a, long long b) { return a / b + (a % b != 0); }
-
-static long long F(long long h, long long w, long long s, long long x) {
-    long long y = s / x;
-    return ceil_div(h, x) + ceil_div(w, y);
-}
-
-static long long G(long long h, long long w, long long s, long long p) {
-    long long x = ceil_div(h, p);
-    if (x > s) return (long long)4e18;
-    long long y = s / x;
-    return p + ceil_div(w, y);
-}
-
-static long long solve_one(long long h, long long w, long long s) {
-    if (h > w) swap(h, w);
-    if ((i128)h * w <= s) return 0;
-    long long lim = min(h, s);
-    long long best = (long long)4e18;
-
-    if (w > s) {
-        long long x0 = (long long)floor_sqrt_ratio(h, s, w);
-        x0 = max(1LL, min(x0, lim));
-        long long u = F(h, w, s, x0), ux = x0;
-        if (x0 < lim && F(h, w, s, x0 + 1) < u) u = F(h, w, s, x0 + 1), ux = x0 + 1;
-        auto ok = [&](long long x) {
-            // w*x^2 - u*s*x + h*s <= 0, rearranged to avoid overflow.
-            i128 a = (i128)u * s - (i128)w * x;
-            if (a < 0) return false;
-            i128 need = ((i128)h * s + x - 1) / x;
-            return need <= a;
-        };
-        long long L = 1, R = ux;
-        while (L < R) { long long md = L + (R - L) / 2; if (ok(md)) R = md; else L = md + 1; }
-        long long left = L;
-        L = ux; R = lim;
-        while (L < R) { long long md = L + (R - L + 1) / 2; if (ok(md)) L = md; else R = md - 1; }
-        long long right = L;
-        for (long long x = left; x <= right; ++x) best = min(best, F(h, w, s, x));
-    } else {
-        long long x0 = (long long)floor_sqrt_ratio(h, s, w);
-        x0 = max(1LL, min(x0, lim));
-        long long u = F(h, w, s, x0), ux = x0;
-        if (x0 < lim && F(h, w, s, x0 + 1) < u) u = F(h, w, s, x0 + 1), ux = x0 + 1;
-        long long p0 = ceil_div(h, ux);
-        long long pmax = min(h, u - 1);
-        if (pmax >= 1) {
-            p0 = max(1LL, min(p0, pmax));
-            auto ok = [&](long long p) {
-                // s*p^2 - u*s*p + h*w <= 0, rearranged to avoid overflow.
-                i128 a = (i128)u * s - (i128)s * p;
-                if (a < 0) return false;
-                i128 need = ((i128)h * w + p - 1) / p;
-                return need <= a;
-            };
-            long long L = 1, R = p0;
-            while (L < R) { long long md = L + (R - L) / 2; if (ok(md)) R = md; else L = md + 1; }
-            long long left = L;
-            L = p0; R = pmax;
-            while (L < R) { long long md = L + (R - L + 1) / 2; if (ok(md)) L = md; else R = md - 1; }
-            long long right = L;
-            for (long long p = left; p <= right; ++p) best = min(best, G(h, w, s, p));
+    int countForests(const vector<unsigned char>& token, int begin) const {
+        // dp[h]: after the processed prefix, there are h open ordinary vertices.
+        vector<int> dp(1, 1);
+        for (int i = begin; i < (int)token.size(); ++i) {
+            const int ordinary = token[i];
+            vector<int> ndp(dp.size() + ordinary, 0);
+            int suffix = 0;
+            for (int h = (int)dp.size() - 1; h >= 0; --h) {
+                suffix += dp[h];
+                if (suffix >= MOD) suffix -= MOD;
+                ndp[h + ordinary] = suffix;
+            }
+            dp.swap(ndp);
         }
+
+        int ans = 0;
+        for (int x : dp) {
+            ans += x;
+            if (ans >= MOD) ans -= MOD;
+        }
+        return ans;
     }
-    return best - 2;
-}
+
+    int evaluate(int v, bool fixedRoot) {
+        // token 1 = ordinary vertex; token 0 = compressed block forced to be a leaf.
+        vector<unsigned char> token;
+        long long factor = 1;
+
+        // Follow the unique possible final singleton block iteratively.
+        while (v != 0) {
+            token.push_back(1);
+
+            int nextVertex = 0;
+            int groupBegin = 0;
+            const auto& ch = children[v];
+
+            for (int j = 0; j < (int)ch.size(); ++j) {
+                if (!ok[v][R[ch[j]]]) continue;
+
+                if (groupBegin == j) {
+                    // A singleton minimal block can only be the final block.
+                    nextVertex = ch[j];
+                } else {
+                    // A minimal block of at least two maximal child subtrees is
+                    // compressed to one forced-leaf token. The inside choices
+                    // are independent forests attached to one common parent.
+                    token.push_back(0);
+                    for (int k = groupBegin; k <= j; ++k) {
+                        factor = factor * evaluate(ch[k], false) % MOD;
+                    }
+                }
+                groupBegin = j + 1;
+            }
+
+            v = nextVertex;
+        }
+
+        // The real root 1 is always open, so its token is omitted from the stack DP.
+        const int ways = countForests(token, fixedRoot ? 1 : 0);
+        return (int)(factor * ways % MOD);
+    }
+
+public:
+    int run() {
+        int m;
+        cin >> n >> m;
+
+        // Relabel by the first DFS order, which becomes 1,2,...,n internally.
+        vector<int> position(n + 1);
+        for (int i = 1; i <= n; ++i) {
+            int x;
+            cin >> x;
+            position[x] = i;
+        }
+
+        // low[x] / high[x] = min/max predecessor position of x over all orders.
+        vector<int> low(n + 1), high(n + 1);
+        for (int i = 2; i <= n; ++i) {
+            low[i] = high[i] = i - 1; // predecessor in the first order
+        }
+
+        for (int k = 1; k < m; ++k) {
+            int previous = 0;
+            for (int i = 1; i <= n; ++i) {
+                int x;
+                cin >> x;
+                const int v = position[x];
+                if (i > 1) {
+                    low[v] = min(low[v], previous);
+                    high[v] = max(high[v], previous);
+                }
+                previous = v;
+            }
+        }
+
+        // ok[l][r] means [l,r] is a subtree interval in every given order.
+        ok.assign(n + 1, vector<unsigned char>(n + 1, 0));
+        R.assign(n + 1, 0);
+
+        for (int l = 1; l <= n; ++l) {
+            ok[l][l] = 1;
+            R[l] = l;
+
+            int mn = n + 1;
+            int mx = 0;
+            for (int r = l + 1; r <= n; ++r) {
+                mn = min(mn, low[r]);
+                mx = max(mx, high[r]);
+                if (mn >= l && mx <= r) {
+                    ok[l][r] = 1;
+                    R[l] = r;
+                }
+            }
+        }
+
+        // Maximal common intervals are laminar; build their containment tree.
+        children.assign(n + 1, {});
+        vector<int> st;
+        st.reserve(n);
+        for (int v = 1; v <= n; ++v) {
+            while (!st.empty() && R[st.back()] < v) st.pop_back();
+            if (!st.empty()) children[st.back()].push_back(v);
+            st.push_back(v);
+        }
+
+        return evaluate(1, true);
+    }
+};
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int T; if (!(cin >> T)) return 0;
-    while (T--) { long long h, w, s; cin >> h >> w >> s; cout << solve_one(h, w, s) << '\n'; }
+
+    Solver solver;
+    cout << solver.run() << '\n';
+    return 0;
 }

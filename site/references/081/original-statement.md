@@ -2,61 +2,96 @@
 
 This is an interactive problem.
 
-There are $n$ cyclic wheels. Every wheel contains the same $n$ distinct symbols in the same cyclic order, and each wheel currently displays one symbol. Their initial positions are hidden.
+You are given a map made of unit squares. Every square is either open or occupied by a wall. Initially, you are placed in an unknown open square and face an unknown cardinal direction.
 
-You may rotate one wheel by any allowed integer number of positions. After each action, the judge reports how many distinct symbols are currently displayed across the wheels. Make all wheels display the same symbol within the allowed number of actions.
+At every step, you observe the distance to the next wall in the direction you currently face. This distance is the number of open squares strictly between your current square and that wall. Squares outside the map are considered walls.
+
+You may turn left, turn right, or move one square forward. Your goal is to determine your exact current position. If no strategy can always determine the position, report that fact instead.
+
+Open squares are indistinguishable from one another, as are wall squares. You only need to determine the current square, not the direction you face.
 
 ## Input Format
 
 Read from standard input.
 
-First read the integer $n$.
+First read two integers $r$ and $c$, the number of rows and columns in the map.
 
-Then read the current distinct-symbol count $k$. This count is provided before the first action and again after each action. If $k>1$, perform another action. If $k=1$, terminate immediately without producing further output.
+Then read $r$ strings of length $c$. A dot (`.`) denotes an open square, and a number sign (`#`) denotes a wall.
 
-The initial configuration is fixed before interaction begins; the judge does not change hidden positions adaptively in response to your strategy.
+At the beginning of every interaction round, read one integer $d$: the distance to the nearest wall in the direction you currently face.
 
 ## Output Format
 
 Write to standard output.
 
-Whenever $k>1$, output one line containing:
+After reading the observation for a round, print exactly one of the following commands:
 
-```text
-i j
-```
+- `left` - turn $90$ degrees to the left;
+- `right` - turn $90$ degrees to the right;
+- `step` - move one square forward;
+- `yes i j` - report that your current position is row $i$, column $j$;
+- `no` - report that it is impossible to determine your position reliably.
 
-This rotates wheel $i$ by $j$ positions. Negative $j$ rotates in the opposite direction. Do not print a final answer marker: success is indicated by reading $k=1$, after which the program must exit.
-
-Flush an emitted action before waiting for the next response. At most $10000$ actions may be printed.
+Never use `step` when the square directly ahead is a wall. After printing `yes i j` or `no`, the interaction ends and the program must terminate. Otherwise, flush the output and begin the next round by reading another observation.
 
 ## Examples
 
-The table shows the complete interaction in chronological order. A blank cell means that the other side sends the next message.
+### Sample Interaction 1
 
 | Judge sends | Program sends |
 | --- | --- |
-| `3` | |
-| `3` | |
-| | `2 -1` |
-| `2` | |
-| | `3 -1` |
-| `2` | |
-| | `2 -1` |
+| `3 3` | |
+| `##.` | |
+| `#..` | |
+| `...` | |
 | `1` | |
+| | `right` |
+| `1` | |
+| | `step` |
+| `0` | |
+| | `left` |
+| `0` | |
+| | `right` |
+| `0` | |
+| | `right` |
+| `1` | |
+| | `yes 2 2` |
+
+### Sample Interaction 2
+
+| Judge sends | Program sends |
+| --- | --- |
+| `3 5` | |
+| `##.##` | |
+| `###.#` | |
+| `.#.##` | |
+| `0` | |
+| | `left` |
+| `0` | |
+| | `no` |
+
+### Sample Interaction 3
+
+| Judge sends | Program sends |
+| --- | --- |
+| `2 1` | |
+| `#` | |
+| `.` | |
+| `0` | |
+| | `yes 2 1` |
 
 ## Explanation / Notes
 
-The judge reveals only the number of different visible symbols, not their identities or individual wheel positions. A rotation can leave this count unchanged even though the configuration changes. The interaction stops as soon as the response is `1`.
+Each table is one complete interaction in chronological order. A blank cell means that the other side sends the next message. The observations are not ordinary batch input and cannot be read in advance.
 
 ## Constraints
 
-- $3\le n\le50$.
-- Every wheel contains exactly $n$ distinct symbols, with the same cyclic ordering on every wheel.
-- Every response satisfies $1\le k\le n$.
-- The first response satisfies $k>1$; the machine is not already solved.
-- For every action, $1\le i\le n$ and $-10^9\le j\le10^9$, with integer $i,j$.
-- At most $10000$ actions are allowed.
-- The hidden initial configuration is fixed before the first action; the judge is non-adaptive.
-- After receiving $k=1$, produce no further output.
-- Time limit: **2 seconds**. Memory limit: **2048 MB**.
+- $1\le r,c\le100$.
+- Every map cell is either `.` or `#`.
+- At least one map cell is open.
+- The initial state is an open square paired with one of the four cardinal directions.
+- Every observation satisfies $0\le d\le99$.
+- Every reported coordinate satisfies $1\le i\le r$ and $1\le j\le c$.
+- At most $100000$ interaction rounds may be used, including the final round containing `yes i j` or `no`.
+- The program must never step into a wall.
+- Time limit: **5 seconds**.

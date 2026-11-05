@@ -1,63 +1,56 @@
 ## Problem Description
 
-There are $n$ items. Item $i$ has base power $p_i$ and bonus values $w_{i,1},\ldots,w_{i,p_i}$. Choose an ordering in which to process all items. A total base-power allowance of $k$ determines how much of each item is upgraded.
+There are $n$ positions numbered $1$ through $n$. Position $i$ has an interval $[a_i,b_i]$, and from $i$ you may move to any position in that interval.
 
-Before an item of base power $p_i$ is processed, let $s$ be the sum of the base powers of all earlier items. Its bonus is:
+Choose a starting position $u$, make any finite number of allowed moves, and finish at $u$. Taking zero moves is allowed. Let $S$ be the set of positions visited at least once, including the starting position.
 
-- $w_{i,p_i}$ if $s+p_i\le k$;
-- $0$ if $s\ge k$;
-- $w_{i,k-s}$ otherwise.
-
-Maximize the sum of the bonuses by choosing the processing order. The base powers themselves are not part of the requested answer.
+Count the distinct sets $S$ that can be obtained in this way, modulo $998244353$. Different walks or starting positions that produce the same set contribute only once.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n$ and $k$.
-
-Each of the next $n$ lines starts with $p_i$, followed by exactly $p_i$ integers $w_{i,1},\ldots,w_{i,p_i}$.
+The first line contains $n$. The next $n$ lines contain $a_i,b_i$ for positions $i=1,\ldots,n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print one integer: the maximum total bonus power.
+Print the number of distinct achievable visited-position sets modulo $998244353$.
 
 ## Examples
 
 Input:
 
 ```text
+5
+1 2
+2 5
+3 4
+2 5
 4 5
-2 1 3
-2 1 1
-2 3 1
-2 1 3
 ```
 
 Output:
 
 ```text
-9
+12
 ```
 
 ## Explanation / Notes
 
-If $k=0$, every item receives zero bonus. If the sum of all base powers is at most $k$, every item is fully upgraded.
+The required walk is closed: reaching some other position without returning to the chosen start is insufficient. A zero-move walk gives the singleton set containing its start. No empty visited set is possible.
 
-Bonus values need not increase with the upgraded amount. In particular, it is possible to have $w_{i,a}>w_{i,b}$ even when $a<b$.
-
-For the example, process items 1 and 4 first, then item 3. Their bonuses are $3$, $3$, and $3$ respectively: four base-power units are fully upgraded before one unit of item 3 is upgraded. Item 2 receives no bonus. The total is $9$.
+The interval condition describes directed moves; a move from $i$ to $j$ does not by itself guarantee that $j$ can move directly back to $i$.
 
 ## Constraints
 
-- $1\le n\le200000$.
-- $0\le k\le200000$.
-- $1\le p_i\le10$ for every item.
-- $1\le w_{i,j}\le10^5$ for every $1\le j\le p_i$.
+- $1\le n\le400$.
+- For every $i$, $1\le a_i\le i\le b_i\le n$.
 - All input values are integers.
-- There is no monotonicity guarantee for $w_{i,1},\ldots,w_{i,p_i}$.
-- Every item is processed exactly once, but its position in the order is freely chosen.
-- There is one test instance per input.
-- Time limit: **2 seconds**. Memory limit: **256 MB**.
+- Interval endpoints are inclusive.
+- Every position belongs to its own permitted destination interval.
+- Walk length has no stated finite upper bound; the object being counted is the visited set, not the walk.
+- Modulus: $998244353$.
+- There is one instance per input.
+- Time limit: **7 seconds**. Memory limit: **512 MB**.

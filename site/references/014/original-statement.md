@@ -1,22 +1,22 @@
 ## Problem Description
 
-For each index $i\in[1,n]$, define a height
+Consider all rooted trees on vertices $1,\ldots,n$ with root 1 such that the parent $f_i$ of vertex $i$ satisfies $1\le f_i<i$ for $i=2,\ldots,n$.
 
-$$h_i=\left(i+\frac ba\right)^2.$$
+For each tree, run depth-first search from vertex 1. Append a vertex to the order when first visiting it, and visit its children in increasing vertex-label order. Thus each tree produces one deterministic DFS preorder.
 
-For every unordered pair of distinct indices, create one ladder of length $|h_i-h_j|$. Sort the resulting $n(n-1)/2$ lengths in nondecreasing order, counting equal lengths separately. Find the $k$-th length and express it as a reduced fraction.
+There are $(n-1)!$ possible parent arrays. Count how many different DFS orders they produce, modulo the supplied prime $P$. Orders are different when some position contains different vertices.
 
 ## Input Format
 
 Read from standard input.
 
-Read one line containing four integers $n,k,a,b$.
+Read two integers $n,P$.
 
 ## Output Format
 
 Write to standard output.
 
-Print integers $p,q$ such that the requested length is $p/q$, $p\ge0$, $q\ge1$, and $\gcd(p,q)=1$.
+Print the number of distinct DFS orders modulo $P$.
 
 ## Examples
 
@@ -25,26 +25,27 @@ Print integers $p,q$ such that the requested length is $p/q$, $p\ge0$, $q\ge1$, 
 Input:
 
 ```text
-3 1 3 1
+4 114514199
 ```
 
 Output:
 
 ```text
-11 3
+2
 ```
 
 ## Explanation / Notes
 
-Each pair contributes its own ladder, even if its length equals another ladder's length. The rank $k$ is one-based. The offset inside the square is $b/a$.
+For $n=4$, the two possible orders are $[1,2,3,4]$ and $[1,2,4,3]$. They can be obtained from parent arrays $(f_2,f_3,f_4)=(1,1,1)$ and $(1,1,2)$, respectively.
+
+The number of distinct orders is requested, so different trees producing the same order count only once.
 
 ## Constraints
 
 - One test case.
-- $2\le n\le10^{12}$.
-- $1\le k\le\min\{n(n-1)/2,10^{12}\}$.
-- $1\le a\le10^6$.
-- $0\le b\le10^{12}$.
-- All four input parameters are integers.
-- The output fraction must be reduced, with a positive denominator.
-- Time limit: 4 seconds; memory limit: 1024 MB.
+- $1\le n\le800$.
+- $10^8\le P\le1.01\times10^9$.
+- $P$ is guaranteed to be prime.
+- Every considered tree has root 1 and satisfies $1\le f_i<i$.
+- Child visitation order is increasing by label; it is not a free choice.
+- Time limit: 2 seconds; memory limit: 1024 MB.

@@ -1,61 +1,63 @@
 ## Problem Description
 
-A gallery is a simple polygon containing $m$ cameras. A point is monitored if at least one camera can be joined to it by a line segment lying entirely in the closed polygonal region. Portions of the segment may lie along the polygon boundary.
+There are $n$ original cities and $m$ damaged undirected roads. Road $i$ joins $u_i$ and $v_i$ and costs $w_i$ to repair. Before the damage, these roads connected all the original cities. All damaged roads are currently unusable until repaired.
 
-Compute the area of the union of all monitored regions. Regions seen by multiple cameras are counted only once.
+There are also $k$ optional towns. Activating town $j$ costs $c_j$. Once activated, it may be connected to any original city $i$ by building a road of cost $a_{j,i}$. Any number of towns, including none, may be activated. An activated town may have any number of new roads, including zero, and the towns themselves are not required to be connected.
+
+Choose repairs, town activations, and new roads of minimum total cost so that every pair of **original cities** is connected. A route may pass through activated towns. New roads described by the input connect a town to an original city; no town-to-town road option is given.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by $n$ pairs of coordinates for the polygon vertices in clockwise order. Then read $m$, followed by $m$ pairs of camera coordinates.
+There is one instance.
+
+1. The first line contains $n,m,k$.
+2. Each of the next $m$ lines contains $u_i,v_i,w_i$.
+3. Each of the next $k$ lines contains $c_j,a_{j,1},a_{j,2},\ldots,a_{j,n}$ for one town.
 
 ## Output Format
 
 Write to standard output.
 
-Print the monitored area as a real number. For submitted value $a$ and reference value $b$, the acceptance condition is
-
-$$\frac{|a-b|}{\max(1,|b|)}\le10^{-6}.$$
+Print one nonnegative integer: the minimum total cost needed to connect all the original cities.
 
 ## Examples
 
 Input:
 
 ```text
-8
-0 0
-0 5
-5 5
-5 10
-10 10
-10 5
-50 5
-50 0
-1
-8 7
+4 4 2
+1 4 6
+2 3 7
+4 2 5
+4 3 4
+1 1 8 2 4
+100 1 3 2 4
 ```
 
 Output:
 
 ```text
-79.166666667
+13
 ```
 
 ## Explanation / Notes
 
-The polygon may be non-convex, so a camera does not necessarily see every interior point. Visibility is determined by the whole connecting segment, not solely by the locations of its endpoints. Boundary conventions do not change the requested area.
+In the example, repair roads 3 and 4 for costs 5 and 4. Activate town 1 for cost 1, then connect it to original cities 1 and 3 for costs 1 and 2. The total is $5+4+1+1+2=13$, which is optimal.
 
 ## Constraints
 
-- There is one input instance.
-- $3\le n\le200$.
-- $1\le m\le200$.
-- Polygon-vertex and camera coordinates are integers satisfying $|x|,|y|\le100$.
-- The polygon is simple and its vertices are listed clockwise.
-- No three consecutive polygon vertices are collinear, including consecutive triples crossing the end of the vertex list.
-- Every camera lies strictly inside the polygon.
-- Camera positions need not be distinct.
-- Error tolerance follows the explicit inequality above, with $10^{-6}$ included.
-- Time limit: 12 seconds.
+- $1\le n\le10^5$.
+- $0\le m\le10^6$.
+- $0\le k\le16$.
+- Every old road satisfies $1\le u_i,v_i\le n$, $u_i\ne v_i$, and $0\le w_i\le10^9$.
+- Every town activation cost satisfies $0\le c_j\le10^9$.
+- Every possible town-to-city construction cost satisfies $0\le a_{j,i}\le10^9$.
+- All input values are integers.
+- The original road network is connected. Self-loops are forbidden; multiple roads may join the same pair of cities.
+- Zero-cost repairs, activations, and new roads are allowed.
+- When $n=1$, $m=0$ is allowed. The original cities already satisfy the connectivity requirement, and the minimum cost is 0.
+- The answer may exceed the range of a signed 32-bit integer.
+- Time limit: 1 second.
 - Memory limit: 256 MB.

@@ -1,24 +1,24 @@
 ## Problem Description
 
-A magical string initially contains lowercase English letters and has no run of three or more equal consecutive letters.
+An apple tree is a tree rooted at vertex $1$ in which every non-root vertex has **strictly fewer direct children than its parent**.
 
-In one operation, change one letter into another letter. The change is permitted only if it immediately creates a run of at least three equal consecutive letters. The whole resulting maximal run containing the edited position is then replaced by one asterisk, `*`.
+For a given integer $k$, a configuration is a pair $(v,S)$: $v$ is a center vertex, and $S$ is a set of $k-1$ other vertices, all at one common distance from $v$. Distance is the number of edges on the unique path between two vertices.
 
-An asterisk is inert: it cannot be edited, cannot join a run of letters, and is never removed, even when several asterisks become adjacent.
-
-Given a magical string $S$ and an integer $K$, perform at most $K$ operations to maximize the number of original characters absorbed into asterisks. Replacing a run of length $r$ contributes $r$ to this count, not one.
+Count these pairs modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $T$. Each of the next $T$ lines contains the string $S$ and integer $K$, separated by a space.
+The first line contains the number of test cases $t$.
+
+Each case starts with $n,k$. The next line contains $p_2,\ldots,p_n$, where $p_i$ is the parent of vertex $i$.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print the maximum number of characters that can be transformed into asterisks using at most $K$ edits.
+For every test case, print the number of valid pairs $(v,S)$ modulo $998244353$.
 
 ## Examples
 
@@ -26,27 +26,33 @@ Input:
 
 ```text
 1
-cabacbc 2
+3 3
+1 1
 ```
 
 Output:
 
 ```text
-6
+1
 ```
 
 ## Explanation / Notes
 
-Edit the third character of `cabacbc` from `b` to `a`, obtaining `caaacbc`, then replace `aaa` to get `c*cbc`. Editing the remaining `b` to `c` removes another three letters, giving `c**` and a total of six absorbed characters.
+The only valid pair has center $1$ and $S=\{2, 3\}$.
+
+The center is distinguished from the selected set. The common distance is only required to exist; it is not an additional component of the counted object. When $k=1$, the selected set is empty, giving one pair for each possible center.
+
+The condition compares numbers of **children**, not undirected degrees or subtree sizes.
 
 ## Constraints
 
-- $1\le T\le50$.
-- $1\le |S|\le200000$ for each test case.
-- $1\le K\le|S|$.
-- The initial string uses only the 26 lowercase English letters `a`–`z`.
-- Initially, every run of equal consecutive letters has length at most two.
-- Each operation must immediately create a run of at least three equal letters; arbitrary preparatory edits are not permitted.
-- Each created run is replaced by exactly one permanent asterisk.
-- Fewer than $K$ operations may be used, including zero.
-- Time limit: **1 second**. Memory limit: **512 MB**.
+- $1\le t\le10^4$.
+- $2\le n\le10^6$ per test case.
+- $1\le k\le n$.
+- $1\le p_i<i$ for every $i=2,\ldots,n$.
+- The input is guaranteed to describe an apple tree rooted at vertex $1$.
+- For every non-root vertex $v$, its number of direct children is strictly less than its parent's number of direct children.
+- Across all cases, $\sum n\le10^6$.
+- The members of $S$ are distinct and do not include the center; $|S|=k-1$.
+- Answer modulus: $998244353$.
+- Time limit: **0.5 seconds**. Memory limit: **256 MB**.

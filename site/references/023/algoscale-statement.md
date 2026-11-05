@@ -1,25 +1,20 @@
 ## Problem Description
 
-A tree has vertices $1,\ldots,n$ and is rooted at vertex 1. Let $\operatorname{depth}(x)$ be the number of edges from $x$ to the root, and let $\operatorname{lca}(x,y)$ be the lowest common ancestor of $x$ and $y$.
+Let $d(x)$ denote the number of positive divisors of $x$. For each triple $A,B,C$, compute
 
-Count permutations $p$ of all $n$ vertices for which the depths of consecutive-pair LCAs are nondecreasing. Formally, for every $1\le i<n-1$,
-
-$$\operatorname{depth}(\operatorname{lca}(p_i,p_{i+1}))\le
-\operatorname{depth}(\operatorname{lca}(p_{i+1},p_{i+2})).$$
-
-Return the count modulo $1000000007$.
+$$\sum_{i=1}^{A}\sum_{j=1}^{B}\sum_{k=1}^{C}d(ijk)\pmod{10^9+7}.$$
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by $n-1$ lines of edge endpoints $x,y$.
+Read the number of cases $T$, followed by $T$ lines containing $A,B,C$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the count modulo $1000000007$.
+For each case, print one line containing the requested value modulo $10^9+7$.
 
 ## Examples
 
@@ -28,27 +23,25 @@ Print the count modulo $1000000007$.
 Input:
 
 ```text
-3
-1 2
-2 3
+1
+10 10 10
 ```
 
 Output:
 
 ```text
-4
+11536
 ```
 
 ## Explanation / Notes
 
-The root is fixed at vertex 1. Equal successive LCA depths are allowed. For $n=2$, the displayed condition has no indices to check.
+All three summation indices vary independently and include both endpoints. The divisor count is taken for their product $ijk$.
 
 ## Constraints
 
-- One test case.
-- $2\le n\le1000$.
-- $1\le u_i,v_i\le n$ and $u_i\ne v_i$ for every edge.
-- The input describes a tree.
-- Modulus: $1000000007$.
+- $1\le T\le10$.
+- For every case, $1\le A,B,C\le10^6$.
+- Over all test cases in the same input file, $1\le\sum\max(A,B,C)\le2\times10^6$.
 
+- Modulus: $1000000007$.
 - Time limit: 5 seconds; memory limit: 256 MB.

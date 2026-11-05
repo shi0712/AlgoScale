@@ -1,57 +1,51 @@
 ## Problem Description
 
-An $n\times m$ board contains `*`, `+`, and `.` cells. Place as many pairwise disjoint trominoes as possible. Each tromino consists of a center cell and two distinct cells sharing edges with that center.
+There are $N$ topping types, numbered $0$ through $N-1$, with $a_i$ pieces of type $i$. A cake's tastiness is the largest number of pieces of a single topping type on that cake.
 
-- An L-shaped tromino uses two perpendicular neighbors; its center must contain `*` or `+`.
-- An I-shaped tromino uses two opposite neighbors; its center must contain `+`.
-- Both non-center cells must contain `.`.
-
-No cell may belong to more than one tromino. Output a board showing a placement with the maximum possible number of trominoes.
+For each of $Q$ independent requested counts $K_j$, determine whether all available topping pieces can be distributed among exactly $K_j$ nonempty cakes so that every cake has the same tastiness. Cakes may have different total numbers of pieces and different sets of topping types. No piece may be left over.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n,m$. Each of the next $n$ lines contains $m$ board characters.
+The first line contains $N,Q$. The second contains $a_0,\ldots,a_{N-1}$. Each of the next $Q$ lines contains one requested cake count $K_j$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ lines of $m$ characters. Replace the three cells of each chosen tromino by the same lowercase English letter. Edge-adjacent cells belonging to different trominoes must receive different letters. A cell not covered by a tromino must retain its original character.
-
-Each side-connected component of cells carrying the same lowercase letter must consist of exactly the three cells of one tromino.
-
-Any optimal placement and valid lettering are accepted. Do not print the number of trominoes separately. If no tromino can be placed, output the original board.
+For every query, print `YES` if such a distribution exists, and `NO` otherwise.
 
 ## Examples
 
 Input:
 
 ```text
-2 2
-*.
-..
+1 1
+4
+2
 ```
 
 Output:
 
 ```text
-aa
-a.
+YES
 ```
 
 ## Explanation / Notes
 
-The letters identify trominoes in the output; they are not part of the original board. Different trominoes may reuse a letter when no cells from the two trominoes share an edge. A `*` center permits only an L, while a `+` center permits either shape.
+Give each of the two cakes two pieces of the only topping type. Both cakes then have tastiness 2, and all four pieces are used.
+
+Each query starts with the original inventory; it does not consume pieces for subsequent queries.
 
 ## Constraints
 
-- $2\le n,m\le500$.
-- Every input row has exactly $m$ characters, each one `*`, `+`, or `.`.
-- Each tromino occupies exactly three distinct grid cells.
-- The two non-center cells must have been `.` in the input.
-- Trominoes may not overlap; edge contact between different trominoes is allowed subject to different output letters.
-- Output labels use only lowercase English letters `a`–`z`.
-- There is one board per input.
-- Time limit: **9 seconds**. Memory limit: **256 MB**.
+- $1\le N,Q\le10^6$.
+- $1\le a_i\le10^6$ for all topping types.
+- $1\le K_j\le10^{18}$ for all queries.
+- All values are integers.
+- Every cake must receive at least one topping piece.
+- All topping pieces must be used exactly once within a scenario.
+- The tastiness must be equal across cakes, but it may differ between scenarios.
+- Time limit: 0.5 seconds.
+- Memory limit: 256 MB.

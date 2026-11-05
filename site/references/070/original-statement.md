@@ -1,54 +1,78 @@
 ## Problem Description
 
-There are $n$ sets containing $2m$ distinct elements in total. Initially, set $i$ contains $a_i$ elements, and each element belongs to exactly one set.
+Transform one weighted rooted tree into another at minimum cost. The children of every vertex have a fixed left-to-right order. The allowed operations are:
 
-In each round, randomly partition all elements into $m$ pairs. Independently for each pair, randomly choose one of its two elements and move that element into the set containing its partner. The random matching and endpoint selections are uniform.
+1. **Growing.** Add a new leaf $z$ as a child of $x$, inserting it anywhere in $x$'s ordered child list. If the new edge has weight $w$, the cost is $c_1w$.
+2. **Expansion.** Choose a nonempty consecutive group of children $y_l,\ldots,y_r$ of $x$. Add a new vertex $z$ between $x$ and that group. Replace the group in $x$'s list by $z$, and make $y_l,\ldots,y_r$ the ordered children of $z$. Their incident edge weights remain unchanged. If the new edge $(x,z)$ has weight $w$, the cost is $c_1w$.
+3. **Contraction.** Choose a child $y$ of $x$, delete $y$ and edge $(x,y)$, and splice $y$'s ordered children into $x$'s child list at $y$'s former position. Their incident edge weights remain unchanged. If the removed edge has weight $w$, the cost is $c_2w$.
+4. **Relabeling.** Change an edge weight from $w_1$ to $w_2$, at cost $c_3|w_1-w_2|$.
 
-Find the expected number of rounds until all elements belong to a single set. Express this expectation modulo $998244353$.
+Two restrictions apply throughout the sequence of operations:
+
+- An edge newly added by growing or expansion cannot later be relabeled.
+- An edge that has been relabeled cannot later be contracted.
+
+The resulting tree must match the target under a vertex bijection preserving the root, child order, and every corresponding edge weight. Vertex names themselves need not match.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $T$.
+The first line contains the cost coefficients $c_1,c_2,c_3$.
 
-Each case contains a line with $n,m$, followed by a line with the $n$ initial set sizes $a_1,\ldots,a_n$.
+Two tree descriptions follow, first the initial tree and then the target tree. Each description begins with its vertex count $n$, followed by $n$ vertex records. A record starts with the number of children $k$, followed by $k$ ordered pairs
+
+```text
+child_1 weight_1 child_2 weight_2 ... child_k weight_k
+```
+
+The listed order is the left-to-right child order. A leaf has a record containing only `0`.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print one integer. If the expectation is $P/Q$, output $P\cdot Q^{-1}\bmod998244353$, where the inverse satisfies $QQ^{-1}\equiv1\pmod{998244353}$.
+Print one integer: the minimum total transformation cost.
 
 ## Examples
 
 Input:
 
 ```text
-1
-2 1
-1 1
+1 1 2
+4
+2 2 5 4 2
+1 3 1
+0
+0
+3
+2 2 1 3 2
+0
+0
 ```
 
 Output:
 
 ```text
-1
+5
 ```
 
 ## Explanation / Notes
 
-There are two elements, initially in separate sets. There is only one possible pair, and moving either endpoint puts both elements in one set. Exactly one round is required.
+In the sample, contract the weight-5 edge from the initial root to its first child. This promotes the weight-1 edge below that child to the root. The root is then incident to two ordered leaf edges of weights 1 and 2, matching the target. The cost is $1\cdot5=5$.
 
-Elements remain distinguishable even when they share a set. A set may become empty during the process. If all elements are already in one set, the required number of rounds is zero.
+An expansion groups a consecutive interval of children, so it cannot arbitrarily reorder them. Similarly, contraction preserves the order of the promoted children and of the surrounding siblings. A contracted leaf simply disappears.
 
 ## Constraints
 
-- $1\le T\le100$.
-- $n,m$ are integers satisfying $1\le n\le2m\le400$.
-- Each initial size satisfies $1\le a_i\le2m$.
-- $\sum_{i=1}^{n}a_i=2m$ in every test case.
-- All $2m$ elements are distinct and initially belong to exactly one set each.
-- Across all test cases, $\sum n\le800$ and $\sum m\le400$.
-- Every round pairs all elements, with exactly one selected endpoint per pair.
-- Answer modulus: $998244353$.
+- $1\le c_1,c_2,c_3\le10^6$; these coefficients are integers.
+- The initial tree has at most **50** vertices.
+- The target tree has at most **2000** vertices.
+- Both inputs are weighted rooted trees with ordered child lists.
+- Each vertex record contains exactly $k$ child/weight pairs after its child count.
+- A tree with $n$ vertices has $n-1$ parent-child edges; each non-root vertex has exactly one parent.
+- Expansion requires $1\le l\le r\le k$ for the selected parent's current child list.
+- Newly introduced growing/expansion edges cannot be relabeled; relabeled edges cannot be contracted.
+- Time limit: **3 seconds**. Memory limit: **1024 MiB**.
+
+An unambiguous numeric range for edge weights and an explicit root-label convention are not specified.

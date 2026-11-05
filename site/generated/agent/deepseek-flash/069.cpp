@@ -1,191 +1,224 @@
-// Staple Stable
-//
-// Model: a horizontal cut is a full grid line across the sheet and splits every
-// current piece it meets; likewise vertical.  Hence the final pieces are exactly
-// the cells of the grid induced by the chosen horizontal cut lines H and vertical
-// cut lines V, and the number of cuts is |H| + |V|.
-//
-// If the largest horizontal piece length is P and the largest vertical piece
-// length is D, we need exactly ceil(h/P) horizontal pieces and ceil(w/D) vertical
-// pieces, so the answer is
-//
-//      min over P,D >= 1 with P*D <= s of  (ceil(h/P)-1) + (ceil(w/D)-1).
-//
-// For a fixed P the best D is floor(s/P), and it is never useful to take P > h or
-// P > s, so
-//
-//      K = min over 1 <= P <= min(s,h) of  G(P),
-//      G(P) = ceil(h/P) + ceil(w/floor(s/P)),        answer = K - 2.
-//
-// G is searched with three exact prunings:
-//   * integer bounds:  G(P) < U  =>  ceil(h/P) <= U-2  and  ceil(w/floor(s/P)) <= U-2
-//   * convexity bound: G(P) >= phi(P) = h/P + w*P/s, and phi is convex, so only
-//     P with phi(P) <= U (a contiguous interval found by binary search) can matter
-//   * inside the surviving interval the minimum is attained either at a point that
-//     is the maximum of a block of constant floor(s/P), or at a point that is the
-//     minimum of a block of constant ceil(h/P); both enumerations are O(#blocks).
-//
-// Everything is done in exact integer arithmetic (128 bit where needed).
-
 #include <bits/stdc++.h>
 using namespace std;
+static const long long MOD = 1000000007LL;
 
-typedef unsigned long long u64;
-typedef __uint128_t u128;
-
-static inline u64 cdiv(u64 a, u64 b) { return a / b + (a % b != 0); }
-
-// floor(sqrt(x)) for x < 2^128 (result fits in u64 because x <= 10^36)
-static inline u64 isqrt128(u128 x) {
-    if (x == 0) return 0;
-    u64 r = (u64)sqrtl((long double)x);
-    while (r > 0 && (u128)r * r > x) --r;
-    while ((u128)(r + 1) * (r + 1) <= x) ++r;
-    return r;
-}
-
-// G(P) = ceil(h/P) + ceil(w/floor(s/P)); requires 1 <= P <= s
-static inline u64 evalG(u64 h, u64 w, u64 s, u64 P) {
-    u64 d = s / P;
-    return cdiv(h, P) + cdiv(w, d);
-}
-
-// phi(P) = h/P + w*P/s <= U   (multiplied by s*P:  h*s <= P*(s*U - w*P))
-static inline bool phiLE(u64 h, u64 w, u64 s, u64 U, u64 P) {
-    u128 sU = (u128)s * U;
-    u128 wP = (u128)w * P;
-    if (sU < wP) return false;
-    u128 T = sU - wP;                 // s*U - w*P
-    u128 hs = (u128)h * s;
-    u128 q = hs / P, r = hs % P;      // compare h*s/P with T
-    if (q != T) return q < T;
-    return r == 0;
-}
-
-// phi(P+1) >= phi(P)  <=>  h*s <= w*P*(P+1)   (evaluated without overflow)
-static inline bool vertexAt(u64 h, u64 w, u64 s, u64 P) {
-    u128 hs = (u128)h * s;
-    u128 W = (u128)w * ((u128)P + 1);
-    u128 q = hs / P, r = hs % P;      // compare h*s/P with w*(P+1)
-    if (q != W) return q < W;
-    return r == 0;
-}
-
-// K = min over 1 <= P <= min(s,h) of G(P)
-static u64 solveK(u64 h, u64 w, u64 s) {
-    u64 Pmax = min(s, h);
-    u64 U = ~(u64)0;                  // best known value of G
-
-    auto tryP = [&](u64 P) {
-        if (P >= 1 && P <= Pmax) U = min(U, evalG(h, w, s, P));
-    };
-
-    // ---- a good upper bound: evaluate the continuous optima and their neighbours
-    {
-        u64 b1 = isqrt128((u128)((u128)h * s / w));   // ~ sqrt(h*s/w)
-        u64 b2 = isqrt128((u128)((u128)w * s / h));   // ~ sqrt(w*s/h)
-        for (long long d = -8; d <= 8; ++d) {
-            long long x = (long long)b1 + d;
-            if (x >= 1) tryP((u64)x);
+// items l..r of an ordered sequence.
+// x[p] = weight when item p is used as a leaf block.
+// w[p] = weight when item p is the root of an internal block covering a
+//        non-empty consecutive range starting at p.
+// Returns the total weight of all "plane forests" over items l..r.
+static long long segDP(const vector<long long>& x, const vector<long long>& w, int l, int r) {
+    int L = r - l + 1;
+    if (L <= 0) return 1;
+    vector<long long> cur(L + 2, 0), nxt(L + 2, 0);
+    cur[0] = 1;
+    for (int p = l; p <= r; p++) {
+        fill(nxt.begin(), nxt.end(), 0);
+        long long xp = x[p], wp = w[p];
+        // leaf: after finishing this block we may close any number of open nodes
+        long long run = 0;
+        for (int d = L; d >= 0; d--) {
+            run += cur[d] * xp % MOD;
+            if (run >= MOD) run -= MOD;
+            nxt[d] += run;
+            if (nxt[d] >= MOD) nxt[d] -= MOD;
         }
-        for (long long d = -8; d <= 8; ++d) {
-            long long x = (long long)b2 + d;
-            if (x >= 1 && (u64)x <= min(s, w)) tryP(min(Pmax, s / (u64)x));
-        }
-        tryP(1);
-        tryP(Pmax);
-        tryP(Pmax > 1 ? Pmax - 1 : 1);
-        tryP(min(Pmax, (u64)2));
-        for (u64 D = 1; D <= 8; ++D) tryP(min(Pmax, s / D));
-        u64 Dw = min(s, w);
-        for (long long d = -8; d <= 8; ++d) {
-            long long x = (long long)Dw + d;
-            if (x >= 1) tryP(min(Pmax, s / (u64)x));
-        }
-    }
-    if (U <= 2) return U;             // cannot be beaten (answer would be <= 0)
-
-    // ---- discrete vertex of the convex phi: smallest P with phi(P+1) >= phi(P)
-    u64 Pv;
-    if (!vertexAt(h, w, s, Pmax)) {
-        Pv = Pmax;
-    } else {
-        u64 a = 1, b = Pmax;
-        while (a < b) {
-            u64 m = a + (b - a) / 2;
-            if (vertexAt(h, w, s, m)) b = m; else a = m + 1;
-        }
-        Pv = a;
-    }
-
-    // ---- interval where the convex lower bound phi is <= U
-    u64 Plo, Phi;
-    if (!phiLE(h, w, s, U, Pv)) {
-        // cannot happen (phi(Pv) = min_P phi(P) <= G(P_best) = U); keep the search safe
-        Plo = 1;
-        Phi = Pmax;
-    } else {
-        {
-            u64 a = 1, b = Pv;                   // phi non-increasing on [1,Pv]
-            while (a < b) {
-                u64 m = a + (b - a) / 2;
-                if (phiLE(h, w, s, U, m)) b = m; else a = m + 1;
+        // internal: push a new open node
+        for (int d = 0; d <= L; d++) {
+            if (cur[d]) {
+                nxt[d + 1] += cur[d] * wp % MOD;
+                if (nxt[d + 1] >= MOD) nxt[d + 1] -= MOD;
             }
-            Plo = a;
         }
-        {
-            u64 a = Pv, b = Pmax;                // phi non-decreasing on [Pv,Pmax]
-            while (a < b) {
-                u64 m = a + (b - a + 1) / 2;
-                if (phiLE(h, w, s, U, m)) a = m; else b = m - 1;
-            }
-            Phi = a;
-        }
+        cur.swap(nxt);
     }
-
-    // ---- integer necessary conditions for G(P) < U  (both terms are >= 1)
-    u64 V = U - 2;
-    u64 Alo = cdiv(h, V);                        // ceil(h/P) <= V
-    u64 Bhi = min(Pmax, s / cdiv(w, V));         // floor(s/P) >= ceil(w/V)
-
-    u64 A = max(max(Alo, Plo), (u64)1);
-    u64 B = min(min(Bhi, Phi), Pmax);
-    if (A > B) return U;
-
-    // ---- enumerate the surviving candidates with the cheapest of three strategies
-    u64 best = U;
-    u64 c1 = B - A + 1;                              // every integer P
-    u64 c2 = s / A - s / B + 1;                      // blocks of constant floor(s/P)
-    u64 c3 = cdiv(h, A) - cdiv(h, B) + 1;            // blocks of constant ceil(h/P)
-
-    if (c1 <= c2 && c1 <= c3) {
-        for (u64 P = A; P <= B; ++P) best = min(best, evalG(h, w, s, P));
-    } else if (c2 <= c3) {
-        u64 Dhi = s / A, Dlo = s / B;
-        for (u64 D = Dlo; D <= Dhi; ++D) {
-            u64 P = min(B, s / D);                   // largest P of this block
-            best = min(best, evalG(h, w, s, P));
-        }
-    } else {
-        u64 vhi = cdiv(h, A), vlo = cdiv(h, B);
-        for (u64 v = vlo; v <= vhi; ++v) {
-            u64 P = min(B, max(A, cdiv(h, v)));      // smallest P of this block
-            best = min(best, evalG(h, w, s, P));
-        }
-    }
-    return best;
+    return cur[0];
 }
 
 int main() {
-    int t;
-    if (scanf("%d", &t) != 1) return 0;
-    while (t--) {
-        u64 h, w, s;
-        if (scanf("%llu %llu %llu", &h, &w, &s) != 3) return 0;
-        u64 ans;
-        if ((u128)h * w <= s) ans = 0;               // the whole sheet already fits
-        else ans = solveK(h, w, s) - 2;
-        printf("%llu\n", ans);
+    int n, m;
+    if (scanf("%d %d", &n, &m) != 2) return 0;
+    vector<vector<int>> perms(m, vector<int>(n));
+    for (int k = 0; k < m; k++)
+        for (int i = 0; i < n; i++) scanf("%d", &perms[k][i]);
+
+    if (n == 1) { printf("1\n"); return 0; }
+
+    vector<int> pos1(n + 1);
+    for (int i = 0; i < n; i++) pos1[perms[0][i]] = i;
+
+    // cnt[x][y] (x<y): times positions x,y are consecutive in some permutation
+    vector<int> cnt((size_t)n * n, 0);
+    for (int k = 0; k < m; k++)
+        for (int s = 0; s + 1 < n; s++) {
+            int x = pos1[perms[k][s]], y = pos1[perms[k][s + 1]];
+            if (x > y) swap(x, y);
+            cnt[(size_t)x * n + y]++;
+        }
+
+    // L[i]: largest j such that element at position i is first of [i..j]
+    // in every permutation
+    vector<int> L(n, n - 1);
+    {
+        vector<int> a(n), posk(n + 1), st;
+        st.reserve(n);
+        for (int k = 0; k < m; k++) {
+            for (int i = 0; i < n; i++) posk[perms[k][i]] = i;
+            for (int i = 0; i < n; i++) a[i] = posk[perms[0][i]];
+            st.clear();
+            for (int i = n - 1; i >= 0; i--) {
+                while (!st.empty() && a[st.back()] > a[i]) st.pop_back();
+                int nsr = st.empty() ? n : st.back();
+                if (nsr - 1 < L[i]) L[i] = nsr - 1;
+                st.push_back(i);
+            }
+        }
     }
+
+    // common[i][j] : {positions i..j} is an interval in every permutation
+    // good[i][j]   : ... and element at position i is the first one in every permutation
+    vector<char> common((size_t)n * n, 0);
+    vector<char> good((size_t)n * n, 0);
+    {
+        vector<int> W(n, 0);
+        for (int j = 0; j < n; j++) {
+            if (j > 0) {
+                long long suff = 0;
+                for (int i = j - 1; i >= 0; i--) {
+                    suff += cnt[(size_t)i * n + j];
+                    W[i] += (int)suff - m;
+                }
+                W[j] = 0;
+            }
+            for (int i = 0; i <= j; i++) {
+                bool c = (W[i] == 0);
+                common[(size_t)i * n + j] = c;
+                good[(size_t)i * n + j] = c && (j <= L[i]);
+            }
+        }
+    }
+
+    // ---- strong intervals of the common-interval family ----
+    vector<int> R(n, 0), Lb(n, n);
+    for (int i = 0; i < n; i++)
+        for (int j = i; j < n; j++)
+            if (common[(size_t)i * n + j]) {
+                if (j > R[i]) R[i] = j;
+                if (i < Lb[j]) Lb[j] = i;
+            }
+
+    vector<char> isStrong((size_t)n * n, 0);
+    for (int i = 0; i < n; i++) {
+        int mr = -1, ml = n + 1;
+        for (int j = i; j < n; j++) {
+            if (j > i) {
+                if (R[j] > mr) mr = R[j];
+                if (Lb[j - 1] < ml) ml = Lb[j - 1];
+            }
+            if (common[(size_t)i * n + j] && !(mr > j) && !(ml < i))
+                isStrong[(size_t)i * n + j] = 1;
+        }
+    }
+
+    struct Block { int l, r; };
+    vector<Block> blocks;
+    for (int i = 0; i < n; i++)
+        for (int j = i; j < n; j++)
+            if (isStrong[(size_t)i * n + j]) blocks.push_back({i, j});
+    int B = (int)blocks.size();
+
+    vector<int> par(B, -1);
+    vector<vector<int>> children(B);
+    for (int i = 0; i < B; i++) {
+        int best = -1, bestLen = INT_MAX;
+        for (int j = 0; j < B; j++) {
+            if (i == j) continue;
+            if (blocks[j].l <= blocks[i].l && blocks[i].r <= blocks[j].r &&
+                (blocks[j].l < blocks[i].l || blocks[j].r > blocks[i].r)) {
+                int len = blocks[j].r - blocks[j].l;
+                if (len < bestLen) { bestLen = len; best = j; }
+            }
+        }
+        par[i] = best;
+        if (best != -1) children[best].push_back(i);
+    }
+    for (int i = 0; i < B; i++)
+        sort(children[i].begin(), children[i].end(),
+             [&](int a, int b) { return blocks[a].l < blocks[b].l; });
+
+    // orientation of complete nodes: 0 unknown, 1 all canonical, 2 all reverse, 3 mixed
+    vector<int> orient(B, 0);   // 0 unknown, 1 canonical, 2 reversed, 3 mixed
+    {
+        vector<int> posk(n + 1);
+        for (int k = 0; k < m; k++) {
+            for (int i = 0; i < n; i++) posk[perms[k][i]] = i;
+            for (int i = 0; i < B; i++) {
+                auto& ch = children[i];
+                if (ch.size() < 2) continue;
+                int e0 = perms[0][blocks[ch.front()].l];
+                int e1 = perms[0][blocks[ch.back()].l];
+                int st = (posk[e0] < posk[e1]) ? 1 : 2;
+                if (orient[i] == 0) orient[i] = st;
+                else if (orient[i] != st) orient[i] = 3;
+            }
+        }
+    }
+
+    vector<int> order(B);
+    iota(order.begin(), order.end(), 0);
+    sort(order.begin(), order.end(), [&](int a, int b) {
+        return blocks[a].r - blocks[a].l < blocks[b].r - blocks[b].l;
+    });
+
+    vector<long long> Forest(B, 0), Tree(B, 0);
+    for (int idx : order) {
+        auto& ch = children[idx];
+        int k = (int)ch.size();
+        if (k == 0) { Forest[idx] = 1; Tree[idx] = 1; continue; }
+
+        // Node type: "complete" iff every adjacent union of children is a common
+        // interval and the children keep one orientation (canonical or reversed) in
+        // every permutation.  Then every union of >=2 children that is common is a
+        // good block iff the first child of the union is good, and segDP applies.
+        // Otherwise no union of >=2 children is a good block at all.
+        bool complete = (orient[idx] != 3);
+        for (int p = 0; complete && p + 1 < k; p++) {
+            if (!common[(size_t)blocks[ch[p]].l * n + blocks[ch[p + 1]].r]) complete = false;
+        }
+
+        bool isGood = good[(size_t)blocks[idx].l * n + blocks[idx].r];
+
+        vector<long long> x(k), w(k);
+        for (int t = 0; t < k; t++) {
+            x[t] = Forest[ch[t]];
+            w[t] = good[(size_t)blocks[ch[t]].l * n + blocks[ch[t]].r] ? Tree[ch[t]] : 0;
+        }
+
+        if (!complete) {
+            // prime node: every allowed block is contained in a single child
+            long long restProd = 1;
+            for (int t = 1; t < k; t++) restProd = restProd * x[t] % MOD;
+            long long tr = isGood ? w[0] * restProd % MOD : 0;
+            long long all = x[0] * restProd % MOD;
+            Tree[idx] = tr;
+            Forest[idx] = (all + tr) % MOD;
+        } else {
+            // complete node with a uniform orientation: the root may take any
+            // consecutive run of children as its own block
+            if (orient[idx] == 2) {
+                reverse(x.begin(), x.end());   // the leftmost child in the
+                reverse(w.begin(), w.end());   // permutations comes last here
+            }
+            Forest[idx] = segDP(x, w, 0, k - 1);
+            long long tr = 0;
+            if (isGood) tr = w[0] * segDP(x, w, 1, k - 1) % MOD;
+            Tree[idx] = tr;
+        }
+    }
+
+    int rootIdx = -1;
+    for (int i = 0; i < B; i++)
+        if (blocks[i].l == 0 && blocks[i].r == n - 1) { rootIdx = i; break; }
+    printf("%lld\n", Tree[rootIdx] % MOD);
     return 0;
 }

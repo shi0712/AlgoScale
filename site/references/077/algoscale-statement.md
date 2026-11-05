@@ -1,79 +1,91 @@
 ## Problem Description
 
-You are given a directed graph. Find the infimum variance among all walks from vertex $1$ to vertex $n$.
+This is an interactive problem.
 
-A walk from vertex $1$ to vertex $n$ is a sequence of edges $p=(e_1,e_2,\ldots,e_l)$ such that:
-
-- the starting vertex of $e_1$ is vertex $1$;
-- the ending vertex of $e_l$ is vertex $n$;
-- for every consecutive pair, the ending vertex of $e_i$ is the starting vertex of $e_{i+1}$.
-
-Edges in a walk do not need to be distinct.
-
-The variance of a walk is
+For a sequence $A=(A_1,A_2,\ldots,A_n)$, let $MSS(A)$ denote its maximum subarray sum. The empty subarray is allowed, so
 
 $$
-D(p)=\frac{1}{l}\sum_{i=1}^{l}\left(w_{e_i}-\overline{w}\right)^2,
+MSS(A)=\max\left(0,\max_{1\le i\le j\le n}\sum_{k=i}^{j}A_k\right).
 $$
 
-where
+For example, $MSS([-2,1,4,-3,5])=7$, while $MSS([-5])=0$ and $MSS([-1,-2])=0$.
+
+Professor Kubic has a hidden integer sequence $a_1,a_2,\ldots,a_n$. You may ask for the maximum subarray sum of any contiguous interval of this sequence.
+
+Your task is to report a sequence $b_1,b_2,\ldots,b_n$ such that
 
 $$
-\overline{w}=\frac{1}{l}\sum_{i=1}^{l}w_{e_i}
+MSS(a_l,a_{l+1},\ldots,a_r)=MSS(b_l,b_{l+1},\ldots,b_r)
 $$
 
-is the average edge weight of the walk.
+for every subarray $[l,r]$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains two integers $n$ and $m$, the number of vertices and directed edges.
+First read the integer $T$, the number of test cases. At the beginning of each test case, read the integer $n$. The hidden sequence itself is not supplied.
 
-Each of the next $m$ lines contains three integers $x_i$, $y_i$, and $w_i$, describing a directed edge from $x_i$ to $y_i$ with weight $w_i$. Parallel edges are allowed and are treated as distinct edges.
+After every valid query, read one integer: the maximum subarray sum of the queried interval. Replies may exceed the range of a signed 32-bit integer. If you read `-1` or the input stream closes, terminate immediately.
 
 ## Output Format
 
 Write to standard output.
 
-Print one real number: the infimum variance among all walks from vertex $1$ to vertex $n$. If no such walk exists, print `-1`.
+To query an interval, print:
 
-If the required infimum is $a$ and your reported value is $b$, the answer is accepted when
+```text
+? l r
+```
 
-$$
-|a-b|\le10^{-9}\max\{1,|a|,|b|\}.
-$$
+where $l$ and $r$ are valid interval endpoints. End the line and flush the output before reading the response.
+
+To answer a test case, print:
+
+```text
+! b_1 b_2 ... b_n
+```
+
+The final answer must contain exactly $n$ integers and does not count as a query. End every command with a newline and flush the output. After a correct final answer there is no confirmation: read the next case's $n$ directly, or terminate if all test cases are complete. Every command and its arguments must occupy one line; do not print any other content to standard output.
+
+Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, `flush(output)` in Pascal, and `sys.stdout.flush()` in Python. Failing to flush a query may cause an idleness or time-limit verdict.
 
 ## Examples
 
-Input:
+The table shows one possible complete interaction in chronological order. A blank cell means that the other side sends the next message.
 
-```text
-4 4
-1 2 3
-1 3 4
-2 4 5
-3 4 7
-```
-
-Output:
-
-```text
-1.000000000000000
-```
+| Judge sends | Program sends |
+| --- | --- |
+| `2` | |
+| `3` | |
+| | `? 1 1` |
+| `1` | |
+| | `? 2 2` |
+| `0` | |
+| | `? 3 3` |
+| `1` | |
+| | `! 1 -1 1` |
+| `5` | |
+| | `? 1 3` |
+| `4` | |
+| | `? 3 5` |
+| `5` | |
+| | `! 2 -1 3 -4 5` |
 
 ## Explanation / Notes
 
-The walk $1\to2\to4$ uses edge weights $3$ and $5$. Its average weight is $4$, and its variance is $1$.
+The hidden sequence for every test case is fixed before the interaction begins. The interactor is **non-adaptive**: it does not change the hidden values in response to your queries.
 
-Because edges may be repeated, the set of attainable walk variances need not contain its greatest lower bound; therefore the problem asks for the infimum rather than necessarily a minimum.
+The transcript above is only an example. The judge responses depend on the hidden sequences and are not ordinary batch input that can be read in advance.
 
 ## Constraints
 
-- $2\le n\le100$.
-- $1\le m\le1000$.
-- $1\le x_i,y_i\le n$.
-- $x_i\ne y_i$.
-- $0\le w_i\le20$.
-- Answers are checked using the tolerance formula in the output specification.
-- Time limit: 1 second. Memory limit: 256 MB.
+- $1\le T\le10^4$.
+- $3\le n\le2000$ in each test case.
+- Across all test cases, $\sum n\le10^4$.
+- $-10^9\le a_i\le10^9$.
+- Every query satisfies $1\le l\le r\le n$.
+- At most $\left\lfloor5(n-1)/3\right\rfloor$ queries may be issued in each test case.
+- Every reported value satisfies $-10^{15}\le b_i\le10^{15}$.
+- The interactor is non-adaptive.
+- Time limit: **1 second**. Memory limit: **256 MB**.

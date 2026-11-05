@@ -1,22 +1,22 @@
 ## Problem Description
 
-Player X has $n$ ordinary pieces with strengths $a_1,\ldots,a_n$ and $k$ bombs. Player Y has $m$ ordinary pieces with strengths $b_1,\ldots,b_m$. Each player independently and uniformly shuffles their entire collection into an order. Treat every piece as distinctly labeled when shuffling: all permutations of the labels are equally likely, while labels do not affect the rules of play.
+For a permutation $p$ of $1,\ldots,n$, let $q_i$ be the position of value $i$, so $p_{q_i}=i$. Call $p$ a turning permutation if, for every $i=2,\ldots,n-1$,
 
-Both players deploy the first remaining piece. For two ordinary pieces, the weaker one is removed; if their strengths are equal, both are removed. A surviving piece stays deployed while the opposing player deploys their next piece. Whenever X's bomb meets any Y piece, both are removed.
+$$(q_i-q_{i-1})(q_i-q_{i+1})>0.$$
 
-A player wins when the other player has no pieces remaining but they still have at least one. If both run out simultaneously, the outcome is a draw. Bombs count as remaining pieces. Compute the probabilities of an X win, a Y win, and a draw, modulo $998244353$.
+Find the $k$-th turning permutation in lexicographic order. If fewer than $k$ exist, report that fact. Lexicographic order compares the entries of $p$ from left to right, using the first differing entry.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n,m,k$, then the $n$ values $a_i$, then the $m$ values $b_j$.
+Read $n,k$ on one line.
 
 ## Output Format
 
 Write to standard output.
 
-Print three integers on three separate lines: the probability of X winning, the probability of Y winning, and the probability of a draw, in that order, modulo $998244353$. For a probability written in lowest terms as $u/v$, print the unique integer $r$ with $0\le r<998244353$ and $rv\equiv u\pmod{998244353}$. The denominator $v$ is guaranteed not to be divisible by $998244353$.
+Print `-1` if fewer than $k$ turning permutations exist. Otherwise print the requested permutation on one line.
 
 ## Examples
 
@@ -25,31 +25,26 @@ Print three integers on three separate lines: the probability of X winning, the 
 Input:
 
 ```text
-5 5 1
-11 4 2 11 9
-20 1 6 20 1
+3 5
 ```
 
 Output:
 
 ```text
-0
-1
-0
+-1
 ```
 
 ## Explanation / Notes
 
-Bombs belong only to X and are shuffled together with X's ordinary pieces before play. A bomb causes mutual removal regardless of the opposing strength. A winning ordinary piece is not removed merely because it has fought once.
+There are four turning permutations of length 3, so the fifth does not exist.
+
+The turning condition concerns the positions of consecutive values, while the requested lexicographic order concerns the permutation itself.
 
 ## Constraints
 
 - One test case.
-- $1\le n,m\le10^6$.
-- $0\le k\le5000$.
-- $(n+m)(k+1)\le10^8$.
-- $1\le a_i,b_j\le10^5$; repeated strengths are allowed.
-- X has $n+k$ pieces in total, and Y has $m$. The value of $k$ may be zero or exceed $m$.
-- The shuffled order for each player's collection is uniform.
-- Modulus: $998244353$.
-- Time limit: 1.5 seconds; memory limit: 256 MB.
+- $3\le n\le500$.
+- $1\le k\le10^{18}$; ranks are one-based.
+- Every returned integer from 1 through $n$ must occur exactly once.
+- The product in the turning condition must be strictly positive.
+- Time limit: 1 second; memory limit: 512 MB.

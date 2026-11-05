@@ -1,93 +1,191 @@
-#include <cstdio>
-#include <cstring>
-#include <algorithm>
+// Staple Stable
+//
+// Model: a horizontal cut is a full grid line across the sheet and splits every
+// current piece it meets; likewise vertical.  Hence the final pieces are exactly
+// the cells of the grid induced by the chosen horizontal cut lines H and vertical
+// cut lines V, and the number of cuts is |H| + |V|.
+//
+// If the largest horizontal piece length is P and the largest vertical piece
+// length is D, we need exactly ceil(h/P) horizontal pieces and ceil(w/D) vertical
+// pieces, so the answer is
+//
+//      min over P,D >= 1 with P*D <= s of  (ceil(h/P)-1) + (ceil(w/D)-1).
+//
+// For a fixed P the best D is floor(s/P), and it is never useful to take P > h or
+// P > s, so
+//
+//      K = min over 1 <= P <= min(s,h) of  G(P),
+//      G(P) = ceil(h/P) + ceil(w/floor(s/P)),        answer = K - 2.
+//
+// G is searched with three exact prunings:
+//   * integer bounds:  G(P) < U  =>  ceil(h/P) <= U-2  and  ceil(w/floor(s/P)) <= U-2
+//   * convexity bound: G(P) >= phi(P) = h/P + w*P/s, and phi is convex, so only
+//     P with phi(P) <= U (a contiguous interval found by binary search) can matter
+//   * inside the surviving interval the minimum is attained either at a point that
+//     is the maximum of a block of constant floor(s/P), or at a point that is the
+//     minimum of a block of constant ceil(h/P); both enumerations are O(#blocks).
+//
+// Everything is done in exact integer arithmetic (128 bit where needed).
 
-// ---------------------------------------------------------------------------
-// Fast input
-// ---------------------------------------------------------------------------
-namespace fastio {
-static const int IN_SZ = 1 << 20;
-static char ibuf[IN_SZ];
-static int ipos = 0, ilen = 0;
+#include <bits/stdc++.h>
+using namespace std;
 
-inline int gc() {
-    if (ipos == ilen) {
-        ilen = (int)fread(ibuf, 1, IN_SZ, stdin);
-        ipos = 0;
-        if (ilen <= 0) return -1;
+typedef unsigned long long u64;
+typedef __uint128_t u128;
+
+static inline u64 cdiv(u64 a, u64 b) { return a / b + (a % b != 0); }
+
+// floor(sqrt(x)) for x < 2^128 (result fits in u64 because x <= 10^36)
+static inline u64 isqrt128(u128 x) {
+    if (x == 0) return 0;
+    u64 r = (u64)sqrtl((long double)x);
+    while (r > 0 && (u128)r * r > x) --r;
+    while ((u128)(r + 1) * (r + 1) <= x) ++r;
+    return r;
+}
+
+// G(P) = ceil(h/P) + ceil(w/floor(s/P)); requires 1 <= P <= s
+static inline u64 evalG(u64 h, u64 w, u64 s, u64 P) {
+    u64 d = s / P;
+    return cdiv(h, P) + cdiv(w, d);
+}
+
+// phi(P) = h/P + w*P/s <= U   (multiplied by s*P:  h*s <= P*(s*U - w*P))
+static inline bool phiLE(u64 h, u64 w, u64 s, u64 U, u64 P) {
+    u128 sU = (u128)s * U;
+    u128 wP = (u128)w * P;
+    if (sU < wP) return false;
+    u128 T = sU - wP;                 // s*U - w*P
+    u128 hs = (u128)h * s;
+    u128 q = hs / P, r = hs % P;      // compare h*s/P with T
+    if (q != T) return q < T;
+    return r == 0;
+}
+
+// phi(P+1) >= phi(P)  <=>  h*s <= w*P*(P+1)   (evaluated without overflow)
+static inline bool vertexAt(u64 h, u64 w, u64 s, u64 P) {
+    u128 hs = (u128)h * s;
+    u128 W = (u128)w * ((u128)P + 1);
+    u128 q = hs / P, r = hs % P;      // compare h*s/P with w*(P+1)
+    if (q != W) return q < W;
+    return r == 0;
+}
+
+// K = min over 1 <= P <= min(s,h) of G(P)
+static u64 solveK(u64 h, u64 w, u64 s) {
+    u64 Pmax = min(s, h);
+    u64 U = ~(u64)0;                  // best known value of G
+
+    auto tryP = [&](u64 P) {
+        if (P >= 1 && P <= Pmax) U = min(U, evalG(h, w, s, P));
+    };
+
+    // ---- a good upper bound: evaluate the continuous optima and their neighbours
+    {
+        u64 b1 = isqrt128((u128)((u128)h * s / w));   // ~ sqrt(h*s/w)
+        u64 b2 = isqrt128((u128)((u128)w * s / h));   // ~ sqrt(w*s/h)
+        for (long long d = -8; d <= 8; ++d) {
+            long long x = (long long)b1 + d;
+            if (x >= 1) tryP((u64)x);
+        }
+        for (long long d = -8; d <= 8; ++d) {
+            long long x = (long long)b2 + d;
+            if (x >= 1 && (u64)x <= min(s, w)) tryP(min(Pmax, s / (u64)x));
+        }
+        tryP(1);
+        tryP(Pmax);
+        tryP(Pmax > 1 ? Pmax - 1 : 1);
+        tryP(min(Pmax, (u64)2));
+        for (u64 D = 1; D <= 8; ++D) tryP(min(Pmax, s / D));
+        u64 Dw = min(s, w);
+        for (long long d = -8; d <= 8; ++d) {
+            long long x = (long long)Dw + d;
+            if (x >= 1) tryP(min(Pmax, s / (u64)x));
+        }
     }
-    return ibuf[ipos++];
+    if (U <= 2) return U;             // cannot be beaten (answer would be <= 0)
+
+    // ---- discrete vertex of the convex phi: smallest P with phi(P+1) >= phi(P)
+    u64 Pv;
+    if (!vertexAt(h, w, s, Pmax)) {
+        Pv = Pmax;
+    } else {
+        u64 a = 1, b = Pmax;
+        while (a < b) {
+            u64 m = a + (b - a) / 2;
+            if (vertexAt(h, w, s, m)) b = m; else a = m + 1;
+        }
+        Pv = a;
+    }
+
+    // ---- interval where the convex lower bound phi is <= U
+    u64 Plo, Phi;
+    if (!phiLE(h, w, s, U, Pv)) {
+        // cannot happen (phi(Pv) = min_P phi(P) <= G(P_best) = U); keep the search safe
+        Plo = 1;
+        Phi = Pmax;
+    } else {
+        {
+            u64 a = 1, b = Pv;                   // phi non-increasing on [1,Pv]
+            while (a < b) {
+                u64 m = a + (b - a) / 2;
+                if (phiLE(h, w, s, U, m)) b = m; else a = m + 1;
+            }
+            Plo = a;
+        }
+        {
+            u64 a = Pv, b = Pmax;                // phi non-decreasing on [Pv,Pmax]
+            while (a < b) {
+                u64 m = a + (b - a + 1) / 2;
+                if (phiLE(h, w, s, U, m)) a = m; else b = m - 1;
+            }
+            Phi = a;
+        }
+    }
+
+    // ---- integer necessary conditions for G(P) < U  (both terms are >= 1)
+    u64 V = U - 2;
+    u64 Alo = cdiv(h, V);                        // ceil(h/P) <= V
+    u64 Bhi = min(Pmax, s / cdiv(w, V));         // floor(s/P) >= ceil(w/V)
+
+    u64 A = max(max(Alo, Plo), (u64)1);
+    u64 B = min(min(Bhi, Phi), Pmax);
+    if (A > B) return U;
+
+    // ---- enumerate the surviving candidates with the cheapest of three strategies
+    u64 best = U;
+    u64 c1 = B - A + 1;                              // every integer P
+    u64 c2 = s / A - s / B + 1;                      // blocks of constant floor(s/P)
+    u64 c3 = cdiv(h, A) - cdiv(h, B) + 1;            // blocks of constant ceil(h/P)
+
+    if (c1 <= c2 && c1 <= c3) {
+        for (u64 P = A; P <= B; ++P) best = min(best, evalG(h, w, s, P));
+    } else if (c2 <= c3) {
+        u64 Dhi = s / A, Dlo = s / B;
+        for (u64 D = Dlo; D <= Dhi; ++D) {
+            u64 P = min(B, s / D);                   // largest P of this block
+            best = min(best, evalG(h, w, s, P));
+        }
+    } else {
+        u64 vhi = cdiv(h, A), vlo = cdiv(h, B);
+        for (u64 v = vlo; v <= vhi; ++v) {
+            u64 P = min(B, max(A, cdiv(h, v)));      // smallest P of this block
+            best = min(best, evalG(h, w, s, P));
+        }
+    }
+    return best;
 }
-
-inline bool readInt(long long &x) {
-    int c = gc();
-    while (c != -1 && (c < '0' || c > '9')) c = gc();
-    if (c == -1) return false;
-    long long v = 0;
-    while (c >= '0' && c <= '9') { v = v * 10 + (c - '0'); c = gc(); }
-    x = v;
-    return true;
-}
-
-static const int OUT_SZ = 1 << 22;
-static char obuf[OUT_SZ];
-static int opos = 0;
-
-inline void flush() { fwrite(obuf, 1, opos, stdout); opos = 0; }
-inline void outYes() {
-    if (opos + 4 > OUT_SZ) flush();
-    obuf[opos++] = 'Y'; obuf[opos++] = 'E'; obuf[opos++] = 'S'; obuf[opos++] = '\n';
-}
-inline void outNo() {
-    if (opos + 3 > OUT_SZ) flush();
-    obuf[opos++] = 'N'; obuf[opos++] = 'O'; obuf[opos++] = '\n';
-}
-} // namespace fastio
-
-using namespace fastio;
-
-static const int MAXA = 1000000;
-
-// cnt[v] = number of types with a_i == v
-static int cnt[MAXA + 2];
-// suf[v] = number of types with a_i >= v
-static int suf[MAXA + 2];
-// g[d] = sum_i floor(a_i / d)
-static long long g[MAXA + 2];
 
 int main() {
-    long long N, Q;
-    if (!readInt(N)) return 0;
-    readInt(Q);
-
-    int M = 0;
-    for (long long i = 0; i < N; ++i) {
-        long long a;
-        readInt(a);
-        if (a > M) M = (int)a;
-        ++cnt[(int)a];
+    int t;
+    if (scanf("%d", &t) != 1) return 0;
+    while (t--) {
+        u64 h, w, s;
+        if (scanf("%llu %llu %llu", &h, &w, &s) != 3) return 0;
+        u64 ans;
+        if ((u128)h * w <= s) ans = 0;               // the whole sheet already fits
+        else ans = solveK(h, w, s) - 2;
+        printf("%llu\n", ans);
     }
-
-    // suffix counts
-    suf[M + 1] = 0;
-    for (int v = M; v >= 1; --v) suf[v] = suf[v + 1] + cnt[v];
-
-    // g[d] = sum_{t>=1} suf[t*d]
-    for (int d = 1; d <= M; ++d) {
-        long long s = 0;
-        for (int t = d; t <= M; t += d) s += suf[t];
-        g[d] = s;
-    }
-
-    for (long long qi = 0; qi < Q; ++qi) {
-        long long K;
-        if (!readInt(K)) break;
-        // minimal feasible deliciousness d: need K*d >= M
-        long long d = (K <= 0) ? (long long)M : ((long long)M + K - 1) / K;
-        if (d < 1) d = 1;
-        bool ok = (d <= M) && (g[d] >= K);
-        if (ok) outYes(); else outNo();
-    }
-    flush();
     return 0;
 }

@@ -1,58 +1,55 @@
 ## Problem Description
 
-An apple tree is a tree rooted at vertex $1$ in which every non-root vertex has **strictly fewer direct children than its parent**.
+Choose an $n$-element subset of $\{1,\ldots,m\}$ uniformly at random. Apply these steps:
 
-For a given integer $k$, a configuration is a pair $(v,S)$: $v$ is a center vertex, and $S$ is a set of $k-1$ other vertices, all at one common distance from $v$. Distance is the number of edges on the unique path between two vertices.
+1. Sort the selected numbers as $a_1<\cdots<a_n$.
+2. Form $d_1=a_1$ and $d_i=a_i-a_{i-1}$ for $i\ge2$.
+3. Sort the $n$ differences in nondecreasing order, obtaining $b_1,\ldots,b_n$.
+4. Form the final sequence $c_i=\sum_{j=1}^{i}b_j$.
 
-Count these pairs modulo $998244353$.
+Compute the expected value of every final entry $c_i$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $t$.
-
-Each case starts with $n,k$. The next line contains $p_2,\ldots,p_n$, where $p_i$ is the parent of vertex $i$.
+One line contains the integers $n$ and $m$.
 
 ## Output Format
 
 Write to standard output.
 
-For every test case, print the number of valid pairs $(v,S)$ modulo $998244353$.
+Print $n$ lines. Line $i$ contains the expected value of $c_i$ as a real number. Each answer may have absolute or relative error at most $10^{-6}$.
 
 ## Examples
 
 Input:
 
 ```text
-1
-3 3
-1 1
+3 5
 ```
 
 Output:
 
 ```text
 1
+2.3
+4.5
 ```
 
 ## Explanation / Notes
 
-The only valid pair has center $1$ and $S=\{2, 3\}$.
+There are ten equally likely three-element subsets of $\{1, 2, 3, 4, 5\}$. Averaging the final sequence over these choices gives $1$, $2.3$, and $4.5$.
 
-The center is distinguished from the selected set. The common distance is only required to exist; it is not an additional component of the counted object. When $k=1$, the selected set is empty, giving one pair for each possible center.
-
-The condition compares numbers of **children**, not undirected degrees or subtree sizes.
+The difference sequence contains exactly $n$ terms: it includes the initial gap from zero to $a_1$ but does **not** append a gap from $a_n$ to $m$.
 
 ## Constraints
 
-- $1\le t\le10^4$.
-- $2\le n\le10^6$ per test case.
-- $1\le k\le n$.
-- $1\le p_i<i$ for every $i=2,\ldots,n$.
-- The input is guaranteed to describe an apple tree rooted at vertex $1$.
-- For every non-root vertex $v$, its number of direct children is strictly less than its parent's number of direct children.
-- Across all cases, $\sum n\le10^6$.
-- The members of $S$ are distinct and do not include the center; $|S|=k-1$.
-- Answer modulus: $998244353$.
-- Time limit: **0.5 seconds**. Memory limit: **256 MB**.
+- $1\le n\le300$.
+- $n\le m\le10^9$.
+- $n,m$ are integers.
+- The initially selected integers are distinct and belong to $[1,m]$.
+- Every valid $n$-element subset has the same selection probability.
+- Output tolerance: absolute or relative error at most $10^{-6}$ for each of the $n$ expectations.
+- There is one instance per input.
+- Time limit: **3 seconds**. Memory limit: **2048 MB**.

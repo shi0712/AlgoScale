@@ -1,148 +1,201 @@
-#include <iostream>
-#include <vector>
 #include <array>
-#include <algorithm>
 #include <cassert>
+#include <cstdint>
+#include <iostream>
+#include <numeric>
+#include <string>
+#include <vector>
 using namespace std;
 
-struct Operation {
-    array<int, 4> from, to;
+namespace {
+
+using Cell = uint16_t;
+constexpr Cell NONE = UINT16_MAX;
+
+class EdgeColoring {
+    int n, k;
+    vector<vector<Cell>> color, to, missing, position;
+
+    void occupy(int v, int c) {
+        int p = position[v][c];
+        int last = missing[v].back();
+        assert(p != NONE);
+        missing[v][p] = static_cast<Cell>(last);
+        position[v][last] = static_cast<Cell>(p);
+        missing[v].pop_back();
+        position[v][c] = NONE;
+    }
+
+    void release(int v, int c) {
+        assert(position[v][c] == NONE);
+        position[v][c] = static_cast<Cell>(missing[v].size());
+        missing[v].push_back(static_cast<Cell>(c));
+    }
+
+    void eraseEdge(int u, int v) {
+        int c = color[u][v];
+        assert(c != NONE);
+        color[u][v] = color[v][u] = NONE;
+        to[u][c] = to[v][c] = NONE;
+        release(u, c);
+        release(v, c);
+    }
+
+    // Color a/b are swapped on the maximal alternating path starting at u.
+    // Color a is missing at u before the operation.
+    void swapAlternatingPath(int u, int a, int b) {
+        vector<array<int, 3>> path;
+        int x = u, c = b;
+        while (to[x][c] != NONE) {
+            int y = to[x][c];
+            path.push_back({x, y, c});
+            x = y;
+            c = a ^ b ^ c;
+        }
+        for (const auto &e : path) {
+            eraseEdge(e[0], e[1]);
+        }
+        for (const auto &e : path) {
+            paint(e[0], e[1], a ^ b ^ e[2]);
+        }
+    }
+
+public:
+    EdgeColoring(int n_, int k_)
+        : n(n_), k(k_), color(n, vector<Cell>(n, NONE)),
+          to(n, vector<Cell>(k, NONE)), missing(n, vector<Cell>(k)),
+          position(n, vector<Cell>(k)) {
+        for (int v = 0; v < n; ++v) {
+            iota(missing[v].begin(), missing[v].end(), Cell(0));
+            iota(position[v].begin(), position[v].end(), Cell(0));
+        }
+    }
+
+    void paint(int u, int v, int c) {
+        assert(color[u][v] == NONE);
+        occupy(u, c);
+        occupy(v, c);
+        color[u][v] = color[v][u] = static_cast<Cell>(c);
+        to[u][c] = static_cast<Cell>(v);
+        to[v][c] = static_cast<Cell>(u);
+    }
+
+    // Inserts and colors one new edge in O(n) using a Vizing fan.
+    void insertEdge(int u, int v) {
+        vector<int> fan{v};
+        vector<int> where(n, -1);
+        where[v] = 0;
+
+        int beta = -1, last = -1;
+        while (true) {
+            assert(!missing[fan.back()].empty());
+            beta = missing[fan.back()].back();
+            int w = to[u][beta];
+
+            if (w == NONE) {
+                last = static_cast<int>(fan.size()) - 1;
+                break;
+            }
+            if (where[w] != -1) {
+                int j = where[w];
+                assert(j > 0 && !missing[u].empty());
+                int alpha = missing[u].back();
+                swapAlternatingPath(u, alpha, beta);
+                last = (to[fan[j - 1]][beta] == NONE)
+                           ? j - 1
+                           : static_cast<int>(fan.size()) - 1;
+                break;
+            }
+            where[w] = static_cast<int>(fan.size());
+            fan.push_back(w);
+        }
+
+        for (int i = 0; i < last; ++i) {
+            int c = color[u][fan[i + 1]];
+            eraseEdge(u, fan[i + 1]);
+            paint(u, fan[i], c);
+        }
+        paint(u, fan[last], beta);
+    }
+
+    int oneMissingColor(int v) const {
+        assert(missing[v].size() == 1);
+        return missing[v].back();
+    }
+
+    const vector<vector<Cell>> &result() const { return color; }
 };
 
-// 标准形：r-B-C，其余顶点都与 r 相连。
-vector<Operation> normalize(const vector<vector<int>>& g,
-                            int r, int B, int C) {
-    int n = (int)g.size() - 1;
-    vector<int> parent(n + 1), depth(n + 1), order{r};
-    for (int i = 0; i < (int)order.size(); ++i) {
-        int u = order[i];
-        for (int v : g[u]) {
-            if (v == parent[u]) continue;
-            parent[v] = u;
-            depth[v] = depth[u] + 1;
-            order.push_back(v);
+vector<vector<Cell>> solve(const vector<string> &graph) {
+    int n = static_cast<int>(graph.size());
+    int colors = (n & 1) ? n - 2 : n - 3;
+    EdgeColoring ec(n, colors);
+
+    int center = 0;
+    int reserved = -1;
+    if ((n & 1) == 0) {
+        vector<int> nonNeighbors;
+        for (int v = 1; v < n; ++v) {
+            if (graph[0][v] == '0') nonNeighbors.push_back(v);
+        }
+        assert(nonNeighbors.size() == 2);
+        center = nonNeighbors[0];
+        reserved = nonNeighbors[1];
+    }
+
+    vector<int> core;
+    for (int v = 0; v < n; ++v) {
+        if (v != center && ((n & 1) || v != 0)) core.push_back(v);
+    }
+    assert(static_cast<int>(core.size()) == colors + 1);
+
+    // A 1-factorization of K_(colors+1), with the last vertex treated as infinity.
+    // Removing absent edges preserves a valid partial coloring of the core.
+    for (int i = 0; i <= colors; ++i) {
+        for (int j = i + 1; j <= colors; ++j) {
+            if (graph[core[i]][core[j]] == '0') continue;
+            int c = (j == colors) ? (2 * i) % colors : (i + j) % colors;
+            ec.paint(core[i], core[j], c);
         }
     }
 
-    vector<Operation> ops;
-    auto add = [&](array<int, 4> from, array<int, 4> to) {
-        ops.push_back({from, to});
-    };
-
-    int a = 0, b = 0, c = 0;
-    if (g[r].size() == 1) {
-        // 非星形树中，从叶子 r 出发一定能找到长度为 3 的路径。
-        for (int v : order) {
-            if (depth[v] == 3) { c = v; break; }
-        }
-        b = parent[c];
-        a = parent[b];
-        add({r, a, b, c}, {a, r, b, c});
-        parent[b] = r;
-    } else {
-        for (int v : order) {
-            if (depth[v] == 2) { c = v; break; }
-        }
-        b = parent[c];
-        for (int v : g[r]) {
-            if (v != b) { a = v; break; }
-        }
+    // In the even case, center-reserved is inserted last if it is an edge.
+    for (int v : core) {
+        if (v != reserved && graph[center][v] == '1') ec.insertEdge(center, v);
+    }
+    if (reserved != -1 && graph[center][reserved] == '1') {
+        ec.insertEdge(center, reserved);
     }
 
-    assert(a && b && c);
-    // 保持核心路径 a-r-b-c，按父亲先于儿子的顺序处理。
-    for (int v : order) {
-        if (v == r || v == a || v == b || v == c) continue;
-        int p = parent[v];
-        if (p == r) continue;
-
-        if (p == c) {
-            add({r, b, c, v}, {c, b, r, v});
-        } else if (p == b) {
-            add({a, r, b, c}, {a, r, c, b});
-            add({r, c, b, v}, {c, b, r, v});
-        } else {
-            add({b, r, p, v}, {b, p, r, v});
-            add({r, p, b, c}, {p, r, b, c});
-        }
-        parent[v] = r;
-    }
-
-    // 把特殊分支 b-c 的编号统一成 B-C。
-    if (b != B) {
-        if (c == B) {
-            add({a, r, b, c}, {a, r, c, b});
-            swap(b, c);
-        } else {
-            add({B, r, b, c}, {b, r, B, c});
-            b = B;
+    // For even n, every color is now missing at exactly one neighbor of vertex 0.
+    if ((n & 1) == 0) {
+        for (int v = 1; v < n; ++v) {
+            if (graph[0][v] == '1') ec.paint(0, v, ec.oneMissingColor(v));
         }
     }
-    if (c != C) {
-        add({C, r, b, c}, {c, r, b, C});
-    }
-    return ops;
+    return ec.result();
 }
+
+}  // namespace
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
     int n;
-    cin >> n;
-    vector<vector<int>> S(n + 1), T(n + 1);
-    auto read = [&](vector<vector<int>>& g) {
-        for (int i = 1, u, v; i < n; ++i) {
-            cin >> u >> v;
-            g[u].push_back(v);
-            g[v].push_back(u);
-        }
-    };
-    read(S);
-    read(T);
+    if (!(cin >> n)) return 0;
+    vector<string> graph(n);
+    for (string &row : graph) cin >> row;
 
-    auto starCenter = [&](const vector<vector<int>>& g) {
-        for (int i = 1; i <= n; ++i) {
-            if ((int)g[i].size() == n - 1) return i;
-        }
-        return 0;
-    };
-    int s = starCenter(S), t = starCenter(T);
-    if (s) {
-        if (s == t) cout << "YES\n0\n";
-        else cout << "NO\n";
-        return 0;
-    }
+    int colors = (n & 1) ? n - 2 : n - 3;
+    auto answer = solve(graph);
 
-    int r = t ? t : 1;
-    vector<int> other;
-    for (int i = 1; i <= n; ++i) {
-        if (i != r) other.push_back(i);
-    }
-    int B = other[0], C = other[1], D = other[2];
-
-    vector<Operation> ans = normalize(S, r, B, C);
-    if (!t) {
-        auto ops = normalize(T, r, B, C);
-        for (int i = (int)ops.size() - 1; i >= 0; --i) {
-            ans.push_back({ops[i].to, ops[i].from});
+    cout << colors << '\n';
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            int value = answer[i][j] == NONE ? -1 : answer[i][j] + 1;
+            cout << value << (j + 1 == n ? '\n' : ' ');
         }
     }
-
-    assert(ans.size() + (t != 0) <= 400);
-    cout << "YES\n" << ans.size() + (t != 0) << '\n';
-    for (const auto& op : ans) {
-        const auto& p = op.from;
-        const auto& q = op.to;
-        cout << p[0] << ' ' << p[1] << ' ' << p[2] << ' ' << p[3] << '\n';
-        cout << q[0] << ' ' << q[1] << ' '
-             << q[1] << ' ' << q[2] << ' '
-             << q[2] << ' ' << q[3] << '\n';
-    }
-    if (t) {
-        // 最后一步把标准形变成以 r 为中心的星形树。
-        cout << D << ' ' << r << ' ' << B << ' ' << C << '\n';
-        cout << r << ' ' << D << ' ' << r << ' ' << B << ' '
-             << r << ' ' << C << '\n';
-    }
+    return 0;
 }
