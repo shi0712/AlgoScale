@@ -49,7 +49,7 @@ It is not necessary to select all cards or to use all $k$ doublings. Both select
 ## Constraints
 
 - There is one input instance.
-- $1\le n\le2000$.
+- $1\le n\le5000$.
 - $0\le k\le n$.
 - $-10^9\le v_i\le10^9$.
 - Initially $1\le t_i\le13$.
