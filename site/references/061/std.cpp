@@ -1,23 +1,105 @@
-#include <bits/stdc++.h>
-using namespace std;
-const long long MOD=998244353;
-long long pw(long long a,long long e){long long r=1;for(;e;e>>=1,a=a*a%MOD)if(e&1)r=r*a%MOD;return r;}
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);
- int T; if(!(cin>>T)) return 0;
- vector<pair<int,vector<int>>> inp;
- for(int tc=0;tc<T;++tc){int n,m;cin>>n>>m;vector<int>a(n);for(int&x:a)cin>>x;inp.push_back({m,a});}
- int M=0;for(auto &z:inp)M=max(M,z.first*2);
- vector<long long> fac(M+1),ifac(M+1),pow2(M+1);fac[0]=pow2[0]=1;for(int i=1;i<=M;++i){fac[i]=fac[i-1]*i%MOD;pow2[i]=pow2[i-1]*2%MOD;}ifac[M]=pw(fac[M],MOD-2);for(int i=M;i;--i)ifac[i-1]=ifac[i]*i%MOD;
- auto C=[&](int n,int k)->long long{if(k<0||k>n)return 0;return fac[n]*ifac[k]%MOD*ifac[n-k]%MOD;};
- for(auto &cs:inp){int m=cs.first,N=2*m;auto &a=cs.second;vector<long long>b(N+1),w(N+1);b[N]=1;long long ans=0;
-   for(int r=N;r>=2;--r){long long p0=fac[r]*fac[N-r]%MOD*pow2[r]%MOD*fac[m]%MOD;
-     p0=p0*ifac[r]%MOD*ifac[0]%MOD*ifac[m-r]%MOD*ifac[N]%MOD;
-     if(m-r<0)p0=0;
-     w[r]=b[r]*pw((1-p0+MOD)%MOD,MOD-2)%MOD;
-     long long common=fac[r]*fac[N-r]%MOD*fac[m]%MOD*ifac[N]%MOD;
-     for(int x=max(1,r-m);x<=r/2;++x){long long q=common*pow2[r-2*x]%MOD*ifac[r-2*x]%MOD*ifac[x]%MOD*ifac[m-r+x]%MOD; b[r-x]=(b[r-x]+w[r]*q)%MOD;}
-   }
-   for(int r=2;r<=N;++r){long long hr=0;for(int x:a)if(x>=r)hr=(hr+fac[x]*fac[N-r]%MOD*ifac[x-r]%MOD*ifac[N]%MOD)%MOD;ans=(ans+w[r]*(1-hr+MOD))%MOD;}
-   cout<<ans%MOD<<'\n';
- }
+#include <algorithm>
+#include <cstdint>
+#include <iostream>
+#include <vector>
+
+using i64 = std::int64_t;
+constexpr i64 MOD = 998244353;
+
+static i64 power(i64 base, i64 exponent) {
+    i64 result = 1;
+    for (; exponent; exponent >>= 1, base = base * base % MOD) {
+        if (exponent & 1) result = result * base % MOD;
+    }
+    return result;
+}
+
+struct TestCase {
+    int pairs;
+    std::vector<int> sizes;
+};
+
+int main() {
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+
+    int test_count;
+    if (!(std::cin >> test_count)) return 0;
+    std::vector<TestCase> cases(test_count);
+    int maximum_size = 0;
+    for (auto& test : cases) {
+        int set_count;
+        std::cin >> set_count >> test.pairs;
+        test.sizes.resize(set_count);
+        for (int& size : test.sizes) std::cin >> size;
+        maximum_size = std::max(maximum_size, 2 * test.pairs);
+    }
+
+    std::vector<i64> factorial(maximum_size + 1, 1);
+    std::vector<i64> inverse_factorial(maximum_size + 1, 1);
+    std::vector<i64> powers_of_two(maximum_size + 1, 1);
+    for (int i = 1; i <= maximum_size; ++i) {
+        factorial[i] = factorial[i - 1] * i % MOD;
+        powers_of_two[i] = powers_of_two[i - 1] * 2 % MOD;
+    }
+    inverse_factorial[maximum_size] = power(factorial[maximum_size], MOD - 2);
+    for (int i = maximum_size; i > 0; --i) {
+        inverse_factorial[i - 1] = inverse_factorial[i] * i % MOD;
+    }
+
+    for (const auto& test : cases) {
+        const int m = test.pairs;
+        const int total = 2 * m;
+        if (test.sizes.size() == 1) {
+            std::cout << 0 << '\n';
+            continue;
+        }
+
+        // arrival[r]: expected entries into r ancestors from larger states.
+        // occupation[r]: expected total time spent at r ancestors, including
+        // repeated rounds with no merging. Initially all total ancestors exist.
+        std::vector<i64> arrival(total + 1, 0), occupation(total + 1, 0);
+        arrival[total] = 1;
+
+        for (int r = total; r >= 2; --r) {
+            i64 stay_probability = 0;
+            // More than m selected endpoints force at least one selected pair.
+            // Check this BEFORE indexing inverse_factorial[m - r].
+            if (r <= m) {
+                stay_probability = factorial[total - r] * factorial[m] % MOD;
+                stay_probability = stay_probability * powers_of_two[r] % MOD;
+                stay_probability = stay_probability * inverse_factorial[m - r] % MOD;
+                stay_probability = stay_probability * inverse_factorial[total] % MOD;
+            }
+            const i64 leave_probability = (1 - stay_probability + MOD) % MOD;
+            occupation[r] = arrival[r] * power(leave_probability, MOD - 2) % MOD;
+
+            i64 common = factorial[r] * factorial[total - r] % MOD;
+            common = common * factorial[m] % MOD * inverse_factorial[total] % MOD;
+            for (int merged = std::max(1, r - m); merged <= r / 2; ++merged) {
+                i64 probability = common * powers_of_two[r - 2 * merged] % MOD;
+                probability = probability * inverse_factorial[r - 2 * merged] % MOD;
+                probability = probability * inverse_factorial[merged] % MOD;
+                probability = probability * inverse_factorial[m - r + merged] % MOD;
+                arrival[r - merged] =
+                    (arrival[r - merged] + occupation[r] * probability) % MOD;
+            }
+        }
+
+        i64 answer = 0;
+        for (int r = 2; r <= total; ++r) {
+            i64 same_initial_set = 0;
+            for (int size : test.sizes) {
+                if (size < r) continue;
+                // C(size, r) / C(total, r), with r! cancelled.
+                i64 probability = factorial[size] * factorial[total - r] % MOD;
+                probability = probability * inverse_factorial[size - r] % MOD;
+                probability = probability * inverse_factorial[total] % MOD;
+                same_initial_set = (same_initial_set + probability) % MOD;
+            }
+            answer = (answer + occupation[r] * (1 - same_initial_set + MOD)) % MOD;
+        }
+        std::cout << answer << '\n';
+    }
+    return 0;
 }
