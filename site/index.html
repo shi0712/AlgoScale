@@ -26,7 +26,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
     />
-    <link rel="stylesheet" href="./styles.css?v=20261104-statements2" />
+    <link rel="stylesheet" href="./styles.css?v=20261113-final" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -181,34 +181,22 @@
         </div>
 
         <div class="leaderboard-shell">
-          <div class="tabs" role="tablist" aria-label="Evaluation tracks">
-            <button class="tab is-active" type="button" role="tab" data-track="direct" aria-selected="true">
+          <div class="tabs" role="tablist" aria-label="Evaluation modes">
+            <button class="tab is-active" type="button" role="tab" aria-selected="true" data-track="direct">
               Direct generation
             </button>
-            <button class="tab" type="button" role="tab" data-track="agent" aria-selected="false">
+            <button class="tab" type="button" role="tab" aria-selected="false" data-track="agent">
               Agent mode
             </button>
           </div>
           <div class="table-wrap">
-            <table class="leaderboard-table">
+            <table class="leaderboard-table leaderboard-matrix">
               <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Model</th>
-                  <th>Framework</th>
-                  <th>Solved</th>
-                  <th>Pass@1</th>
-                  <th>Protocol note</th>
-                </tr>
+                <tr id="leaderboard-head"></tr>
               </thead>
               <tbody id="leaderboard-body"></tbody>
             </table>
           </div>
-          <p class="table-note">
-            Pilot results are shown for site development and will be replaced by the
-            paper's frozen evaluation matrix. Infrastructure failures are separated from
-            model failures in the final protocol.
-          </p>
         </div>
       </section>
 
@@ -218,8 +206,8 @@
             <div class="section-kicker">03 / Dataset</div>
             <h2>Problem catalog</h2>
             <p class="section-description">
-              The catalog follows the maintained benchmark metadata. Missing source or
-              complexity fields are visibly marked pending rather than inferred.
+              Each task is classified by a primary domain, related domains, and core
+              algorithmic topics. Missing metadata remains visibly marked pending.
             </p>
           </div>
           <div class="catalog-count"><strong id="visible-count">74</strong><span>shown</span></div>
@@ -229,7 +217,7 @@
           <label class="search-box">
             <span class="sr-only">Search problems</span>
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-            <input id="problem-search" type="search" placeholder="Search title, platform, or complexity" />
+            <input id="problem-search" type="search" placeholder="Search title, domain, tag, platform, or complexity" />
           </label>
           <div class="filter-group" aria-label="Problem type filters">
             <button class="filter is-active" type="button" data-filter="All">All</button>
@@ -247,6 +235,7 @@
                 <th>AlgoScale problem</th>
                 <th>Original problem</th>
                 <th>Complexity shift</th>
+                <th>Classification</th>
                 <th>Mode</th>
                 <th>Reference</th>
                 <th>Accepted C++</th>
@@ -313,6 +302,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" defer></script>
-    <script src="./app.js?v=20261113-solutions" defer></script>
+    <script src="./app.js?v=20261113-final" defer></script>
   </body>
 </html>

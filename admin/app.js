@@ -11,7 +11,9 @@ const els = {
   title: byId("title"), originalTitle: byId("original-title"), platform: byId("platform"),
   originalUrl: byId("original-url"), originalComplexity: byId("original-complexity"),
   targetComplexity: byId("target-complexity"), track: byId("track"),
-  metadataStatus: byId("metadata-status"), remove: byId("delete-problem"), toast: byId("toast"),
+  metadataStatus: byId("metadata-status"), primaryDomain: byId("primary-domain"),
+  relatedDomains: byId("related-domains"), coreTags: byId("core-tags"),
+  remove: byId("delete-problem"), toast: byId("toast"),
 };
 
 function node(tag, className, text) {
@@ -47,6 +49,9 @@ function render() {
   const problems = state.problems.filter((problem) => [
     problem.id, problem.title, problem.originalTitle, problem.platform,
     problem.originalComplexity, problem.algoscaleComplexity,
+    problem.taxonomy?.primaryDomain,
+    ...(problem.taxonomy?.relatedDomains || []),
+    ...(problem.taxonomy?.coreTags || []),
   ].join(" ").toLocaleLowerCase().includes(query));
   els.body.replaceChildren();
   problems.forEach((problem) => {
@@ -93,18 +98,27 @@ function openEditor(problem = null) {
   els.targetComplexity.value = problem?.algoscaleComplexity || "";
   els.track.value = problem?.track || "Standard";
   els.metadataStatus.value = problem?.metadataStatus || "pending";
+  els.primaryDomain.value = problem?.taxonomy?.primaryDomain || "";
+  els.relatedDomains.value = (problem?.taxonomy?.relatedDomains || []).join(", ");
+  els.coreTags.value = (problem?.taxonomy?.coreTags || []).join(", ");
   els.remove.hidden = !problem;
   els.editor.showModal();
   els.title.focus();
 }
 
 function formPayload() {
+  const list = (value) => value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
   return {
     title: els.title.value, originalTitle: els.originalTitle.value,
     platform: els.platform.value, originalUrl: els.originalUrl.value,
     originalComplexity: els.originalComplexity.value,
     algoscaleComplexity: els.targetComplexity.value,
     track: els.track.value, metadataStatus: els.metadataStatus.value,
+    taxonomy: {
+      primaryDomain: els.primaryDomain.value,
+      relatedDomains: list(els.relatedDomains.value),
+      coreTags: list(els.coreTags.value),
+    },
   };
 }
 

@@ -1,6 +1,16 @@
 "use strict";
 
-const SITE_RELEASE = "20261113-solutions";
+const SITE_RELEASE = "20261113-final";
+
+const DOMAIN_ORDER = [
+  "Algorithmic Paradigms",
+  "Computational Geometry",
+  "Data Structures",
+  "Dynamic Programming",
+  "Graph Theory",
+  "Mathematics",
+  "Search & Enumeration",
+];
 
 const state = {
   problems: [],
@@ -12,6 +22,7 @@ const state = {
 
 const els = {
   leaderboardBody: document.querySelector("#leaderboard-body"),
+  leaderboardHead: document.querySelector("#leaderboard-head"),
   leaderboardDate: document.querySelector("#leaderboard-date"),
   problemBody: document.querySelector("#problem-body"),
   visibleCount: document.querySelector("#visible-count"),
@@ -57,7 +68,6 @@ function complexityLatex(value) {
     )
     .replaceAll("≤", "\\le ")
     .replaceAll("<=", "\\le ")
-    .replaceAll("实际", "\\quad\\text{actual: }")
     .replaceAll("下取整", "\\;\\text{(floor)}")
     .replace(/min\{([^{}]*)\}/g, "\\min\\left\\{$1\\right\\}")
     .replace(/\^22\^/g, "^2 2^")
@@ -101,19 +111,74 @@ function complexityNode(value, isNew = false) {
   return node;
 }
 
+function problemDomains(problem) {
+  const taxonomy = problem.taxonomy || {};
+  return [taxonomy.primaryDomain, ...(taxonomy.relatedDomains || [])].filter(Boolean);
+}
+
+function modelKey(entry) {
+  return entry.modelKey || normalize(entry.model)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 function renderLeaderboard(data) {
-  const rows = data.tracks[state.track] || [];
+  const scopes = Object.fromEntries(DOMAIN_ORDER.map((domain) => [
+    domain,
+    state.problems.filter((problem) => problemDomains(problem).includes(domain)),
+  ]));
+  const score = (entry, track, scope) => {
+    const key = modelKey(entry);
+    const solved = scope.filter((problem) => Boolean(problem.generatedCode?.[track]?.[key])).length;
+    return { solved, total: scope.length, passRate: scope.length ? (solved * 100) / scope.length : 0 };
+  };
+  const rows = (data.tracks[state.track] || []).map((entry) => ({
+    ...entry,
+    overall: score(entry, state.track, state.problems),
+    domains: Object.fromEntries(
+      DOMAIN_ORDER.map((domain) => [domain, score(entry, state.track, scopes[domain])]),
+    ),
+  })).sort((left, right) => (
+    right.overall.solved - left.overall.solved
+    || right.overall.passRate - left.overall.passRate
+  ));
+
+  const baseHeadings = [
+    element("th", "leaderboard-rank-heading", "Rank"),
+    element("th", "leaderboard-model-heading", "Model"),
+  ];
+  if (state.track === "agent") {
+    baseHeadings.push(element("th", "leaderboard-harness-heading", "Harness"));
+  }
+  els.leaderboardHead.closest("table").dataset.track = state.track;
+  els.leaderboardHead.replaceChildren(...baseHeadings);
+  DOMAIN_ORDER.forEach((domain) => {
+    const heading = element("th", "domain-heading");
+    heading.append(element("span", "domain-heading-name", domain));
+    els.leaderboardHead.append(heading);
+  });
+  const overallHeading = element("th", "domain-heading overall-heading");
+  overallHeading.append(element("span", "domain-heading-name", "Overall"));
+  els.leaderboardHead.append(overallHeading);
+
   els.leaderboardBody.replaceChildren();
   rows.forEach((entry, index) => {
     const row = document.createElement("tr");
-    row.append(
-      element("td", "rank", String(index + 1).padStart(2, "0")),
-      element("td", "model", entry.model),
-      element("td", "framework", entry.framework),
-      element("td", "score", `${entry.solved}/${entry.total}`),
-      element("td", "rate", `${entry.passRate.toFixed(1)}%`),
-      element("td", "note", entry.note),
-    );
+    const model = element("td", "leaderboard-model");
+    model.append(element("strong", "leaderboard-model-name", entry.model));
+    row.append(element("td", "rank", String(index + 1).padStart(2, "0")), model);
+    if (state.track === "agent") {
+      row.append(element("td", "leaderboard-harness", entry.framework));
+    }
+    DOMAIN_ORDER.forEach((domain) => {
+      const result = entry.domains[domain];
+      const cell = element("td", "domain-score");
+      cell.append(element("strong", "domain-pass-rate", `${result.passRate.toFixed(1)}%`));
+      row.append(cell);
+    });
+    const overall = element("td", "domain-score overall-score");
+    overall.append(element("strong", "domain-pass-rate", `${entry.overall.passRate.toFixed(1)}%`));
+    row.append(overall);
     els.leaderboardBody.append(row);
   });
   els.leaderboardDate.textContent = `Updated ${data.updated}`;
@@ -127,6 +192,9 @@ function matchesProblem(problem) {
     problem.platform,
     problem.originalComplexity,
     problem.algoscaleComplexity,
+    problem.taxonomy?.primaryDomain,
+    ...(problem.taxonomy?.relatedDomains || []),
+    ...(problem.taxonomy?.coreTags || []),
   ].map(normalize).join(" ");
   const queryMatches = haystack.includes(normalize(state.query.trim()));
   const filterMatches = state.filter === "All"
@@ -174,6 +242,42 @@ function renderProblems() {
     shift.append(originalComplexity, element("span", "complexity-arrow", "→"), targetComplexity);
     complexityCell.append(shift);
     row.append(complexityCell);
+
+    const taxonomyCell = element("td", "taxonomy-cell");
+    const taxonomy = problem.taxonomy || {};
+    if (taxonomy.primaryDomain) {
+      const primary = element("div", "taxonomy-group");
+      primary.append(
+        element("span", "taxonomy-label", "Primary"),
+        element("span", "taxonomy-chip taxonomy-primary", taxonomy.primaryDomain),
+      );
+      taxonomyCell.append(primary);
+
+      if (taxonomy.relatedDomains?.length) {
+        const related = element("div", "taxonomy-group");
+        related.append(element("span", "taxonomy-label", "Related"));
+        const chips = element("div", "taxonomy-chips");
+        taxonomy.relatedDomains.forEach((domain) => {
+          chips.append(element("span", "taxonomy-chip taxonomy-related", domain));
+        });
+        related.append(chips);
+        taxonomyCell.append(related);
+      }
+
+      if (taxonomy.coreTags?.length) {
+        const topics = element("div", "taxonomy-group taxonomy-topics");
+        topics.append(element("span", "taxonomy-label", "Core topics"));
+        const chips = element("div", "taxonomy-chips");
+        taxonomy.coreTags.forEach((tag) => {
+          chips.append(element("span", "taxonomy-chip taxonomy-core", tag));
+        });
+        topics.append(chips);
+        taxonomyCell.append(topics);
+      }
+    } else {
+      taxonomyCell.append(pendingNode());
+    }
+    row.append(taxonomyCell);
 
     const modeCell = document.createElement("td");
     modeCell.append(element("span", `mode-pill ${problem.track.toLowerCase()}`, problem.track));
@@ -271,7 +375,6 @@ async function loadData() {
       renderLeaderboard(leaderboard);
     });
   });
-
   renderLeaderboard(leaderboard);
   renderProblems();
 }

@@ -19,6 +19,15 @@ from urllib.parse import urlparse
 MUTATION_HEADER = "X-AlgoScale-Admin"
 ALLOWED_TRACKS = {"Standard", "Interactive"}
 ALLOWED_STATUSES = {"verified", "pending"}
+ALLOWED_DOMAINS = {
+    "Algorithmic Paradigms",
+    "Computational Geometry",
+    "Data Structures",
+    "Dynamic Programming",
+    "Graph Theory",
+    "Mathematics",
+    "Search & Enumeration",
+}
 PROBLEM_ROUTE = re.compile(r"^/api/problems/(\d+)$")
 MAX_BODY_BYTES = 1_000_000
 
@@ -46,6 +55,21 @@ def clean_text(value, field: str, *, required: bool = False, maximum: int = 500)
     return value
 
 
+def clean_text_list(value, field: str, *, maximum_items: int = 20) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"{field} must be an array")
+    result = []
+    for index, item in enumerate(value):
+        cleaned = clean_text(item, f"{field}[{index}]", required=True, maximum=100)
+        if cleaned not in result:
+            result.append(cleaned)
+    if len(result) > maximum_items:
+        raise ValueError(f"{field} exceeds {maximum_items} items")
+    return result
+
+
 def validate_problem(payload: dict, *, existing: dict | None, problem_id: int) -> dict:
     if not isinstance(payload, dict):
         raise ValueError("request body must be a JSON object")
@@ -60,6 +84,25 @@ def validate_problem(payload: dict, *, existing: dict | None, problem_id: int) -
     status = clean_text(payload.get("metadataStatus") or "pending", "metadataStatus")
     if status not in ALLOWED_STATUSES:
         raise ValueError(f"metadataStatus must be one of {sorted(ALLOWED_STATUSES)}")
+    taxonomy = payload.get("taxonomy")
+    if taxonomy is None:
+        taxonomy = (existing or {}).get("taxonomy", {})
+    if not isinstance(taxonomy, dict):
+        raise ValueError("taxonomy must be a JSON object")
+    primary_domain = clean_text(
+        taxonomy.get("primaryDomain"), "taxonomy.primaryDomain", maximum=100
+    )
+    if primary_domain and primary_domain not in ALLOWED_DOMAINS:
+        raise ValueError(f"taxonomy.primaryDomain must be one of {sorted(ALLOWED_DOMAINS)}")
+    related_domains = clean_text_list(
+        taxonomy.get("relatedDomains"), "taxonomy.relatedDomains", maximum_items=6
+    )
+    unknown_domains = sorted(set(related_domains) - ALLOWED_DOMAINS)
+    if unknown_domains:
+        raise ValueError(f"unknown taxonomy.relatedDomains: {unknown_domains}")
+    if primary_domain and primary_domain in related_domains:
+        raise ValueError("primary domain cannot also be a related domain")
+    core_tags = clean_text_list(taxonomy.get("coreTags"), "taxonomy.coreTags")
     return {
         "id": problem_id,
         "title": clean_text(payload.get("title"), "title", required=True),
@@ -74,6 +117,11 @@ def validate_problem(payload: dict, *, existing: dict | None, problem_id: int) -
         ) or None,
         "track": track,
         "metadataStatus": status,
+        "taxonomy": {
+            "primaryDomain": primary_domain or None,
+            "relatedDomains": related_domains,
+            "coreTags": core_tags,
+        },
         "generatedCode": (existing or {}).get("generatedCode", {}),
         "referenceAssets": (existing or {}).get("referenceAssets", {}),
     }

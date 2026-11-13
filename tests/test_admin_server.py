@@ -83,6 +83,11 @@ class AdminServerTest(unittest.TestCase):
             "algoscaleComplexity": r"\mathcal{O}(n\log n)",
             "track": "Interactive",
             "metadataStatus": "verified",
+            "taxonomy": {
+                "primaryDomain": "Mathematics",
+                "relatedDomains": ["Dynamic Programming"],
+                "coreTags": ["Generating Functions"],
+            },
         }
         status, created = self.request("POST", "/api/problems", created_payload)
         self.assertEqual(status, 201)
@@ -92,6 +97,7 @@ class AdminServerTest(unittest.TestCase):
         status, updated = self.request("PUT", "/api/problems/1", update_payload)
         self.assertEqual(status, 200)
         self.assertEqual(updated["title"], "Updated")
+        self.assertEqual(updated["taxonomy"], created_payload["taxonomy"])
         self.assertEqual(
             updated["generatedCode"], {"direct": {"model": "./accepted.cpp"}}
         )
@@ -119,6 +125,18 @@ class AdminServerTest(unittest.TestCase):
         status, error = self.request("POST", "/api/problems", payload)
         self.assertEqual(status, 400)
         self.assertIn("track", error["error"])
+
+        payload.update(
+            track="Standard",
+            taxonomy={
+                "primaryDomain": "Unknown Domain",
+                "relatedDomains": [],
+                "coreTags": [],
+            },
+        )
+        status, error = self.request("POST", "/api/problems", payload)
+        self.assertEqual(status, 400)
+        self.assertIn("primaryDomain", error["error"])
 
 
 if __name__ == "__main__":

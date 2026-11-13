@@ -11,7 +11,7 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 14px; }
-button, input, select { font: inherit; }
+button, input, select, textarea { font: inherit; }
 .topbar { height: 68px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--ink); background: rgba(242,239,230,.92); }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand > span { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--ink); background: var(--accent); font-family: Georgia, serif; font-size: 18px; }
@@ -62,8 +62,9 @@ dialog form { padding: 27px; }
 .form-grid label { display: grid; gap: 6px; }
 .form-grid label.wide { grid-column: 1 / -1; }
 .form-grid label > span { color: var(--muted); font-family: var(--mono); font-size: 8px; text-transform: uppercase; letter-spacing: .05em; }
-.form-grid input, .form-grid select { width: 100%; min-height: 43px; padding: 9px 11px; border: 1px solid #bbb7ac; outline: none; background: white; }
-.form-grid input:focus, .form-grid select:focus { border-color: var(--ink); box-shadow: 0 0 0 2px var(--accent); }
+.form-grid input, .form-grid select, .form-grid textarea { width: 100%; min-height: 43px; padding: 9px 11px; border: 1px solid #bbb7ac; outline: none; background: white; }
+.form-grid textarea { resize: vertical; line-height: 1.45; }
+.form-grid input:focus, .form-grid select:focus, .form-grid textarea:focus { border-color: var(--ink); box-shadow: 0 0 0 2px var(--accent); }
 .preserve-note { margin: 18px 0 0; padding: 10px 12px; background: #edebe3; color: var(--muted); font-size: 10px; }
 .dialog-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 24px; }
 .dialog-actions > div { display: flex; gap: 9px; }
