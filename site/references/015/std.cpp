@@ -75,60 +75,233 @@ static inline F sqr(F a) {
     return reduce128(low, high);
 }
 
-// Stable LSD radix sort: 16 byte passes, hence O(m) in the fixed 128-bit model.
-static long long count_distinct(vector<Key>& a, vector<Key>& tmp) {
+// The polynomial value is only a bucket key.  Equal keys are always checked
+// against the actual F_2 subspaces; a key collision cannot affect the answer.
+struct Record {
+    u64 bucket;
+    uint32_t snapshot;
+};
+static_assert(sizeof(Record) == 16);
+using BasisSnapshot = array<uint32_t, 32>;
+
+static void radix_sort(vector<Record>& a, vector<Record>& tmp) {
     const size_t m = a.size();
-    if (m <= 1) return (long long)m;
+    if (m <= 1) return;
     tmp.resize(m);
-
-    for (int pass = 0; pass < 16; ++pass) {
+    for (int pass = 0; pass < 8; ++pass) {
         size_t cnt[256] = {};
-        const int shift = (pass & 7) * 8;
-        auto digit = [pass, shift](const Key& x) -> unsigned {
-            const u64 w = pass < 8 ? x.lo : x.hi;
-            return unsigned((w >> shift) & 255U);
+        const int shift = pass * 8;
+        auto digit = [shift](const Record& x) -> unsigned {
+            return unsigned((x.bucket >> shift) & 255U);
         };
-        for (const Key& x : a) ++cnt[digit(x)];
-
+        for (const Record& x : a) ++cnt[digit(x)];
         size_t pref = 0;
         for (size_t& c : cnt) {
             const size_t old = c;
             c = pref;
             pref += old;
         }
-        for (const Key& x : a) tmp[cnt[digit(x)]++] = x;
+        for (const Record& x : a) tmp[cnt[digit(x)]++] = x;
         a.swap(tmp);
     }
+}
 
-    long long res = 1;
-    for (size_t i = 1; i < m; ++i) {
-        res += !(a[i] == a[i - 1]);
+// Exact row-echelon basis.  A zero remainder is a deterministic membership
+// certificate, not another hash test.
+struct SpaceTester {
+    uint32_t row[32] = {};
+    uint32_t table[4][256];
+    bool table_ready = false;
+
+    SpaceTester(const BasisSnapshot& a, int dim) {
+        for (int i = 0; i < dim; ++i) {
+            uint32_t x = a[i];
+            while (x) {
+                int bit = 31 - __builtin_clz(x);
+                if (!row[bit]) {
+                    row[bit] = x;
+                    break;
+                }
+                x ^= row[bit];
+            }
+        }
     }
-    return res;
+
+    void reduce() {
+        for (int bit = 0; bit < 32; ++bit) if (row[bit]) {
+            for (int j = bit + 1; j < 32; ++j) {
+                if ((row[j] >> bit) & 1U) row[j] ^= row[bit];
+            }
+        }
+    }
+
+    void prepare_table() {
+        reduce();
+        uint32_t column[32];
+        for (int bit = 0; bit < 32; ++bit) {
+            column[bit] = (1U << bit) ^ row[bit];
+        }
+        for (int block = 0; block < 4; ++block) {
+            table[block][0] = 0;
+            for (int x = 1; x < 256; ++x) {
+                int bit = __builtin_ctz((unsigned)x);
+                table[block][x] = table[block][x & (x - 1)]
+                                  ^ column[8 * block + bit];
+            }
+        }
+        table_ready = true;
+    }
+
+    bool contains(const BasisSnapshot& a, int dim) const {
+        if (table_ready) {
+            for (int i = 0; i < dim; ++i) {
+                uint32_t x = a[i];
+                if (table[0][x & 255U] ^ table[1][(x >> 8) & 255U]
+                    ^ table[2][(x >> 16) & 255U] ^ table[3][x >> 24]) {
+                    return false;
+                }
+            }
+        } else {
+            for (int i = 0; i < dim; ++i) {
+                uint32_t x = a[i];
+                while (x) {
+                    int bit = 31 - __builtin_clz(x);
+                    if (!row[bit]) return false;
+                    x ^= row[bit];
+                }
+            }
+        }
+        return true;
+    }
+
+    void append_canonical(vector<uint32_t>& out) {
+        reduce();
+        for (int bit = 31; bit >= 0; --bit) if (row[bit]) out.push_back(row[bit]);
+    }
+};
+
+// Exact MSD radix partition of complete canonical bases.  Common prefixes are
+// skipped in word-sized chunks; identical keys need only one linear scan.
+static long long count_canonical(const vector<uint32_t>& keys, int dim) {
+    const size_t count = keys.size() / dim;
+    const int width = dim * int(sizeof(uint32_t));
+    vector<uint32_t> order(count);
+    iota(order.begin(), order.end(), 0U);
+    const auto* data = reinterpret_cast<const unsigned char*>(keys.data());
+
+    auto solve = [&](auto&& self, size_t left, size_t right, int offset) -> long long {
+        if (right - left <= 1) return (long long)(right - left);
+        const auto* first = data + (size_t)order[left] * width;
+        int common = width - offset;
+        for (size_t i = left + 1; i < right && common; ++i) {
+            const auto* other = data + (size_t)order[i] * width;
+            int j = 0;
+            while (j + 8 <= common) {
+                u64 a, b;
+                memcpy(&a, first + offset + j, 8);
+                memcpy(&b, other + offset + j, 8);
+                if (a != b) {
+                    j += __builtin_ctzll(a ^ b) / 8;
+                    break;
+                }
+                j += 8;
+            }
+            while (j < common && first[offset + j] == other[offset + j]) ++j;
+            common = j;
+        }
+        offset += common;
+        if (offset == width) return 1;
+
+        size_t freq[256] = {}, begin[256], next[256];
+        for (size_t i = left; i < right; ++i) {
+            ++freq[data[(size_t)order[i] * width + offset]];
+        }
+        size_t p = left;
+        for (int b = 0; b < 256; ++b) {
+            begin[b] = next[b] = p;
+            p += freq[b];
+        }
+        for (int b = 0; b < 256; ++b) {
+            const size_t end = begin[b] + freq[b];
+            while (next[b] < end) {
+                unsigned target = data[(size_t)order[next[b]] * width + offset];
+                if (target == (unsigned)b) ++next[b];
+                else swap(order[next[b]], order[next[target]++]);
+            }
+        }
+        long long answer = 0;
+        for (int b = 0; b < 256; ++b) if (freq[b]) {
+            answer += self(self, begin[b], begin[b] + freq[b], offset + 1);
+        }
+        return answer;
+    };
+    return solve(solve, 0, count, 0);
+}
+
+static long long exact_bucket(const vector<Record>& records, size_t left, size_t right,
+                              int dim, const vector<BasisSnapshot>& snapshots) {
+    if (right - left <= 1) return (long long)(right - left);
+    const BasisSnapshot& first = snapshots[records[left].snapshot];
+    const size_t bytes = (size_t)dim * sizeof(uint32_t);
+    size_t pos = left + 1;
+    while (pos < right && memcmp(first.data(), snapshots[records[pos].snapshot].data(), bytes) == 0) ++pos;
+    if (pos == right) return 1;
+
+    SpaceTester tester(first, dim);
+    if ((right - pos) * (size_t)dim >= 2048) tester.prepare_table();
+    for (; pos < right; ++pos) {
+        const BasisSnapshot& candidate = snapshots[records[pos].snapshot];
+        if (memcmp(first.data(), candidate.data(), bytes) == 0 || tester.contains(candidate, dim)) continue;
+
+        // A genuine polynomial-key collision.  Keep complete canonical bases
+        // and use exact bytewise radix partitioning for the remaining classes.
+        vector<uint32_t> canonical;
+        canonical.reserve((right - pos + 1) * (size_t)dim);
+        tester.append_canonical(canonical);
+        for (size_t i = pos; i < right; ++i) {
+            const BasisSnapshot& current = snapshots[records[i].snapshot];
+            if (memcmp(first.data(), current.data(), bytes) == 0 || tester.contains(current, dim)) continue;
+            SpaceTester other(current, dim);
+            other.append_canonical(canonical);
+        }
+        return count_canonical(canonical, dim);
+    }
+    return 1;
+}
+
+static long long count_distinct(vector<Record>& records, vector<Record>& tmp,
+                                int dim, const vector<BasisSnapshot>& snapshots) {
+    radix_sort(records, tmp);
+    long long result = 0;
+    for (size_t left = 0; left < records.size();) {
+        size_t right = left + 1;
+        while (right < records.size() && records[left].bucket == records[right].bucket) ++right;
+        result += exact_bucket(records, left, right, dim, snapshots);
+        left = right;
+    }
+    return result;
 }
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // Fixed independently chosen evaluation point for reproducible official answers.
-    // Its high half is nonzero, so it is not one of the 32-bit input vectors.
-#ifndef ALT_Z
+    // This fixed evaluation point only groups candidates.  Correctness does
+    // not assume it is random, collision-free, or outside the input space.
     const F z(0x243f6a8885a308d3ULL, 0x13198a2e03707344ULL);
-#else
-    const F z(0xa4093822299f31d0ULL, 0x082efa98ec4e6c89ULL);
-#endif
 
     int T;
     if (!(cin >> T)) return 0;
     while (T--) {
         int n;
         cin >> n;
-
         F c[32];
         int d = 0;
-        bool has_zero = false;
-        vector<Key> hashes[32];
+        bool has_zero = false, has_full = false;
+        vector<Record> records[31];
+        vector<BasisSnapshot> snapshots;
+        snapshots.reserve((size_t)n);
+        BasisSnapshot generators{};
 
         for (int r = 0; r < n; ++r) {
             u64 value;
@@ -137,30 +310,29 @@ int main() {
                 has_zero = true;
                 continue;
             }
-
-            F y(value);  // P_{U_k}(value) before processing old layer k.
-            F next = y; // next coefficient in the new chain.
-            F h = z;    // fingerprint of the new chain prefix.
+            F y(value), next = y, h = z;
+            const uint32_t snapshot = (uint32_t)snapshots.size();
             int k = 0;
-
+            bool changed = false;
             while (true) {
-                // L_{c[k]}(y) = 0 iff y == 0 or y == c[k].  y != 0 here.
                 if (k < d && y == c[k]) {
-                    // Dimension k+1 and above are spaces already seen at r-1.
                     c[k] = next;
                     break;
                 }
-
-                // This positive-dimensional suffix space changed and must be recorded.
                 h = sqr(h) ^ mul(next, h);
-                if (hashes[k].empty()) hashes[k].reserve((size_t)n);
-                hashes[k].push_back(h.key());
-
+                changed = true;
+                if (k == 31) {
+                    has_full = true;  // Only one 32-dimensional subspace exists.
+                } else {
+                    if (records[k].empty()) records[k].reserve((size_t)n);
+                    const Key key = h.key();
+                    const u64 bucket = key.lo ^ (key.hi * 0x9e3779b97f4a7c15ULL);
+                    records[k].push_back({bucket, snapshot});
+                }
                 if (k == d) {
                     c[d++] = next;
                     break;
                 }
-
                 const F old = c[k];
                 c[k] = next;
                 const F p = mul(old, y);
@@ -168,12 +340,20 @@ int main() {
                 y = sqr(y) ^ p;
                 ++k;
             }
+            if (changed) {
+                // x is inserted at the front.  At the first dependent layer
+                // the old k-th generator is discarded; all later ones stay.
+                for (int j = k; j > 0; --j) generators[j] = generators[j - 1];
+                generators[0] = (uint32_t)value;
+                snapshots.push_back(generators);
+            }
         }
 
-        long long answer = has_zero ? 1 : 0;
-        vector<Key> tmp;
-        for (int k = 0; k < d; ++k) {
-            answer += count_distinct(hashes[k], tmp);
+        long long answer = (has_zero ? 1 : 0) + (has_full ? 1 : 0);
+        vector<Record> tmp;
+        for (int k = 0; k < min(d, 31); ++k) {
+            answer += count_distinct(records[k], tmp, k + 1, snapshots);
+            vector<Record>().swap(records[k]);
         }
         cout << answer << '\n';
     }
