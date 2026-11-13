@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261105-statement-compare";
+const SITE_RELEASE = "20261113-solutions";
 
 const state = {
   problems: [],
