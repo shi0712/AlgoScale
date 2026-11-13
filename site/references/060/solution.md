@@ -1,4 +1,155 @@
-For a fixed maximum height `x`, the minimum number of horizontal and vertical strips is
-`ceil(h/x) + ceil(w/floor(s/x))`. A continuous lower bound confines the relevant integer values to an interval around the continuous optimum. Binary searches find the interval endpoints; only `O(s^(1/4))` values are evaluated.
+# Staple Stable 题解
 
-The standard runs in `O(s^(1/4) + log s)` time and `O(1)` extra space. The original solution scans `x = 1..min(h,s)` and is `O(s^(1/2))`; the new limit is `h,w,s <= 10^18`.
+## 1. 将切割方案转化为条带数
+
+设横向分成 $p$ 条、纵向分成 $q$ 条，总切割数就是 $p+q-2$。固定条带数后，尽量均匀分割能让最大条带长度最小，分别为
+
+$$
+\left\lceil\frac hp\right\rceil,\qquad
+\left\lceil\frac wq\right\rceil.
+$$
+
+横条和竖条两两相交，因此最大的矩形面积就是这两个最大长度的乘积。
+
+另一种等价参数是最大允许条带高度 $x$。若所有横条高度至多 $x$，最少需要 $\lceil h/x\rceil$ 条；竖条宽度可以取到 $y=\lfloor s/x\rfloor$，最少需要 $\lceil w/y\rceil$ 条。所以定义
+
+$$
+F(x)=\left\lceil\frac hx\right\rceil+
+\left\lceil\frac{w}{\lfloor s/x\rfloor}\right\rceil,
+\qquad 1\le x\le\min(h,s).
+$$
+
+答案为 $\min_x F(x)-2$。这也没有遗漏最优方案：取某个最优方案中最大的横条高度作为 $x$，均匀分带只会减少所需条数。
+
+新范围为 $h,w,s\le10^{18}$，即使枚举 $\sqrt s$ 个候选也太多。关键是用连续函数的下界，把最优解限制在一个很短的整数区间。
+
+## 2. 先得到一个接近最优值的上界
+
+交换长宽，使 $h\le w$。若 $hw\le s$，不用切割，直接输出零。以下假设 $hw>s$。
+
+忽略取整，有
+
+$$
+F(x)\ge f(x)=\frac hx+\frac ws x.
+$$
+
+连续最小值在
+
+$$
+x_* =\sqrt{\frac{hs}{w}}
+$$
+
+取得。计算 $\lfloor x_*\rfloor$ 及其后一个整数，截到合法范围内，取两者的实际 $F$ 值的较小值作为上界 $U$，并记录取得它的位置 $x_0$。
+
+后续只需检查可能满足“代价不超过 $U$”的候选。但是应根据长宽比例选择枚举变量，否则候选区间未必足够短。
+
+## 3. 当 $w>s$ 时，枚举最大高度 $x$
+
+任何最优候选都满足
+
+$$
+\frac hx+\frac ws x\le U,
+$$
+
+即
+
+$$
+w x^2-U s x+hs\le0.
+$$
+
+左边是开口向上的二次函数，满足条件的正整数构成连续区间。已知 $x_0$ 在区间内，可以在 $[1,x_0]$ 和 $[x_0,\min(h,s)]$ 分别二分左右端点，再逐个计算这个区间里的 $F(x)$。
+
+实现不要直接计算 $w x^2$，它可能超过 128 位。把不等式改写为
+
+$$
+Us-wx\ge\left\lceil\frac{hs}{x}\right\rceil.
+$$
+
+所有乘积至多是两个输入量或一个条带数与输入量之积，使用 `__int128` 即可。
+
+### 为什么区间只有 $O(s^{1/4})$ 个整数
+
+令 $t=w/s>1$、$z=x_*=\sqrt{h/t}$。由于 $h\le w$，有 $z\le\sqrt s$。
+
+先考虑 $s\ge4,z\ge1$，取 $x=\lfloor z\rfloor$。有
+
+$$
+\frac{f(x)}t=x+\frac{z^2}{x}
+=2z+\frac{(z-x)^2}{x}\le2z+1.
+$$
+
+又因为 $x\le\sqrt s\le s/2$，取整带来的增量满足
+
+$$
+F(x)-f(x)\le2+\frac{t x^2}{s-x}\le2+2t\le4t.
+$$
+
+因此 $U/t\le2z+5$。候选区间包含在
+
+$$
+x+\frac{z^2}{x}\le2z+5
+$$
+
+的两个根之间，其长度至多为
+
+$$
+\sqrt{20z+25}=O(\sqrt z+1)=O(s^{1/4}+1).
+$$
+
+若 $z<1$，取 $x=1$ 已给出常数宽度的候选区间；若 $s<4$，合法 $x$ 本来就只有常数个。因此边界情况也满足该结论。
+
+## 4. 当 $w\le s$ 时，改为枚举横条数量 $p$
+
+固定横条数 $p$，最大横条高度至少为 $x=\lceil h/p\rceil$，均匀切分能达到这个值。定义
+
+$$
+G(p)=p+\left\lceil\frac{w}{\lfloor s/\lceil h/p\rceil\rfloor}\right\rceil.
+$$
+
+如果 $x>s$，该候选不可行。否则有连续下界
+
+$$
+G(p)\ge g(p)=p+\frac{hw}{sp}.
+$$
+
+因此只需检查
+
+$$
+sp^2-Usp+hw\le0,\qquad 1\le p\le\min(h,U-1).
+$$
+
+初始方案对应的 $p_0=\lceil h/x_0\rceil$ 必然位于可行区间内。仍然以它为中心二分端点，再枚举区间。
+
+令 $z=\sqrt{hw/s}$。在本分支 $h\le w\le s$，所以 $z\le\sqrt s$。与上一节同样分析初始候选，可得 $U\le2z+5$：连续取整位置损失至多一，两个向上取整和宽度向下取整总损失至多四。于是候选区间包含于
+
+$$
+p+\frac{z^2}{p}\le2z+5,
+$$
+
+宽度也至多 $\sqrt{20z+25}=O(s^{1/4}+1)$。
+
+该分支的整数判定同样改写为
+
+$$
+Us-sp\ge\left\lceil\frac{hw}{p}\right\rceil,
+$$
+
+避免计算三因子的乘积。
+
+## 5. 正确性证明
+
+固定最大高度或横条数量后，均匀分割给出的条带数和最大面积都是可以实际实现的，所以每个被评估的候选都是合法方案。
+
+初始方案给出真实上界 $U$。连续函数始终不大于实际代价，所以任何优于或等于 $U$ 的方案都必须通过对应的二次不等式。该不等式的解集是一个连续区间，二分准确找到其整数端点，枚举则检查了全部可能的最优候选。因此取到的最小条带数减二，就是最少切割次数。
+
+## 6. 复杂度与实现细节
+
+每组二分与整数平方根需要对数量级取对数的时间，枚举候选为 $O(s^{1/4}+1)$。记 $H=\max(h,w,s)$，时间复杂度为
+
+$$
+\boxed{O(s^{1/4}+\log H)},
+$$
+
+额外空间为 $O(1)$。多组数据的时间为各组该表达式之和。
+
+平方根用整数二分或在浮点估计后作精确修正，不能直接相信浮点截断。计算 $hw$、$hs$ 及判定式使用 128 位整数；向上取整采用 $a/b+[a\bmod b\ne0]$。最终条带数要减二，才是切割数。
