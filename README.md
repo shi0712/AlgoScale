@@ -9,6 +9,19 @@ The current release contains **74 UOJ-judged problems** and two evaluation track
 
 The project page publishes each problem's source link, source title, original expected complexity, and AlgoScale target complexity. Unknown metadata is explicitly marked `pending`.
 
+## Problem classification
+
+All 74 problems have a primary domain, associated domains, core and supporting
+topics, task attributes, and the techniques used to meet the scaled constraints.
+See [the complete classification](PROBLEM_CLASSIFICATION.md), the
+[structured JSON and topic vocabulary](site/data/problem-classification.json),
+or the [CSV table](site/data/problem-classification.csv). Join classification
+records to the existing catalog by `id`.
+
+Annotations describe the specified statement and solution revision; they do not
+certify a new official judging run. Problem 048 retains provisional algorithm
+tags because its full-range construction remains unresolved.
+
 For accepted benchmark submissions, the catalog links directly to the exact
 `.cpp` source received by the UOJ judge. Failed, partial-score, and unjudged
 submissions are not published. No model response text, reasoning trace, logs,
