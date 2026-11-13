@@ -1,58 +1,71 @@
 ## Problem Description
 
-A tree with $n$ vertices is rooted at vertex 1. There are $m$ specified paths. Path $i$ joins $a_i$ to $b_i$, and $a_i$ is an ancestor of $b_i$, possibly the same vertex.
+A battle lasts until time $T$. Choose an integer difficulty $\ell$ between $1$ and $L$. There are $N$ monsters. Monster $i$ appears at time $S_i$, has strength $P_i$, and starts with $\ell H_i$ hit points.
 
-Repeatedly choose a vertex uniformly at random from all $n$ vertices and delete every remaining specified path that contains it. Stop when all specified paths have been deleted. Determine the expected number of operations, represented modulo $998244353$.
+An attack occupies one second and removes one hit point from a monster that has already appeared. A monster with zero hit points is defeated and cannot be attacked again. You may perform attacks any number of times before the battle ends.
+
+Let $h_i$ be monster $i$'s remaining hit points immediately after time $T$. The final penalty is
+
+$$\sum_{i=1}^{N} h_iP_i.$$
+
+For each of $Q$ thresholds $M_j$, find the greatest difficulty for which some attack schedule gives a penalty at most $M_j$. Report zero if even difficulty $1$ is impossible.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n,m$. The second line supplies $n-1$ parent values: its $i$-th entry is the parent of vertex $i+1$. Then read $m$ lines containing path endpoints $a_i,b_i$.
+- The first line contains $N$, $L$, and $T$.
+- Each of the next $N$ lines contains $S_i$, $H_i$, and $P_i$.
+- The next line contains $Q$.
+- Each of the next $Q$ lines contains one threshold $M_j$.
 
 ## Output Format
 
 Write to standard output.
 
-If the expectation in lowest terms is $x/y$, print the unique integer $d\in[0,998244352]$ satisfying
-
-$$dy\equiv x\pmod{998244353}.$$
-
-It is guaranteed that the expectation is finite and $y$ is not divisible by the modulus.
+Print $Q$ lines. Line $j$ contains the maximum feasible difficulty in $[1,L]$ for threshold $M_j$, or `0` if there is none.
 
 ## Examples
 
 Input:
 
 ```text
-3 3
-1 1
-1 2
-3 3
-1 1
+2 2 10
+0 9 2
+8 5 1
+1
+20
 ```
 
 Output:
 
 ```text
-499122181
+1
 ```
 
 ## Explanation / Notes
 
-Deleting a specified path does not delete tree vertices or edges. Each later draw still uses all $n$ vertices, including vertices drawn earlier. An operation may remove no paths.
+At difficulty $1$, attack monster 1 eight times during $[0, 8]$, monster 2 once during $[8, 9]$, and monster 1 once during $[9, 10]$. The remaining hit points are 0 and 4, giving a penalty of 4, which meets the threshold 20.
 
-A path includes both endpoints, so $a_i=b_i$ describes a one-vertex path. In the sample, completion requires that vertices 1 and 3 both have been drawn; the expectation is $9/2$, represented by the sample answer modulo $998244353$.
+At difficulty $2$, the minimum penalty is 26: attacking monster 1 throughout the ten seconds leaves 8 and 10 hit points, giving $8\cdot 2+10\cdot 1=26$. Difficulty 2 therefore fails the threshold, so the answer is 1.
 
 ## Constraints
 
-- There is one input instance.
-- $1\le n,m\le300$.
-- For every vertex $i=2,\ldots,n$, its parent $\mathrm{fa}_i$ satisfies $0<\mathrm{fa}_i<i$.
-- Every specified path satisfies $1\le a_i\le b_i\le n$.
-- Additionally, $a_i$ lies on the route from $b_i$ to root 1; the numerical endpoint inequality alone is not the entire path guarantee.
-- Each draw is uniform over $[1,n]$ and later draws may repeat earlier choices.
-- Specified paths need not be distinct.
-- The reduced expectation has a denominator invertible modulo $998244353$.
-- Time limit: 2 seconds.
-- Memory limit: 256 MB.
+All input values are integers. There is one battle description per input.
+
+| Parameter or guarantee | Bound |
+| --- | --- |
+| Number of monsters | $1\le N\le6000$ |
+| Maximum difficulty | $1\le L\le10^7$ |
+| Battle duration | $1\le T\le10^{18}$ |
+| Appearance times | $0\le S_i<T$ |
+| Base hit points | $H_i\ge1$ |
+| Strengths | $P_i\ge1$ |
+| Weighted total at difficulty 1 | $\sum_{i=1}^{N}H_iP_i\le10^{11}$ |
+| Number of queries | $1\le Q\le10^6$ |
+| Thresholds | $0\le M_j\le10^{18}$ |
+| Threshold ordering | $M_1<M_2<\cdots<M_Q$ |
+
+$H_i$ and $P_i$ are positive and satisfy the weighted-total bound above. Appearance times need not be sorted.
+
+Time limit: **2 seconds**. Memory limit: **1024 MB**.

@@ -1,78 +1,62 @@
 ## Problem Description
 
-Transform one weighted rooted tree into another at minimum cost. The children of every vertex have a fixed left-to-right order. The allowed operations are:
+This is an interactive problem.
 
-1. **Growing.** Add a new leaf $z$ as a child of $x$, inserting it anywhere in $x$'s ordered child list. If the new edge has weight $w$, the cost is $c_1w$.
-2. **Expansion.** Choose a nonempty consecutive group of children $y_l,\ldots,y_r$ of $x$. Add a new vertex $z$ between $x$ and that group. Replace the group in $x$'s list by $z$, and make $y_l,\ldots,y_r$ the ordered children of $z$. Their incident edge weights remain unchanged. If the new edge $(x,z)$ has weight $w$, the cost is $c_1w$.
-3. **Contraction.** Choose a child $y$ of $x$, delete $y$ and edge $(x,y)$, and splice $y$'s ordered children into $x$'s child list at $y$'s former position. Their incident edge weights remain unchanged. If the removed edge has weight $w$, the cost is $c_2w$.
-4. **Relabeling.** Change an edge weight from $w_1$ to $w_2$, at cost $c_3|w_1-w_2|$.
+There are $n$ cyclic wheels. Every wheel contains the same $n$ distinct symbols in the same cyclic order, and each wheel currently displays one symbol. Their initial positions are hidden.
 
-Two restrictions apply throughout the sequence of operations:
-
-- An edge newly added by growing or expansion cannot later be relabeled.
-- An edge that has been relabeled cannot later be contracted.
-
-The resulting tree must match the target under a vertex bijection preserving the root, child order, and every corresponding edge weight. Vertex names themselves need not match.
+You may rotate one wheel by any allowed integer number of positions. After each action, the judge reports how many distinct symbols are currently displayed across the wheels. Make all wheels display the same symbol within the allowed number of actions.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the cost coefficients $c_1,c_2,c_3$.
+First read the integer $n$.
 
-Two tree descriptions follow, first the initial tree and then the target tree. Each description begins with its vertex count $n$, followed by $n$ vertex records. A record starts with the number of children $k$, followed by $k$ ordered pairs
+Then read the current distinct-symbol count $k$. This count is provided before the first action and again after each action. If $k>1$, perform another action. If $k=1$, terminate immediately without producing further output.
 
-```text
-child_1 weight_1 child_2 weight_2 ... child_k weight_k
-```
-
-The listed order is the left-to-right child order. A leaf has a record containing only `0`.
+The initial configuration is fixed before interaction begins; the judge does not change hidden positions adaptively in response to your strategy.
 
 ## Output Format
 
 Write to standard output.
 
-Print one integer: the minimum total transformation cost.
+Whenever $k>1$, output one line containing:
+
+```text
+i j
+```
+
+This rotates wheel $i$ by $j$ positions. Negative $j$ rotates in the opposite direction. Do not print a final answer marker: success is indicated by reading $k=1$, after which the program must exit.
+
+Flush an emitted action before waiting for the next response. At most $10000$ actions may be printed.
 
 ## Examples
 
-Input:
+The table shows the complete interaction in chronological order. A blank cell means that the other side sends the next message.
 
-```text
-1 1 2
-4
-2 2 5 4 2
-1 3 1
-0
-0
-3
-2 2 1 3 2
-0
-0
-```
-
-Output:
-
-```text
-5
-```
+| Judge sends | Program sends |
+| --- | --- |
+| `3` | |
+| `3` | |
+| | `2 -1` |
+| `2` | |
+| | `3 -1` |
+| `2` | |
+| | `2 -1` |
+| `1` | |
 
 ## Explanation / Notes
 
-In the sample, contract the weight-5 edge from the initial root to its first child. This promotes the weight-1 edge below that child to the root. The root is then incident to two ordered leaf edges of weights 1 and 2, matching the target. The cost is $1\cdot5=5$.
-
-An expansion groups a consecutive interval of children, so it cannot arbitrarily reorder them. Similarly, contraction preserves the order of the promoted children and of the surrounding siblings. A contracted leaf simply disappears.
+The judge reveals only the number of different visible symbols, not their identities or individual wheel positions. A rotation can leave this count unchanged even though the configuration changes. The interaction stops as soon as the response is `1`.
 
 ## Constraints
 
-- $1\le c_1,c_2,c_3\le10^6$; these coefficients are integers.
-- The initial tree has at most **50** vertices.
-- The target tree has at most **2000** vertices.
-- Both inputs are weighted rooted trees with ordered child lists.
-- Each vertex record contains exactly $k$ child/weight pairs after its child count.
-- A tree with $n$ vertices has $n-1$ parent-child edges; each non-root vertex has exactly one parent.
-- Expansion requires $1\le l\le r\le k$ for the selected parent's current child list.
-- Newly introduced growing/expansion edges cannot be relabeled; relabeled edges cannot be contracted.
-- Time limit: **3 seconds**. Memory limit: **1024 MiB**.
-
-An unambiguous numeric range for edge weights and an explicit root-label convention are not specified.
+- $3\le n\le50$.
+- Every wheel contains exactly $n$ distinct symbols, with the same cyclic ordering on every wheel.
+- Every response satisfies $1\le k\le n$.
+- The first response satisfies $k>1$; the machine is not already solved.
+- For every action, $1\le i\le n$ and $-10^9\le j\le10^9$, with integer $i,j$.
+- At most $10000$ actions are allowed.
+- The hidden initial configuration is fixed before the first action; the judge is non-adaptive.
+- After receiving $k=1$, produce no further output.
+- Time limit: **2 seconds**. Memory limit: **2048 MB**.

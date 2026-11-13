@@ -1,248 +1,116 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-static uint64_t SEED;
-
-inline uint64_t F(uint32_t v) {
-    uint64_t z = (uint64_t)v + SEED;
-    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
-    z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
-    z = z ^ (z >> 31);
-    return z;
-}
-
-struct Basis {
-    uint32_t b[32];
-    uint64_t h;
-    uint32_t mask;
-    uint8_t rank;
-};
-
-inline bool insertBasis(Basis &B, uint32_t x) {
-    uint32_t v = x;
-
-    // Reduce by all current pivot bits.
-    // Since B is kept in RREF, each b[q] has zeros at all other pivot positions.
-    uint32_t t = v & B.mask;
-    while (t) {
-        int q = __builtin_ctz(t);
-        v ^= B.b[q];
-        t &= t - 1;
-    }
-
-    if (v == 0) return false;
-
-    int p = 31 - __builtin_clz(v);
-    uint32_t bit = 1u << p;
-
-    B.h ^= F(v);
-
-    // Clear the new pivot bit from all higher pivot rows.
-    for (int q = p + 1; q < 32; ++q) {
-        if (B.b[q] & bit) {
-            uint64_t oldh = F(B.b[q]);
-            B.b[q] ^= v;
-            B.h ^= oldh ^ F(B.b[q]);
-        }
-    }
-
-    B.b[p] = v;
-    B.mask |= bit;
-    ++B.rank;
-    return true;
-}
-
-inline bool sameBasis(const Basis &A, const Basis &B) {
-    if (A.h != B.h || A.rank != B.rank) return false;
-    return memcmp(A.b, B.b, sizeof(A.b)) == 0;
-}
-
-void sortHashes(vector<uint64_t> &a, vector<uint64_t> &tmp) {
-    size_t n = a.size();
-
-    if (n < 200000) {
-        sort(a.begin(), a.end());
-        return;
-    }
-
-    tmp.resize(n);
-
-    uint32_t cnt[256];
-    uint32_t pos[256];
-
-    for (int pass = 0; pass < 8; ++pass) {
-        memset(cnt, 0, sizeof(cnt));
-        int shift = pass * 8;
-
-        for (uint64_t x : a) {
-            ++cnt[(x >> shift) & 255];
-        }
-
-        uint32_t sum = 0;
-        for (int i = 0; i < 256; ++i) {
-            pos[i] = sum;
-            sum += cnt[i];
-        }
-
-        for (uint64_t x : a) {
-            int k = (x >> shift) & 255;
-            tmp[pos[k]++] = x;
-        }
-
-        a.swap(tmp);
-    }
-}
-
-class FastScanner {
-    static constexpr int SZ = 1 << 20;
-    char buf[SZ];
-    int idx = 0, size = 0;
-
-    inline char getChar() {
-        if (idx >= size) {
-            size = (int)fread(buf, 1, SZ, stdin);
-            idx = 0;
-            if (size == 0) return 0;
-        }
-        return buf[idx++];
-    }
-
-public:
-    uint32_t nextUInt() {
-        char c;
-        do {
-            c = getChar();
-        } while (c < '0' || c > '9');
-
-        uint32_t x = 0;
-        while (c >= '0' && c <= '9') {
-            x = x * 10 + (c - '0');
-            c = getChar();
-        }
-        return x;
-    }
-
-    int nextInt() {
-        return (int)nextUInt();
-    }
-};
-
-class FastOutput {
-    static constexpr int SZ = 1 << 20;
-    char buf[SZ];
-    int idx = 0;
-
-    inline void putChar(char c) {
-        if (idx == SZ) flush();
-        buf[idx++] = c;
-    }
-
-public:
-    ~FastOutput() {
-        flush();
-    }
-
-    inline void flush() {
-        if (idx) {
-            fwrite(buf, 1, idx, stdout);
-            idx = 0;
-        }
-    }
-
-    void writeLongLong(long long x) {
-        if (x == 0) {
-            putChar('0');
-            putChar('\n');
-            return;
-        }
-
-        char s[24];
-        int n = 0;
-
-        while (x > 0) {
-            s[n++] = char('0' + x % 10);
-            x /= 10;
-        }
-
-        while (n--) putChar(s[n]);
-        putChar('\n');
-    }
-};
-
 int main() {
-    SEED = (uint64_t)chrono::steady_clock::now().time_since_epoch().count();
-    SEED ^= (uint64_t)(uintptr_t)&SEED;
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
-    FastScanner fs;
-    FastOutput out;
+    int n, m;
+    cin >> n >> m;
 
-    int T = fs.nextInt();
+    vector<int> t(n);
+    for (int i = 0; i < n; ++i) cin >> t[i];
 
-    vector<uint64_t> vals;
-    vector<uint64_t> tmp;
-    vals.reserve(33100000);
+    vector<vector<long long>> a(n, vector<long long>(m));
+    vector<long long> totalRank(m, 0);
 
-    while (T--) {
-        int n = fs.nextInt();
-
-        vals.clear();
-
-        Basis arr1[35], arr2[35];
-        Basis *cur = arr1;
-        Basis *nxt = arr2;
-        int cnt = 0;
-
-        for (int r = 0; r < n; ++r) {
-            uint32_t x = fs.nextUInt();
-
-            Basis sg;
-            memset(sg.b, 0, sizeof(sg.b));
-            sg.h = 0;
-            sg.mask = 0;
-            sg.rank = 0;
-
-            if (x != 0) {
-                int p = 31 - __builtin_clz(x);
-                sg.b[p] = x;
-                sg.mask = 1u << p;
-                sg.rank = 1;
-                sg.h = F(x);
-            }
-
-            int outCnt = 0;
-            nxt[outCnt++] = sg;
-            vals.push_back(sg.h);
-
-            for (int i = 0; i < cnt; ++i) {
-                insertBasis(cur[i], x);
-
-                if (!sameBasis(cur[i], nxt[outCnt - 1])) {
-                    nxt[outCnt++] = cur[i];
-                    vals.push_back(cur[i].h);
-                }
-            }
-
-            swap(cur, nxt);
-            cnt = outCnt;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            cin >> a[i][j];
+            totalRank[j] += a[i][j];
         }
-
-        size_t sz = vals.size();
-
-        if (sz > 1) {
-            sortHashes(vals, tmp);
-        }
-
-        long long ans = 0;
-
-        if (sz > 0) {
-            ans = 1;
-            for (size_t i = 1; i < sz; ++i) {
-                if (vals[i] != vals[i - 1]) ++ans;
-            }
-        }
-
-        out.writeLongLong(ans);
     }
 
+    vector<vector<long long>> b(n, vector<long long>(m));
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            cin >> b[i][j];
+        }
+    }
+
+    int M = 1 << m;
+    vector<int> highest(M), lowerMask(M);
+
+    for (int mask = 1; mask < M; ++mask) {
+        int h = 31 - __builtin_clz((unsigned)mask);
+        highest[mask] = h;
+        lowerMask[mask] = mask ^ (1 << h);
+    }
+
+    vector<long long> F(M), W(M);
+    vector<long long> needTrump(M, 0);
+    vector<long long> haveTrump(M, 0);
+    vector<unsigned char> bad(M, 0);
+
+    long long Aarr[20], Barr[20];
+
+    for (int s = 0; s < n; ++s) {
+        for (int j = 0; j < m; ++j) {
+            Aarr[j] = a[s][j];
+            Barr[j] = b[s][j];
+        }
+
+        F[0] = 0;
+        W[0] = 0;
+
+        if (t[s] == 1) {
+            for (int mask = 1; mask < M; ++mask) {
+                int h = highest[mask];
+                int low = lowerMask[mask];
+
+                long long ah = Aarr[h];
+                long long bh = Barr[h];
+
+                long long f = ah;
+                long long cand = ah - bh + F[low];
+                if (cand > f) f = cand;
+                F[mask] = f;
+
+                long long w = W[low] + bh - ah;
+                W[mask] = w;
+
+                if (f > 0) bad[mask] = 1;
+                haveTrump[mask] += w;
+            }
+        } else {
+            for (int mask = 1; mask < M; ++mask) {
+                int h = highest[mask];
+                int low = lowerMask[mask];
+
+                long long ah = Aarr[h];
+                long long bh = Barr[h];
+
+                long long f = ah;
+                long long cand = ah - bh + F[low];
+                if (cand > f) f = cand;
+                F[mask] = f;
+
+                needTrump[mask] += f;
+            }
+        }
+    }
+
+    vector<unsigned char> goodRank(m, 0);
+
+    for (int mask = 1; mask < M; ++mask) {
+        if (!bad[mask] && needTrump[mask] <= haveTrump[mask]) {
+            int bits = mask;
+            while (bits) {
+                int bit = __builtin_ctz((unsigned)bits);
+                goodRank[bit] = 1;
+                bits &= bits - 1;
+            }
+        }
+    }
+
+    long long answer = 0;
+
+    for (int r = 0; r < m; ++r) {
+        if (!goodRank[r]) {
+            answer += totalRank[r];
+        }
+    }
+
+    cout << answer << '\n';
     return 0;
 }

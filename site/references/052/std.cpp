@@ -1,237 +1,141 @@
-#include <bits/stdc++.h>
-using namespace std;
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <iostream>
+#include <limits>
+#include <vector>
+
 using i64 = long long;
-using i128 = __int128_t;
+static constexpr i64 NEG = -(1LL << 60);
 
-struct Monster { i64 s, h, p; int pos; };
-struct Event { int pos; i64 delta; };
+struct Item {
+    int p = 0;
+    std::array<i64, 11> w{};
+};
 
-// An immutable AVL rope of lower-hull edge vectors.
-struct Rope {
-    struct Node {
-        i64 d = 0, e = 0, weight = 0;
-        int left = 0, right = 0, count = 0, height = 0, last = 0;
-    };
-    // Stable integer indices, with no full-arena reallocation/copy peaks.
-    struct NodeArena {
-        static constexpr unsigned SHIFT = 15;
-        static constexpr size_t BLOCK_SIZE = size_t(1) << SHIFT;
-        static constexpr size_t MASK = BLOCK_SIZE - 1;
-        vector<unique_ptr<Node[]>> blocks;
-        size_t used = 0;
-        size_t size() const { return used; }
-        size_t allocatedBytes() const { return blocks.size() * BLOCK_SIZE * sizeof(Node); }
-        Node& operator[](size_t i) { return blocks[i >> SHIFT][i & MASK]; }
-        const Node& operator[](size_t i) const { return blocks[i >> SHIFT][i & MASK]; }
-        void push_back(const Node& node) {
-            if ((used & MASK) == 0) blocks.emplace_back(new Node[BLOCK_SIZE]);
-            (*this)[used++] = node;
-        }
-    };
-    struct Prefix { int count = 0; i64 d = 0, e = 0; };
-    NodeArena t;
-    Rope(int) { t.push_back({}); }
-    int leaf(i64 d, i64 e) {
-        int id = int(t.size());
-        t.push_back({d, e, 0, 0, 0, 1, 1, id});
-        return id;
-    }
-    int make(int a, int b) {
-        if (!a) return b;
-        if (!b) return a;
-        Node z;
-        z.d = t[a].d + t[b].d;
-        z.e = t[a].e + t[b].e;
-        z.left = a; z.right = b;
-        z.count = t[a].count + t[b].count;
-        z.height = max(t[a].height, t[b].height) + 1;
-        z.last = t[b].last;
-        t.push_back(z);
-        return int(t.size()) - 1;
-    }
-    int balance(int a, int b) {
-        if (t[a].height > t[b].height + 1) {
-            int l = t[a].left, r = t[a].right;
-            if (t[l].height >= t[r].height) {
-                int nr = make(r, b);
-                return make(l, nr);
-            }
-            int rl = t[r].left, rr = t[r].right;
-            int nl = make(l, rl), nr = make(rr, b);
-            return make(nl, nr);
-        }
-        if (t[b].height > t[a].height + 1) {
-            int l = t[b].left, r = t[b].right;
-            if (t[r].height >= t[l].height) {
-                int nl = make(a, l);
-                return make(nl, r);
-            }
-            int ll = t[l].left, lr = t[l].right;
-            int nl = make(a, ll), nr = make(lr, r);
-            return make(nl, nr);
-        }
-        return make(a, b);
-    }
-    int join(int a, int b) {
-        if (!a) return b;
-        if (!b) return a;
-        if (t[a].height > t[b].height + 1) {
-            int l = t[a].left, r = t[a].right;
-            int nr = join(r, b);
-            return balance(l, nr);
-        }
-        if (t[b].height > t[a].height + 1) {
-            int l = t[b].left, r = t[b].right;
-            int nl = join(a, l);
-            return balance(nl, r);
-        }
-        return make(a, b);
-    }
-    pair<int, int> split(int v, int k) {
-        if (!k) return {0, v};
-        if (k == t[v].count) return {v, 0};
-        int l = t[v].left, r = t[v].right;
-        int c = t[l].count;
-        if (k == c) return {l, r};
-        if (k < c) {
-            auto [a, b] = split(l, k);
-            return {a, join(b, r)};
-        }
-        auto [a, b] = split(r, k - c);
-        return {join(l, a), b};
-    }
-    // The predicate is true on a prefix of the edge sequence.
-    template<class Predicate>
-    Prefix takePrefix(int v, Predicate pred) const {
-        Prefix ans;
-        while (v) {
-            if (!t[v].left) {
-                if (pred(ans.d, ans.e, t[v].d, t[v].e)) {
-                    ++ans.count; ans.d += t[v].d; ans.e += t[v].e;
+// Max-plus convolution of an arbitrary sequence A with a discrete concave
+// sequence B. Source indices increase by step; offset is added to the final
+// resource usage. The totally monotone row maxima are found by divide-and-
+// conquer optimization. This costs O(K log K) per convolution.
+static std::vector<i64> concave_transition(
+    const std::vector<i64>& a,
+    const std::vector<i64>& b,
+    int step,
+    int offset
+) {
+    const int k = static_cast<int>(a.size()) - 1;
+    std::vector<i64> out(k + 1, NEG);
+
+    for (int rem = 0; rem < step && rem <= k; ++rem) {
+        const int na = (k - rem) / step + 1;
+        if (k - offset < rem) continue;
+        const int rows = (k - offset - rem) / step + 1;
+
+        auto solve = [&](auto&& self, int left, int right, int opt_left, int opt_right) -> void {
+            if (left > right) return;
+            const int mid = (left + right) / 2;
+            const int low = std::max({0, opt_left, mid - static_cast<int>(b.size()) + 1});
+            const int high = std::min({na - 1, opt_right, mid});
+
+            int best_j = low;
+            __int128 best_value = -((__int128)1 << 120);
+            for (int j = low; j <= high; ++j) {
+                const i64 av = a[rem + j * step];
+                const __int128 value = static_cast<__int128>(av) + b[mid - j];
+                // Pick the rightmost maximum. This is the tie rule used by
+                // the monotone divide-and-conquer recursion.
+                if (value >= best_value) {
+                    best_value = value;
+                    best_j = j;
                 }
-                break;
             }
-            int l = t[v].left, last = t[l].last;
-            if (pred(ans.d + t[l].d - t[last].d,
-                     ans.e + t[l].e - t[last].e,
-                     t[last].d, t[last].e)) {
-                ans.count += t[l].count;
-                ans.d += t[l].d; ans.e += t[l].e;
-                v = t[v].right;
-            } else v = l;
-        }
-        return ans;
-    }
-    Prefix support(int v, i64 num, i64 den) const {
-        return takePrefix(v, [&](i64, i64, i64 d, i64 e) {
-            return i128(e) * den <= i128(d) * num;
-        });
-    }
-};
 
-struct Hull {
-    int root = 0;
-    i64 firstA = 0, firstC = -1, mass = 0;
-};
+            const int target = rem + mid * step + offset;
+            const i64 source = a[rem + best_j * step];
+            if (source != NEG) out[target] = source + b[mid - best_j];
 
-struct HullTree {
-    int n;
-    Rope rope;
-    vector<Hull> tree;
-    HullTree(int n) : n(n), rope(n), tree(4 * n) {}
-    Hull merge(const Hull& a, const Hull& b) {
-        if (a.firstC < 0) return b;
-        if (b.firstC < 0) return a;
-        i64 ba = a.mass + b.firstA;
-        auto pa = rope.takePrefix(a.root, [&](i64 d0, i64 e0, i64 d, i64 e) {
-            auto pb = rope.support(b.root, e, d);
-            i64 aa = a.firstA + d0 + d, ac = a.firstC + e0 + e;
-            i64 bb = ba + pb.d, bc = b.firstC + pb.e;
-            return i128(aa - bb) * e >= i128(ac - bc) * d;
-        });
-        i64 aa = a.firstA + pa.d, ac = a.firstC + pa.e;
-        auto pb = rope.takePrefix(b.root, [&](i64 d0, i64 e0, i64 d, i64 e) {
-            i64 bb = ba + d0 + d, bc = b.firstC + e0 + e;
-            return i128(aa - bb) * e >= i128(ac - bc) * d;
-        });
-        i64 bb = ba + pb.d, bc = b.firstC + pb.e;
-        int left = rope.split(a.root, pa.count).first;
-        int right = rope.split(b.root, pb.count).second;
-        int bridge = rope.leaf(bb - aa, bc - ac);
-        int root = rope.join(rope.join(left, bridge), right);
-        return {root, a.firstA, a.firstC, a.mass + b.mass};
+            self(self, left, mid - 1, opt_left, best_j);
+            self(self, mid + 1, right, best_j, opt_right);
+        };
+
+        solve(solve, 0, rows - 1, 0, na - 1);
     }
-    void update(int v, int l, int r, int pos, i64 h, i64 c) {
-        if (l == r) { tree[v] = {0, h, c, h}; return; }
-        int mid = (l + r) / 2;
-        if (pos <= mid) update(v * 2, l, mid, pos, h, c);
-        else update(v * 2 + 1, mid + 1, r, pos, h, c);
-        tree[v] = merge(tree[v * 2], tree[v * 2 + 1]);
-    }
-    void update(int pos, i64 h, i64 c) { update(1, 0, n - 1, pos, h, c); }
-};
+    return out;
+}
 
 int main() {
-    ios::sync_with_stdio(false); cin.tie(nullptr);
-    int n, L; i64 T;
-    cin >> n >> L >> T;
-    vector<Monster> a(n);
-    for (auto& m : a) cin >> m.s >> m.h >> m.p;
-    sort(a.begin(), a.end(), [](auto x, auto y) { return x.s > y.s; });
-    for (int i = 0; i < n; ++i) a[i].pos = i + 1;
-    sort(a.begin(), a.end(), [](auto x, auto y) { return x.p > y.p; });
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
 
-    HullTree ht(n + 1);
-    ht.update(0, 0, 0); // The permanent line zero.
+    int n, k;
+    if (!(std::cin >> n >> k)) return 0;
+
+    std::array<std::vector<Item>, 11> groups;
+    i64 total_power = 0;
+    i64 all_full_reward = 0;
     for (int i = 0; i < n; ++i) {
-        ht.update(a[i].pos, a[i].h, T - a[i].s);
-        i64 weight = a[i].p - (i + 1 < n ? a[i + 1].p : 0);
-        ht.rope.t[ht.tree[1].root].weight += weight;
+        Item item;
+        std::cin >> item.p;
+        total_power += item.p;
+        for (int t = 1; t <= item.p; ++t) std::cin >> item.w[t];
+        all_full_reward += item.w[item.p];
+        groups[item.p].push_back(item);
     }
-    vector<Event> events;
-    auto add = [&](i64 pos, i64 delta) {
-        if (pos <= L && delta) events.push_back({int(pos), delta});
-    };
-    auto& nodes = ht.rope.t;
-    for (int v = int(nodes.size()) - 1; v; --v) {
-        auto z = nodes[v];
-        if (!z.weight) continue;
-        if (z.left) {
-            nodes[z.left].weight += z.weight;
-            nodes[z.right].weight += z.weight;
-        } else {
-            i64 q = z.e / z.d, r = z.e % z.d;
-            add(q + 1, z.weight * (z.d - r));
-            add(q + 2, z.weight * r);
-        }
+
+    if (total_power <= k) {
+        std::cout << all_full_reward << '\n';
+        return 0;
     }
-#ifdef STATS
-    cerr << "nodes=" << nodes.size()
-         << " node_size=" << sizeof(Rope::Node)
-         << " used_node_bytes=" << nodes.size() * sizeof(Rope::Node)
-         << " allocated_node_bytes=" << nodes.allocatedBytes()
-         << " events=" << events.size() << '\n';
-#endif
-    sort(events.begin(), events.end(), [](auto a, auto b) { return a.pos < b.pos; });
-    size_t at = 0;
-    int pos = 0, Q;
-    i64 value = 0, slope = 0;
-    cin >> Q;
-    while (Q--) {
-        i64 M; cin >> M;
-        int ans = L;
-        while (pos < L) {
-            while (at < events.size() && events[at].pos == pos + 1)
-                slope += events[at++].delta;
-            int end = at < events.size() ? events[at].pos - 1 : L;
-            i64 endValue = value + slope * (end - pos);
-            if (endValue > M) {
-                ans = pos + int((M - value) / slope);
-                break;
+
+    std::vector<i64> no_partial(k + 1, NEG), has_partial(k + 1, NEG);
+    no_partial[0] = 0;
+
+    for (int p = 1; p <= 10; ++p) {
+        auto& items = groups[p];
+        if (items.empty()) continue;
+        std::sort(items.begin(), items.end(), [p](const Item& lhs, const Item& rhs) {
+            return lhs.w[p] > rhs.w[p];
+        });
+
+        const int count = static_cast<int>(items.size());
+        std::vector<i64> full(count + 1, 0);
+        for (int i = 0; i < count; ++i) full[i + 1] = full[i] + items[i].w[p];
+
+        const std::vector<i64> old_no_partial = no_partial;
+        const std::vector<i64> old_has_partial = has_partial;
+        no_partial = concave_transition(old_no_partial, full, p, 0);
+        has_partial = concave_transition(old_has_partial, full, p, 0);
+
+        for (int t = 1; t < p; ++t) {
+            std::vector<i64> suffix_best(count + 1, NEG);
+            for (int i = count - 1; i >= 0; --i) {
+                suffix_best[i] = std::max(suffix_best[i + 1], items[i].w[t]);
             }
-            pos = end; value = endValue;
+
+            std::vector<i64> prefix_best(count, NEG);
+            for (int i = 0; i < count; ++i) {
+                const i64 value = items[i].w[t] - items[i].w[p];
+                prefix_best[i] = (i == 0 ? value : std::max(prefix_best[i - 1], value));
+            }
+
+            std::vector<i64> partial(count, NEG);
+            for (int chosen_full = 0; chosen_full < count; ++chosen_full) {
+                partial[chosen_full] = full[chosen_full] + suffix_best[chosen_full];
+                if (chosen_full > 0) {
+                    partial[chosen_full] = std::max(
+                        partial[chosen_full],
+                        full[chosen_full + 1] + prefix_best[chosen_full - 1]
+                    );
+                }
+            }
+
+            const auto candidate = concave_transition(old_no_partial, partial, p, t);
+            for (int used = 0; used <= k; ++used) {
+                has_partial[used] = std::max(has_partial[used], candidate[used]);
+            }
         }
-        cout << ans << '\n';
     }
+
+    std::cout << std::max(no_partial[k], has_partial[k]) << '\n';
     return 0;
 }

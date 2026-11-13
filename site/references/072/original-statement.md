@@ -1,49 +1,90 @@
 ## Problem Description
 
-An elevator starts at floor `start` at time zero in a building with floors $0,\ldots,n-1$. Each second, it can move one floor upward, move one floor downward, or wait.
+This is an interactive problem.
 
-There are $m$ requests. Request $i$ specifies arrival time $a_i$ and floor $f_i$. It completes instantly whenever the elevator occupies $f_i$ at time $t\ge a_i$.
+Menji is lost, and everyone misses him. Your task is to find him.
 
-Minimize the time when every request has completed.
+There is a known rooted binary tree $T$. Every edge has length $1$, and Menji is hiding at an unknown vertex $X$.
+
+You may send a signal from a chosen vertex $u$ with a chosen strength $k$. If the distance between $u$ and $X$ is at most $k$, Menji receives the signal and sends one back; otherwise, you receive nothing.
+
+Determine the hidden vertex using the allowed number of signals.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains three integers $n$, $\texttt{start}$, and $m$: the number of floors, the initial floor, and the number of requests.
+First read the integer $T$, the number of test cases.
 
-Each of the next $m$ lines contains two integers $a_i$ and $f_i$, describing the arrival time and floor of one request.
+For each test case:
+
+- Read the integer $n$, the number of vertices.
+- Read $n-1$ integers $f_{a_2},f_{a_3},\ldots,f_{a_n}$, where $f_{a_i}$ is the parent of vertex $i$. The tree is rooted at vertex $1$.
+
+After every valid signal query, read one integer $o$. A response of `1` means that $\operatorname{dist}(u,X)\le k$; a response of `0` means that $\operatorname{dist}(u,X)>k$.
 
 ## Output Format
 
 Write to standard output.
 
-Print one integer: the minimum time by which all requests can be completed.
+To send a signal from vertex $u$ with strength $k$, print:
+
+```text
+? u k
+```
+
+End the line and flush the output before reading the response.
+
+To report Menji's position, print:
+
+```text
+! u
+```
+
+Then continue with the next test case, or terminate if all test cases are complete. Reporting an answer does not count as sending a signal.
+
+The interactor is **adaptive**: the hidden position may change in response to your queries, provided that it remains consistent with the tree and every previous response.
+
+Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, and `sys.stdout.flush()` in Python.
 
 ## Examples
 
-Input:
+The table shows one possible complete interaction in chronological order. A blank cell means that the other side sends the next message.
 
-```text
-9 0 2
-0 8
-6 5
-```
-
-Output:
-
-```text
-9
-```
+| Judge sends | Program sends |
+| --- | --- |
+| `2` | |
+| `7` | |
+| `1 1 2 2 3 3` | |
+| | `? 2 1` |
+| `1` | |
+| | `? 3 2` |
+| `0` | |
+| | `? 4 0` |
+| `0` | |
+| | `! 5` |
+| `7` | |
+| `1 1 2 2 3 3` | |
+| | `? 2 1` |
+| `0` | |
+| | `? 3 0` |
+| `1` | |
+| | `! 3` |
 
 ## Explanation / Notes
 
-Move from floor 0 to floor 5, arriving at time 5. Wait until time 6 to complete the request at floor 5, then continue to floor 8 and finish at time 9. This is the minimum possible completion time.
+The transcript is only an example. Because the interactor is adaptive, replies may depend on the complete interaction history.
 
 ## Constraints
 
-- $1\le n\le10^9$.
-- $1\le m\le500$.
-- $0\le a_i\le10^9$.
-- $0\le\texttt{start},f_i\le n-1$.
-- Requests need not be ordered by arrival time, and request times and floors may repeat.
+- $1\le T\le100$.
+- $2\le n\le3\times10^4$ in each test case.
+- Across all test cases, $\sum n\le3\times10^4$.
+- For every $i$, $1\le f_{a_i}<i$.
+- The given rooted tree is binary: no vertex has more than two children.
+- Every signal query satisfies $1\le u\le n$ and $0\le k\le n$.
+- Every query response belongs to $\{0,1\}$.
+- At most $40$ signals may be sent in each test case.
+- Reporting the answer does not consume the signal budget.
+- The interactor is adaptive but must remain consistent with all previous responses.
+- Time limit: **1 second**. Memory limit: **1024 MB**.

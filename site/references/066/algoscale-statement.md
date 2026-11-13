@@ -1,51 +1,79 @@
 ## Problem Description
 
-A rectangular sheet has integer height $h$ and width $w$, subdivided into unit cells. A cut is made along an entire horizontal or vertical grid line and cuts every existing piece intersected by that line.
+You are given a directed graph. Find the infimum variance among all walks from vertex $1$ to vertex $n$.
 
-A horizontal cut may use an integer coordinate from $1$ to $h-1$, and a vertical cut may use one from $1$ to $w-1$. Thus $c_h$ distinct horizontal cuts and $c_w$ distinct vertical cuts produce $(c_h+1)(c_w+1)$ rectangles.
+A walk from vertex $1$ to vertex $n$ is a sequence of edges $p=(e_1,e_2,\ldots,e_l)$ such that:
 
-Find the minimum total number of cuts needed so that every resulting rectangle has area at most $s$.
+- the starting vertex of $e_1$ is vertex $1$;
+- the ending vertex of $e_l$ is vertex $n$;
+- for every consecutive pair, the ending vertex of $e_i$ is the starting vertex of $e_{i+1}$.
+
+Edges in a walk do not need to be distinct.
+
+The variance of a walk is
+
+$$
+D(p)=\frac{1}{l}\sum_{i=1}^{l}\left(w_{e_i}-\overline{w}\right)^2,
+$$
+
+where
+
+$$
+\overline{w}=\frac{1}{l}\sum_{i=1}^{l}w_{e_i}
+$$
+
+is the average edge weight of the walk.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $t$, the number of test cases. Each of the next $t$ lines contains $h,w,s$.
+The first line contains two integers $n$ and $m$, the number of vertices and directed edges.
+
+Each of the next $m$ lines contains three integers $x_i$, $y_i$, and $w_i$, describing a directed edge from $x_i$ to $y_i$ with weight $w_i$. Parallel edges are allowed and are treated as distinct edges.
 
 ## Output Format
 
 Write to standard output.
 
-Print one integer per test case: the minimum number of cuts.
+Print one real number: the infimum variance among all walks from vertex $1$ to vertex $n$. If no such walk exists, print `-1`.
+
+If the required infimum is $a$ and your reported value is $b$, the answer is accepted when
+
+$$
+|a-b|\le10^{-9}\max\{1,|a|,|b|\}.
+$$
 
 ## Examples
 
 Input:
 
 ```text
-1
-2 2 1
+4 4
+1 2 3
+1 3 4
+2 4 5
+3 4 7
 ```
 
 Output:
 
 ```text
-2
+1.000000000000000
 ```
 
 ## Explanation / Notes
 
-One horizontal cut and one vertical cut divide the $2\times 2$ sheet into four unit squares, so two cuts suffice. One cut would leave rectangles of area 2, which exceeds the permitted area 1.
+The walk $1\to2\to4$ uses edge weights $3$ and $5$. Its average weight is $4$, and its variance is $1$.
 
-A cut is counted once even when its line passes through several pieces created earlier. Cuts use global horizontal or vertical grid lines, rather than independent cuts on individual rectangles.
+Because edges may be repeated, the set of attainable walk variances need not contain its greatest lower bound; therefore the problem asks for the infimum rather than necessarily a minimum.
 
 ## Constraints
 
-- $1\le t\le1000$.
-- $1\le h,w,s\le10^{18}$ in every test case.
-- All input values are integers.
-- Horizontal coordinates must be integers in $[1,h-1]$; when $h=1$, there is no horizontal cut position.
-- Vertical coordinates must be integers in $[1,w-1]$; when $w=1$, there is no vertical cut position.
-- Every final rectangle must individually have area at most $s$.
-- Zero cuts are allowed.
-- Time limit: **3 seconds**. Memory limit: **256 MB**.
+- $2\le n\le100$.
+- $1\le m\le1000$.
+- $1\le x_i,y_i\le n$.
+- $x_i\ne y_i$.
+- $0\le w_i\le20$.
+- Answers are checked using the tolerance formula in the output specification.
+- Time limit: 1 second. Memory limit: 256 MB.

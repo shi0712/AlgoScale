@@ -1,28 +1,24 @@
 ## Problem Description
 
-A deck contains $2n$ distinct cards numbered $1$ through $2n$. Initially it is shuffled uniformly over all $(2n)!$ orders. You receive its top $n$ cards as your hand; the order of the remaining $n$ cards is hidden.
+For each index $i\in[1,n]$, define a height
 
-On each turn, choose a card from your hand, put it at the bottom of the deck, and then draw the top card. Your hand therefore always contains $n$ cards.
+$$h_i=\left(i+\frac ba\right)^2.$$
 
-Complete $m$ quests in order. Quest $i$ requires playing card $a_i$. Only the first unfinished quest is active: playing $a_i$ before quest $i$ becomes active gives no credit for that quest. One play can complete at most one quest, even when consecutive quests require the same card. The entire sequence $a_1,\ldots,a_m$ is known in advance, and card labels may repeat.
-
-Find the smallest expected number of turns achievable by a pure strategy. A pure strategy deterministically chooses a card from the observable history: the initial hand, cards previously played and drawn, and quest progress. It cannot depend on the unknown deck order. The expectation is over the random initial shuffle. Return the result modulo $998244353$.
+For every unordered pair of distinct indices, create one ladder of length $|h_i-h_j|$. Sort the resulting $n(n-1)/2$ lengths in nondecreasing order, counting equal lengths separately. Find the $k$-th length and express it as a reduced fraction.
 
 ## Input Format
 
 Read from standard input.
 
-Read $T$. Each test case consists of a line containing $n,m$, followed by a line containing $a_1,\ldots,a_m$.
+Read one line containing four integers $n,k,a,b$.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, write one integer $r\in[0,998244353)$ representing the minimum expectation. If that expectation is the reduced fraction $p/q$, then
+Print integers $p,q$ such that the requested length is $p/q$, $p\ge0$, $q\ge1$, and $\gcd(p,q)=1$.
 
-$$rq\equiv p\pmod{998244353}.$$
-
-This modular representation is guaranteed to exist and be unique.
+Print the two integers on one line, separated by a space, without a slash. An integer answer must still be printed with denominator $1$. Use ordinary decimal notation without a leading plus sign, unnecessary leading zeros, or scientific notation. The numerator may exceed the signed 64-bit integer range.
 
 ## Examples
 
@@ -31,32 +27,26 @@ This modular representation is guaranteed to exist and be unique.
 Input:
 
 ```text
-1
-2 1
-1
+3 1 3 1
 ```
 
 Output:
 
 ```text
-249561090
+11 3
 ```
 
 ## Explanation / Notes
 
-In the example, play card 1 immediately if it is initially in the hand. Otherwise play other cards until drawing card 1, then play it on the next turn. The optimal expectation is
-
-$$\frac12\cdot1+\frac14\cdot2+\frac14\cdot3=\frac74.$$
-
-This is a standard computation problem: the strategy is part of the mathematical definition; the submitted program does not interact with a card-game judge.
+Each pair contributes its own ladder, even if its length equals another ladder's length. The rank $k$ is one-based. The offset inside the square is $b/a$.
 
 ## Constraints
 
-- $1\le T\le1000$.
-- $2\le n\le10^5$ per case.
-- $1\le m\le2\times10^5$ per case.
-- $1\le a_i\le2n$; repeated quest labels are allowed.
-- Across all cases in the same input file, $\sum n\le10^5$ and $\sum m\le2\times10^5$.
-- All $2n$ cards are distinct; all initial deck permutations are equally likely.
-- Modulus: $998244353$.
-- Time limit: 1.5 seconds; memory limit: 256 MB.
+- One test case.
+- $2\le n\le10^{12}$.
+- $1\le k\le\min\{n(n-1)/2,10^{14}\}$.
+- $1\le a\le10^6$.
+- $0\le b\le10^{12}$.
+- All four input parameters are integers.
+- The output fraction must be reduced, with a positive denominator.
+- Time limit: 1 second; memory limit: 256 MB.

@@ -1,65 +1,61 @@
 ## Problem Description
 
-The ground is a piecewise-linear profile through points $(x_1,y_1),\ldots,(x_n,y_n)$ in increasing horizontal order. Build a horizontal bridge at elevation $h$ from $x_1$ to $x_n$.
+There are $n$ original cities and $m$ damaged undirected roads. Road $i$ joins $u_i$ and $v_i$ and costs $w_i$ to repair. Before the damage, these roads connected all the original cities.
 
-Pillars must be placed at the first and last profile points; additional pillars may be placed only at other supplied points. A pillar at $(x_i,y_i)$ has height $h-y_i$. Between consecutive pillars a distance $d$ apart, the bridge has a semicircular arch of radius $r=d/2$, with its highest point at elevation $h$. The arch may touch the ground but may never lie below it.
+There are also $k$ optional towns. Activating town $j$ costs $c_j$. Once activated, it may be connected to any original city $i$ by building a road of cost $a_{j,i}$. Any number of towns, including none, may be activated.
 
-For pillar heights $h_1,\ldots,h_k$ and consecutive horizontal gaps $d_1,\ldots,d_{k-1}$, the cost is
-
-$$\alpha\sum_{j=1}^{k}h_j+\beta\sum_{j=1}^{k-1}d_j^2.$$
-
-Find the minimum cost, or determine that no valid bridge can be built.
+Choose repairs, town activations, and new roads of minimum total cost so that every pair of **original cities** is connected. A route may pass through activated towns. New roads described by the input connect a town to an original city; no town-to-town road option is given.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n,h,\alpha,\beta$. The next $n$ lines contain $x_i,y_i$ in increasing order of $x_i$.
+There is one instance.
+
+1. The first line contains $n,m,k$.
+2. Each of the next $m$ lines contains $u_i,v_i,w_i$.
+3. Each of the next $k$ lines contains $c_j,a_{j,1},a_{j,2},\ldots,a_{j,n}$ for one town.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum cost. If no valid construction exists, print the lowercase word `impossible`.
+Print one nonnegative integer: the minimum total cost needed to connect all the original cities.
 
 ## Examples
 
 Input:
 
 ```text
-4 10 1 1
-0 0
-1 9
-9 9
-10 0
+4 4 2
+1 4 6
+2 3 7
+4 2 5
+4 3 4
+1 1 8 2 4
+100 1 3 2 4
 ```
 
 Output:
 
 ```text
-impossible
+13
 ```
 
 ## Explanation / Notes
 
-For pillars at horizontal positions $a<b$, put $r=(b-a)/2$ and $c=(a+b)/2$. The arch elevation at $x\in[a,b]$ is
-
-$$h-r+\sqrt{r^2-(x-c)^2}.$$
-
-The ground profile must be at or below this curve throughout the span. The bridge height $h$ is an elevation above sea level, not a clearance measured independently from the changing ground.
-
-For the example, no valid bridge can be constructed, so the answer is `impossible`.
+In the example, repair roads 3 and 4 for costs 5 and 4. Activate town 1 for cost 1, then connect it to original cities 1 and 3 for costs 1 and 2. The total is $5+4+1+1+2=13$, which is optimal.
 
 ## Constraints
 
-- There is one input instance.
-- $2\le n\le10^4$.
-- $1\le h\le10^5$.
-- $1\le\alpha,\beta\le10^4$.
-- $0\le x_1<x_2<\cdots<x_n\le10^5$.
-- Every ground elevation satisfies $0\le y_i<h$; the upper inequality is strict.
-- All supplied values are integers.
-- Only supplied profile points may support pillars; the first and last must do so.
-- Contact between an arch and the ground is allowed. Extending below the ground is forbidden.
-- The problem does not guarantee that a feasible bridge exists.
-- Time limit: 10 seconds.
+- $1\le n\le10^4$.
+- $1\le m\le10^6$.
+- $0\le k\le10$.
+- Every old road satisfies $1\le u_i,v_i\le n$, $u_i\ne v_i$, and $0\le w_i\le10^9$.
+- Every town activation cost satisfies $0\le c_j\le10^9$.
+- Every possible town-to-city construction cost satisfies $0\le a_{j,i}\le10^9$.
+- All input values are integers.
+- The original road network is connected. Self-loops are forbidden; multiple roads may join the same pair of cities.
+- Zero-cost repairs, activations, and new roads are allowed.
+- Time limit: 2,000 ms.
+- Memory limit: 524,288 KB.

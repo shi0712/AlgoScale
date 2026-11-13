@@ -1,63 +1,65 @@
 ## Problem Description
 
-There are $n$ original cities and $m$ damaged undirected roads. Road $i$ joins $u_i$ and $v_i$ and costs $w_i$ to repair. Before the damage, these roads connected all the original cities. All damaged roads are currently unusable until repaired.
+Given two labeled, unrooted trees $S,T$ on the same $n$ vertices, transform $S$ into $T$ using at most $400$ operations.
 
-There are also $k$ optional towns. Activating town $j$ costs $c_j$. Once activated, it may be connected to any original city $i$ by building a road of cost $a_{j,i}$. Any number of towns, including none, may be activated. An activated town may have any number of new roads, including zero, and the towns themselves are not required to be connected.
+An operation selects four distinct vertices $x,y,z,w$ that form the consecutive path $x-y-z-w$ in the **current** tree. Remove its three edges, then add three edges whose endpoints all belong to $\{x,y,z,w\}$. After the replacement, the whole graph must still be a simple tree. A replacement edge may be identical to one of the three removed edges. No self-loops or parallel edges are allowed, and edges not removed by this operation remain unchanged.
 
-Choose repairs, town activations, and new roads of minimum total cost so that every pair of **original cities** is connected. A route may pass through activated towns. New roads described by the input connect a town to an original city; no town-to-town road option is given.
+Produce a valid sequence within the operation budget, or report that none exists. You do not need to minimize the number of operations, and zero operations are allowed.
 
 ## Input Format
 
 Read from standard input.
 
-There is one instance.
-
-1. The first line contains $n,m,k$.
-2. Each of the next $m$ lines contains $u_i,v_i,w_i$.
-3. Each of the next $k$ lines contains $c_j,a_{j,1},a_{j,2},\ldots,a_{j,n}$ for one town.
+There is one test case. Read $n$, then $n-1$ pairs describing the edges of $S$, followed by another $n-1$ pairs describing the edges of $T$.
 
 ## Output Format
 
 Write to standard output.
 
-Print one nonnegative integer: the minimum total cost needed to connect all the original cities.
+If no permitted transformation exists within the budget, print `NO`.
+
+Otherwise print `YES` on the first line and the operation count $m$ on the second line. For every operation, print two lines:
+
+1. $x\ y\ z\ w$, describing the path to remove from the current tree;
+2. $a_1\ b_1\ a_2\ b_2\ a_3\ b_3$, describing the three replacement edges.
+
+The final edge set must equal that of $T$. Any valid sequence with $0\le m\le400$ is accepted.
 
 ## Examples
 
 Input:
 
 ```text
-4 4 2
-1 4 6
-2 3 7
-4 2 5
-4 3 4
-1 1 8 2 4
-100 1 3 2 4
+4
+1 2
+1 3
+1 4
+1 2
+2 3
+3 4
 ```
 
 Output:
 
 ```text
-13
+NO
 ```
 
 ## Explanation / Notes
 
-In the example, repair roads 3 and 4 for costs 5 and 4. Activate town 1 for cost 1, then connect it to original cities 1 and 3 for costs 1 and 2. The total is $5+4+1+1+2=13$, which is optimal.
+Tree equality uses vertex labels: the same unordered endpoint pairs must be edges in both trees. An isomorphic shape with different labels is insufficient.
+
+In the example, the initial star has no path on four distinct vertices, so no operation is possible. It differs from the target path, so the answer is `NO`.
 
 ## Constraints
 
-- $1\le n\le10^5$.
-- $0\le m\le10^6$.
-- $0\le k\le16$.
-- Every old road satisfies $1\le u_i,v_i\le n$, $u_i\ne v_i$, and $0\le w_i\le10^9$.
-- Every town activation cost satisfies $0\le c_j\le10^9$.
-- Every possible town-to-city construction cost satisfies $0\le a_{j,i}\le10^9$.
-- All input values are integers.
-- The original road network is connected. Self-loops are forbidden; multiple roads may join the same pair of cities.
-- Zero-cost repairs, activations, and new roads are allowed.
-- When $n=1$, $m=0$ is allowed. The original cities already satisfy the connectivity requirement, and the minimum cost is 0.
-- The answer may exceed the range of a signed 32-bit integer.
-- Time limit: 1 second.
+- $4\le n\le100$.
+- Both input graphs are guaranteed to be trees with vertex labels in $[1,n]$.
+- Every printed vertex label must lie in $[1,n]$.
+- Each operation uses four pairwise distinct vertices forming a three-edge path at that exact stage.
+- Every new edge endpoint must be one of those four vertices.
+- The graph must remain a tree after **every** complete operation, not only at the end.
+- The final graph must have exactly the target's labeled edge set.
+- The number of operations must satisfy $0\le m\le400$.
+- Time limit: 0.5 seconds.
 - Memory limit: 256 MB.

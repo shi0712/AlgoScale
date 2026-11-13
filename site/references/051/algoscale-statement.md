@@ -1,60 +1,57 @@
 ## Problem Description
 
-Start with an unrooted tree $G=(V,E)$. A path is a sequence of distinct vertices joined by consecutive edges. A diameter is a path with the greatest possible number of vertices.
+A row of $n$ positions must be filled with letters `a`, `b`, and `c`, with different letters at every pair of adjacent positions. A given string $s$ fixes some letters; each `?` is a position that must be assigned a letter.
 
-While the tree contains more than one vertex, choose any current diameter $d_1,\ldots,d_k$, listed from one endpoint to the other, and fold it by merging symmetric vertices. Define
+For each of $Q$ independent plans $(x,y,z)$, count assignments using at most $x$ new `a` letters, $y$ new `b` letters, and $z$ new `c` letters. These limits apply only to the original `?` positions, not to letters already fixed in $s$.
 
-$$f(v)=\begin{cases}
-d_{\min(i,k-i+1)},&v=d_i\text{ for some }1\le i\le k,\\
-v,&v\text{ is not on the chosen diameter}.
-\end{cases}$$
-
-The resulting vertex set is $V'=\{f(v):v\in V\}$. Each old edge $\{u,v\}$ becomes $\{f(u),f(v)\}$ unless its endpoints coincide; such loops disappear. If multiple edges become the same unordered pair, retain one copy.
-
-The resulting graph is again a tree. Repeat until only one vertex remains. Find the maximum possible number of folds over all valid choices of diameters.
+Assignments differ if any position receives a different letter. Copies of the same letter are indistinguishable. Return every count modulo $10^9+7$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the test-case count $T$. For each case, read $N$, followed by $N-1$ lines containing edge endpoints $x,y$.
+The first line contains $n$ and $Q$. The second line contains the length-$n$ string $s$.
+
+Each of the next $Q$ lines contains $x,y,z$ for one plan.
 
 ## Output Format
 
 Write to standard output.
 
-Print one integer per case: the maximum number of folds before the tree becomes a single vertex.
+Print $Q$ lines, each containing the number of valid assignments for the corresponding plan, modulo $1000000007$.
 
 ## Examples
 
 Input:
 
 ```text
-1
-1
+6 1
+a?b??c
+2 2 2
 ```
 
 Output:
 
 ```text
-0
+3
 ```
 
 ## Explanation / Notes
 
-The example tree has one vertex, so no fold is permitted and the answer is 0.
+The three valid strings are `acbabc`, `acbcac`, and `acbcbc`.
 
-For larger trees, the chosen path must be a diameter of the **current** tree at each step. The goal is to maximize the number of operations. If the diameter contains an odd number of vertices, its middle vertex is retained; if it contains an even number, its two middle vertices are merged.
+Plans give upper bounds, so unused new letters are allowed. The original fixed letters cannot be changed. Every adjacent pair must differ after all question marks have been replaced.
 
 ## Constraints
 
-- $1\le T\le3\times10^3$.
-- $1\le N\le10^6$ for each case.
-- $\sum N\le10^6$ across all test cases.
-- Every edge satisfies $1\le x,y\le N$ and $x\ne y$.
-- The $N-1$ edges form a tree.
-- A fold is permitted only while the current vertex count exceeds 1.
-- Off-diameter vertices are not directly identified with other vertices, although their incident edges follow the specified endpoint mapping.
-- Loops are removed and parallel edges are merged after every fold; the result is guaranteed to remain a tree.
-- Time limit: 2.5 seconds.
-- Memory limit: 256 MB.
+- $1\le n\le1000$.
+- $1\le Q\le10^5$.
+- $|s|=n$ and every character is one of `a`, `b`, `c`, `?`.
+- For every plan, $0\le x,y,z\le1000$; these values are integers.
+- $x+y+z$ is at least the number of `?` characters in $s$.
+- Plans are independent and all refer to the same original string.
+- There is no promise that the fixed letters already permit a valid final arrangement; a plan may have answer zero.
+- Arithmetic modulus: $10^9+7$.
+- Time limit: **4 seconds**. Memory limit: **256 MB**.
+
+There is one instance per input.

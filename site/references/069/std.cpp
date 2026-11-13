@@ -1,149 +1,134 @@
 #include <bits/stdc++.h>
 using namespace std;
+using int64 = long long;
 
-static constexpr int MOD = 1'000'000'007;
-
-class Solver {
-private:
-    int n = 0;
-    vector<vector<unsigned char>> ok;
-    vector<int> R;
-    vector<vector<int>> children;
-
-    int countForests(const vector<unsigned char>& token, int begin) const {
-        // dp[h]: after the processed prefix, there are h open ordinary vertices.
-        vector<int> dp(1, 1);
-        for (int i = begin; i < (int)token.size(); ++i) {
-            const int ordinary = token[i];
-            vector<int> ndp(dp.size() + ordinary, 0);
-            int suffix = 0;
-            for (int h = (int)dp.size() - 1; h >= 0; --h) {
-                suffix += dp[h];
-                if (suffix >= MOD) suffix -= MOD;
-                ndp[h + ordinary] = suffix;
-            }
-            dp.swap(ndp);
-        }
-
-        int ans = 0;
-        for (int x : dp) {
-            ans += x;
-            if (ans >= MOD) ans -= MOD;
-        }
-        return ans;
-    }
-
-    int evaluate(int v, bool fixedRoot) {
-        // token 1 = ordinary vertex; token 0 = compressed block forced to be a leaf.
-        vector<unsigned char> token;
-        long long factor = 1;
-
-        // Follow the unique possible final singleton block iteratively.
-        while (v != 0) {
-            token.push_back(1);
-
-            int nextVertex = 0;
-            int groupBegin = 0;
-            const auto& ch = children[v];
-
-            for (int j = 0; j < (int)ch.size(); ++j) {
-                if (!ok[v][R[ch[j]]]) continue;
-
-                if (groupBegin == j) {
-                    // A singleton minimal block can only be the final block.
-                    nextVertex = ch[j];
-                } else {
-                    // A minimal block of at least two maximal child subtrees is
-                    // compressed to one forced-leaf token. The inside choices
-                    // are independent forests attached to one common parent.
-                    token.push_back(0);
-                    for (int k = groupBegin; k <= j; ++k) {
-                        factor = factor * evaluate(ch[k], false) % MOD;
-                    }
-                }
-                groupBegin = j + 1;
-            }
-
-            v = nextVertex;
-        }
-
-        // The real root 1 is always open, so its token is omitted from the stack DP.
-        const int ways = countForests(token, fixedRoot ? 1 : 0);
-        return (int)(factor * ways % MOD);
-    }
-
-public:
-    int run() {
-        int m;
-        cin >> n >> m;
-
-        // Relabel by the first DFS order, which becomes 1,2,...,n internally.
-        vector<int> position(n + 1);
-        for (int i = 1; i <= n; ++i) {
-            int x;
-            cin >> x;
-            position[x] = i;
-        }
-
-        // low[x] / high[x] = min/max predecessor position of x over all orders.
-        vector<int> low(n + 1), high(n + 1);
-        for (int i = 2; i <= n; ++i) {
-            low[i] = high[i] = i - 1; // predecessor in the first order
-        }
-
-        for (int k = 1; k < m; ++k) {
-            int previous = 0;
-            for (int i = 1; i <= n; ++i) {
-                int x;
-                cin >> x;
-                const int v = position[x];
-                if (i > 1) {
-                    low[v] = min(low[v], previous);
-                    high[v] = max(high[v], previous);
-                }
-                previous = v;
-            }
-        }
-
-        // ok[l][r] means [l,r] is a subtree interval in every given order.
-        ok.assign(n + 1, vector<unsigned char>(n + 1, 0));
-        R.assign(n + 1, 0);
-
-        for (int l = 1; l <= n; ++l) {
-            ok[l][l] = 1;
-            R[l] = l;
-
-            int mn = n + 1;
-            int mx = 0;
-            for (int r = l + 1; r <= n; ++r) {
-                mn = min(mn, low[r]);
-                mx = max(mx, high[r]);
-                if (mn >= l && mx <= r) {
-                    ok[l][r] = 1;
-                    R[l] = r;
-                }
-            }
-        }
-
-        // Maximal common intervals are laminar; build their containment tree.
-        children.assign(n + 1, {});
-        vector<int> st;
-        st.reserve(n);
-        for (int v = 1; v <= n; ++v) {
-            while (!st.empty() && R[st.back()] < v) st.pop_back();
-            if (!st.empty()) children[st.back()].push_back(v);
-            st.push_back(v);
-        }
-
-        return evaluate(1, true);
-    }
+struct Block {
+    int l, r;
+    int64 sum;
+    // Lower bound on the cost of the gap immediately to this block's left.
+    int64 gap;
+    // An adjustable position in that gap; -1 when there is no left block.
+    int slot;
 };
+
+template <class Ask>
+vector<int64> reconstruct(int n, Ask ask) {
+    constexpr int64 A = 1'000'000'000LL;
+    vector<int64> positive(n + 1, 0);
+    vector<char> sampled(n + 1, false), unknown(n + 1, false);
+
+    // Sample singletons: skip one position after a positive answer.
+    for (int i = 1; i <= n; ) {
+        positive[i] = ask(i, i);
+        sampled[i] = true;
+        if (positive[i] > 0 && i + 2 <= n) i += 2;
+        else ++i;
+    }
+
+    // A skipped position whose right neighbour is nonpositive is easy to resolve.
+    for (int i = 1; i <= n; ++i) {
+        if (sampled[i]) continue;
+        if (positive[i + 1] == 0) {
+            positive[i] = ask(i - 1, i + 1) - positive[i - 1];
+        } else {
+            unknown[i] = true;
+        }
+    }
+
+    vector<int64> b = positive;
+    for (int i = 1; i <= n; ++i) {
+        if (unknown[i]) b[i] = A;
+    }
+
+    // Maximal runs of already-known positive entries.
+    vector<Block> runs;
+    for (int i = 1; i <= n; ) {
+        if (positive[i] == 0) {
+            ++i;
+            continue;
+        }
+        int l = i;
+        int64 sum = 0;
+        while (i <= n && positive[i] > 0) sum += positive[i++];
+        runs.push_back({l, i - 1, sum, 0, -1});
+    }
+
+    vector<Block> st;
+    st.reserve(runs.size());
+    int previous_end = -1;
+
+    for (Block cur : runs) {
+        if (previous_end != -1) {
+            cur.slot = previous_end + 1;
+            if (cur.l == previous_end + 2 && unknown[cur.slot]) {
+                cur.gap = -A;  // The skipped entry might be positive.
+            } else {
+                cur.gap = 0;   // Every entry in this gap is nonpositive.
+            }
+        }
+
+        while (!st.empty()) {
+            Block left = st.back();
+            int64 small = min(left.sum, cur.sum);
+            int64 large = max(left.sum, cur.sum);
+            int64 answer = (cur.gap >= small)
+                         ? large : ask(left.l, cur.r);
+
+            if (answer > large) {
+                // The entire interval is a maximum subarray: its sum is known.
+                int64 needed = left.sum + cur.sum - answer;
+                b[cur.slot] -= needed - cur.gap;
+                cur.l = left.l;
+                cur.sum = answer;
+                cur.gap = left.gap;
+                cur.slot = left.slot;
+                st.pop_back();
+            } else {
+                // Only a lower bound on the gap cost is necessary for now.
+                int64 needed = max(cur.gap, small);
+                b[cur.slot] -= needed - cur.gap;
+                cur.gap = needed;
+
+                if (left.sum > cur.sum) break;
+
+                // Remove the smaller left block from the active stack.
+                // Its entries remain in b and become part of the combined gap.
+                st.pop_back();
+                if (st.empty()) {
+                    cur.gap = 0;
+                    cur.slot = -1;
+                } else {
+                    cur.gap += left.gap - left.sum;
+                    cur.slot = left.slot;
+                }
+            }
+        }
+        st.push_back(cur);
+        previous_end = cur.r;
+    }
+    return b;
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    Solver solver;
-    cout << solver.run() << '\n';
+    int T;
+    if (!(cin >> T)) return 0;
+    while (T--) {
+        int n;
+        if (!(cin >> n)) return 0;
+        auto ask = [&](int l, int r) -> int64 {
+            cout << "? " << l << ' ' << r << endl;
+            int64 answer;
+            if (!(cin >> answer) || answer < 0) exit(0);
+            return answer;
+        };
+        vector<int64> b = reconstruct(n, ask);
+        cout << '!';
+        for (int i = 1; i <= n; ++i) cout << ' ' << b[i];
+        cout << endl;
+        // The statement specifies no extra verdict token after an answer.
+    }
     return 0;
 }

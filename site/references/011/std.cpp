@@ -1,179 +1,215 @@
-// Dark Queue / 暗匣中的指令
-// O(m + n log^2 n) time, O(m+n) working space. No answer tables.
-// Constraints: 2 <= n <= 100000, 1 <= m <= 200000.
-// Adapted from the algorithm finalized in the accompanying conversation.
 #include <bits/stdc++.h>
 using namespace std;
+using i64 = long long;
+using i128 = __int128_t;
 
-using int64 = long long;
-constexpr int MOD = 998244353;
-constexpr int ROOT = 3;
-
-int mod_pow(int a, int e) {
-    int r = 1;
-    while (e > 0) {
-        if (e & 1) r = int((int64)r * a % MOD);
-        a = int((int64)a * a % MOD);
-        e >>= 1;
-    }
-    return r;
+// All scaled lengths, scan coordinates and scan accumulators are 128-bit.
+string decimal(i128 x) {
+    if (x == 0) return "0";
+    string s;
+    while (x) { s += char('0' + x % 10); x /= 10; }
+    reverse(s.begin(), s.end());
+    return s;
 }
 
-void ntt(vector<int>& a, bool inverse) {
-    int n = (int)a.size();
-    for (int i = 1, j = 0; i < n; ++i) {
-        int bit = n >> 1;
-        while (j & bit) { j ^= bit; bit >>= 1; }
-        j ^= bit;
-        if (i < j) swap(a[i], a[j]);
+// Deterministic linear-time selection, in-place, [left,right), 0-based kth.
+i128 selectK(vector<i128>& v, int left, int right, int kth) {
+    while (true) {
+        if (right - left <= 32) {
+            sort(v.begin() + left, v.begin() + right);
+            return v[kth];
+        }
+        int groups = 0;
+        for (int i = left; i < right; i += 5) {
+            int end = min(i + 5, right);
+            sort(v.begin() + i, v.begin() + end);
+            swap(v[left + groups], v[i + (end - i) / 2]);
+            ++groups;
+        }
+        i128 pivot = selectK(v, left, left + groups, left + groups / 2);
+        int lt = left, cur = left, gt = right;
+        while (cur < gt) {
+            if (v[cur] < pivot) swap(v[lt++], v[cur++]);
+            else if (v[cur] > pivot) swap(v[cur], v[--gt]);
+            else ++cur;
+        }
+        if (kth < lt) right = lt;
+        else if (kth >= gt) left = gt;
+        else return pivot;
     }
-    for (int len = 2; len <= n; len <<= 1) {
-        int step = mod_pow(ROOT, (MOD - 1) / len);
-        if (inverse) step = mod_pow(step, MOD - 2);
-        for (int l = 0; l < n; l += len) {
-            int64 w = 1;
-            for (int j = 0; j < len / 2; ++j) {
-                int u = a[l + j];
-                int v = int(w * a[l + j + len / 2] % MOD);
-                int x = u + v;
-                if (x >= MOD) x -= MOD;
-                int y = u - v;
-                if (y < 0) y += MOD;
-                a[l + j] = x;
-                a[l + j + len / 2] = y;
-                w = w * step % MOD;
+}
+
+#ifdef LOCAL_DIAGNOSTICS
+struct Diagnostics {
+    i64 d = 0, initial_count = 0, final_count = 0, peak_elements = 0;
+    int streaming_rounds = 0;
+    bool upper_fallback = false, pivot_answer = false;
+    i128 w = 0, initial_l = 0, initial_r = 0;
+} diag;
+#endif
+
+i128 solve(i64 n, i64 k, i64 a, i64 b) {
+#ifdef LOCAL_DIAGNOSTICS
+    diag = Diagnostics{};
+#endif
+    i64 dl = 1, dr = min(n - 1, k);
+    while (dl < dr) {
+        i64 mid = dl + (dr - dl) / 2;
+        if ((i128)mid * (mid + 1) / 2 >= k) dr = mid;
+        else dl = mid + 1;
+    }
+    const i64 D = dl;
+    const i128 W = (i128)D * ((i128)a * (D + 2) + 2 * (i128)b);
+    auto start = [&](i64 d) -> i128 {
+        return (i128)d * ((i128)a * d + 2 * (i128)b);
+    };
+    auto finish = [&](i64 d) -> i128 {
+        return (i128)d * ((i128)a * (2 * (i128)n - d) + 2 * (i128)b);
+    };
+    auto weight = [&](i64 d) -> i128 { return W / (2 * (i128)a * d); };
+
+    const i128 targetL = (i128)(k - D) * W;
+    const i128 targetR = (i128)(k + D) * W;
+    i128 L = 0, R = W, x = 0, value = 0, slope = 0;
+    bool foundL = (targetL == 0), foundR = false;
+    i64 enter = 1, leave = 1;
+    while (x < W) {
+        i128 ns = enter <= D ? start(enter) : W + 1;
+        i128 ne = leave <= D ? finish(leave) : W + 1;
+        i128 nx = min(W, min(ns, ne)), dx = nx - x;
+        if (slope > 0) {
+            // For positive gap, ceil(gap/slope) <= dx iff (gap-1)/slope < dx.
+            // Test BEFORE multiplying. If the upper root is not reached,
+            // value + slope*dx < targetR < 2^127, so the update cannot overflow.
+            if (!foundL && (targetL - value - 1) / slope < dx) {
+                L = x + (targetL - value) / slope;
+                foundL = true;
+            }
+            if ((targetR - value - 1) / slope < dx) {
+                R = x + (targetR - value) / slope;
+                foundR = true;
+                break;
             }
         }
+        value += slope * dx;
+        x = nx;
+        if (x == W) break;
+        if (ns == x) { slope += weight(enter); ++enter; }
+        if (ne == x) { slope -= weight(leave); ++leave; }
     }
-    if (inverse) {
-        int inv_n = mod_pow(n, MOD - 2);
-        for (int& x : a) x = int((int64)x * inv_n % MOD);
+    assert(foundL);
+    (void)foundR;
+
+    // Count one row, avoiding negative division and saturating before narrowing.
+    auto rowCount = [&](i128 bound, i128 base, i64 step, i64 len) -> i64 {
+        if (bound <= base) return 0;
+        return (i64)min((i128)len, (bound - base) / step);
+    };
+    auto rankAndEqual = [&](i128 bound) -> pair<i64, i64> {
+        i64 rank = 0, equal = 0;
+        for (i64 d = 1; d <= D; ++d) {
+            i128 base = start(d);
+            if (base >= bound) break;
+            i64 step = 2 * a * d;
+            i64 c = rowCount(bound, base, step, n - d);
+            rank += c;
+            if (c > 0 && base + (i128)step * c == bound) ++equal;
+        }
+        return {rank, equal};
+    };
+    // Enumerate the CURRENT interval only; no row arrays are stored.
+    auto enumerate = [&](auto&& emit) {
+        for (i64 d = 1; d <= D; ++d) {
+            i128 base = start(d);
+            if (base >= R) break;
+            i64 step = 2 * a * d;
+            i64 first = rowCount(L, base, step, n - d) + 1;
+            i64 last = rowCount(R, base, step, n - d);
+            i128 v = base + (i128)step * first;
+            for (i64 i = first; i <= last; ++i, v += step) emit(v);
+        }
+    };
+    i64 rankL = rankAndEqual(L).first;
+    i64 rankR = rankAndEqual(R).first;
+    assert(rankL < k && k <= rankR && rankR - rankL < 4 * D);
+#ifdef LOCAL_DIAGNOSTICS
+    diag.d = D; diag.w = W; diag.initial_l = L; diag.initial_r = R;
+    diag.initial_count = rankR - rankL; diag.upper_fallback = !foundR;
+#endif
+    const i64 materializeLimit = max<i64>(D, 256);
+
+    // Retain the earlier O(sqrt(k)) scan + BFPRT algorithm, but stream a few
+    // BFPRT pivot rounds before materialization. At most one vector is alive.
+    // A group-of-five pivot leaves <= 7m/10+6 elements: <= 5 rounds suffice
+    // from m<4D until m<=max(D,256). This keeps worst-case memory below 256 MiB.
+    while (rankR - rankL > materializeLimit) {
+        const i64 count = rankR - rankL;
+        i128 pivot;
+        {
+            vector<i128> medians;
+            medians.reserve((size_t)((count + 4) / 5));
+            array<i128, 5> group{};
+            int used = 0;
+            enumerate([&](i128 v) {
+                group[used++] = v;
+                if (used == 5) {
+                    sort(group.begin(), group.end());
+                    medians.push_back(group[2]);
+                    used = 0;
+                }
+            });
+            if (used) {
+                sort(group.begin(), group.begin() + used);
+                medians.push_back(group[used / 2]);
+            }
+            assert((i64)medians.size() == (count + 4) / 5);
+#ifdef LOCAL_DIAGNOSTICS
+            ++diag.streaming_rounds;
+            diag.peak_elements = max(diag.peak_elements, (i64)medians.capacity());
+#endif
+            pivot = selectK(medians, 0, (int)medians.size(), (int)medians.size() / 2);
+        } // Release ALL medians before allocating any final candidate vector.
+        auto [le, eq] = rankAndEqual(pivot);
+        if (k <= le - eq) { R = pivot - 1; rankR = le - eq; }
+        else if (k <= le) {
+#ifdef LOCAL_DIAGNOSTICS
+            diag.pivot_answer = true;
+#endif
+            return pivot;
+        } else { L = pivot; rankL = le; }
+        assert(rankL < k && k <= rankR);
+        assert(rankR - rankL <= count * 7 / 10 + 6);
     }
+    vector<i128> candidates;
+    candidates.reserve((size_t)(rankR - rankL));
+    enumerate([&](i128 v) { candidates.push_back(v); });
+    assert((i64)candidates.size() == rankR - rankL);
+#ifdef LOCAL_DIAGNOSTICS
+    diag.final_count = (i64)candidates.size();
+    diag.peak_elements = max(diag.peak_elements, (i64)candidates.capacity());
+    assert(diag.streaming_rounds <= 5);
+#endif
+    return selectK(candidates, 0, (int)candidates.size(), (int)(k - rankL - 1));
 }
-
-vector<int> convolution(vector<int> a, vector<int> b) {
-    int need = (int)a.size() + (int)b.size() - 1;
-    if (min(a.size(), b.size()) <= 32) {
-        vector<int> c(need, 0);
-        for (int i = 0; i < (int)a.size(); ++i)
-            for (int j = 0; j < (int)b.size(); ++j)
-                c[i + j] = int((c[i + j] + (int64)a[i] * b[j]) % MOD);
-        return c;
-    }
-    int len = 1;
-    while (len < need) len <<= 1;
-    a.resize(len);
-    b.resize(len);
-    ntt(a, false);
-    ntt(b, false);
-    for (int i = 0; i < len; ++i)
-        a[i] = int((int64)a[i] * b[i] % MOD);
-    ntt(a, true);
-    a.resize(need);
-    return a;
-}
-
-struct Solver {
-    int n;
-    vector<int> inv, fac, ifac;
-    vector<int> q, F;
-
-    explicit Solver(int n_) : n(n_), inv(2*n + 1), fac(2*n + 1),
-                              ifac(2*n + 1), q(n, 0), F(n) {
-        inv[1] = 1;
-        for (int i = 2; i <= 2*n; ++i)
-            inv[i] = int(MOD - (int64)(MOD / i) * inv[MOD % i] % MOD);
-        fac[0] = ifac[0] = 1;
-        for (int i = 1; i <= 2*n; ++i) {
-            fac[i] = int((int64)fac[i - 1] * i % MOD);
-            ifac[i] = int((int64)ifac[i - 1] * inv[i] % MOD);
-        }
-    }
-
-    // 已知次数不超过 s-1 的多项式在 0,...,s-1 的取值。
-    // 用一次卷积补出 s,...,count-1 的取值。
-    vector<int> extend_right(vector<int> f, int count) {
-        int s = (int)f.size();
-        if (s == count) return f;
-        vector<int> a(s), b(count, 0);
-        for (int i = 0; i < s; ++i) {
-            a[i] = int((int64)f[i] * ifac[i] % MOD * ifac[s - 1 - i] % MOD);
-            if ((s - 1 - i) & 1)
-                a[i] = (a[i] == 0 ? 0 : MOD - a[i]);
-        }
-        for (int i = 1; i < count; ++i) b[i] = inv[i];
-        vector<int> c = convolution(move(a), move(b));
-        f.resize(count);
-        for (int i = s; i < count; ++i)
-            f[i] = int((int64)c[i] * fac[i] % MOD * ifac[i - s] % MOD);
-        return f;
-    }
-
-    // 返回区间乘积多项式在 l,...,r+1 的取值。
-    // 同时向 F[t] 中乘入当前区间内所有下标不小于 t 的因子。
-    vector<int> divide(int l, int r) {
-        if (l == r) {
-            int x = 1 - q[l];
-            if (x < 0) x += MOD;
-            F[l] = x;
-            return {x, 1};
-        }
-        int mid = (l + r) / 2;
-        vector<int> left = divide(l, mid);
-        vector<int> right = divide(mid + 1, r);
-        int count = r - l + 2;
-
-        left = extend_right(move(left), count);
-        // 反转样本，把向左扩展转化为向右扩展。
-        reverse(right.begin(), right.end());
-        right = extend_right(move(right), count);
-        reverse(right.begin(), right.end());
-
-        for (int t = l; t <= mid; ++t)
-            F[t] = int((int64)F[t] * right[t - l] % MOD);
-        for (int i = 0; i < count; ++i)
-            left[i] = int((int64)left[i] * right[i] % MOD);
-        return left;
-    }
-
-    int solve(const vector<int>& a) {
-        int m = (int)a.size();
-        vector<int64> b(m + 1, 0), next_value(2*n + 1, 0);
-        for (int i = m - 1; i >= 0; --i) {
-            b[i] = b[i + 1] + 1;
-            if (next_value[a[i]] != 0)
-                b[i] = max(b[i], next_value[a[i]] + n + 1);
-            next_value[a[i]] = b[i];
-        }
-        int64 base = b[0];
-        // 有贡献的任务构成一个前缀，且其中的牌互不相同。
-        for (int i = 0; i < m && base - b[i] < n; ++i) {
-            int c = int(base - b[i]);
-            int u = n - 1 - c;
-            q[u] = inv[2*n - i];
-        }
-        divide(0, n - 1);
-        int answer = int((base + n) % MOD);
-        for (int x : F) {
-            answer -= x;
-            if (answer < 0) answer += MOD;
-        }
-        return answer;
-    }
-};
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int T;
-    if (!(cin >> T)) return 0;
-    while (T--) {
-        int n, m;
-        cin >> n >> m;
-        vector<int> a(m);
-        for (int& x : a) cin >> x;
-        Solver solver(n);
-        cout << solver.solve(a) << '\n';
-    }
+    i64 n, k, a, b;
+    if (!(cin >> n >> k >> a >> b)) return 0;
+    i128 answer = solve(n, k, a, b);
+    i64 g = gcd((i64)(answer % a), a);
+    cout << decimal(answer / g) << ' ' << a / g << '\n';
+#ifdef LOCAL_DIAGNOSTICS
+    cerr << "{\"D\":" << diag.d << ",\"W\":\"" << decimal(diag.w)
+         << "\",\"L\":\"" << decimal(diag.initial_l)
+         << "\",\"R\":\"" << decimal(diag.initial_r)
+         << "\",\"initial_candidates\":" << diag.initial_count
+         << ",\"final_candidates\":" << diag.final_count
+         << ",\"streaming_rounds\":" << diag.streaming_rounds
+         << ",\"peak_vector_bytes\":" << diag.peak_elements * 16
+         << ",\"upper_fallback\":" << diag.upper_fallback
+         << ",\"pivot_answer\":" << diag.pivot_answer << "}\n";
+#endif
     return 0;
 }

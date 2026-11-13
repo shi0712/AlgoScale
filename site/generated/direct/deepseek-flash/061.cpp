@@ -1,155 +1,118 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-struct Node {
-    int score;
-    int ops;
-};
+using ll = long long;
 
-const int NEG = -1000000000;
+constexpr int MOD = 998244353;
+constexpr int MAXN = 4005;
+
+ll modpow(ll a, ll e) {
+    ll r = 1;
+    while (e) {
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
+        e >>= 1;
+    }
+    return r;
+}
+
+ll fact[MAXN], invfact[MAXN], dfact[MAXN];
+
+void precompute() {
+    fact[0] = 1;
+    for (int i = 1; i < MAXN; ++i)
+        fact[i] = fact[i - 1] * i % MOD;
+
+    invfact[MAXN - 1] = modpow(fact[MAXN - 1], MOD - 2);
+    for (int i = MAXN - 2; i >= 0; --i)
+        invfact[i] = invfact[i + 1] * (i + 1) % MOD;
+
+    dfact[0] = 1;
+    for (int i = 2; i < MAXN; i += 2)
+        dfact[i] = dfact[i - 2] * (i - 1) % MOD;
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
+    precompute();
+
     int T;
     cin >> T;
 
     while (T--) {
-        string S;
-        int K;
-        cin >> S >> K;
+        int n, m;
+        cin >> n >> m;
 
-        int n = (int)S.size();
+        int N = 2 * m;
+        vector<int> a(n);
+        for (int &x : a) cin >> x;
 
-        // blocks[i] contains all valid operation blocks starting at position i (1-indexed).
-        // Each is {length, dominant_letter}.
-        vector<array<pair<int, int>, 3>> blocks(n + 2);
-        vector<unsigned char> blockCnt(n + 2, 0);
+        vector<ll> sumComb(N + 1, 0);
 
-        for (int i = 1; i <= n; ++i) {
-            for (int len = 3; len <= 5; ++len) {
-                int j = i + len - 1;
-                if (j > n) break;
-
-                int cnt[26] = {};
-                for (int p = i - 1; p < j; ++p) {
-                    ++cnt[S[p] - 'a'];
-                }
-
-                int dominant = -1;
-                for (int c = 0; c < 26; ++c) {
-                    if (cnt[c] == len - 1) {
-                        dominant = c;
-                        break;
-                    }
-                }
-
-                if (dominant != -1) {
-                    blocks[i][blockCnt[i]++] = {len, dominant};
-                }
+        for (int x : a) {
+            for (int k = 2; k <= x; ++k) {
+                ll c = fact[x] * invfact[k] % MOD * invfact[x - k] % MOD;
+                sumComb[k] += c;
+                if (sumComb[k] >= MOD) sumComb[k] -= MOD;
             }
         }
 
-        // C[lambda] = maximum number of operations among all optimal solutions
-        // for maximizing (stars - lambda * operations).
-        vector<int> C(6, 0);
+        vector<ll> R(N + 1, 0);
 
-        const int STATES = 27;
-        // state 0: previous position is not covered by an adjacent block
-        // state d+1: previous position is covered and its block's final letter is d
-        vector<Node> dp((n + 2) * STATES);
-
-        for (int lambda = 1; lambda <= 5; ++lambda) {
-            fill(dp.begin(), dp.end(), Node{NEG, NEG});
-
-            auto relax = [&](int pos, int state, const Node &val) {
-                Node &to = dp[pos * STATES + state];
-                if (val.score > to.score ||
-                    (val.score == to.score && val.ops > to.ops)) {
-                    to = val;
-                }
-            };
-
-            dp[1 * STATES + 0] = {0, 0};
-
-            for (int i = 1; i <= n; ++i) {
-                for (int state = 0; state < STATES; ++state) {
-                    Node cur = dp[i * STATES + state];
-                    if (cur.score == NEG) continue;
-
-                    // Option 1: leave position i unstarred.
-                    bool canSkip = true;
-                    if (state > 0) {
-                        int prevTarget = state - 1;
-                        if (prevTarget == (S[i - 1] - 'a')) {
-                            canSkip = false;
-                        }
-                    }
-
-                    if (canSkip) {
-                        relax(i + 1, 0, cur);
-                    }
-
-                    // Option 2: start an operation block at i.
-                    for (int bi = 0; bi < blockCnt[i]; ++bi) {
-                        int len = blocks[i][bi].first;
-                        int target = blocks[i][bi].second;
-
-                        bool valid = true;
-
-                        if (i > 1) {
-                            int firstOfNew = S[i - 1] - 'a';
-                            int lastOfPrev = S[i - 2] - 'a';
-
-                            bool newDepends = (target == lastOfPrev);
-
-                            if (state == 0) {
-                                // The new block would extend into an unstarred gap.
-                                if (newDepends) valid = false;
-                            } else {
-                                int prevTarget = state - 1;
-                                bool prevDepends = (prevTarget == firstOfNew);
-
-                                // Both blocks need the other removed first -> impossible.
-                                if (prevDepends && newDepends) {
-                                    valid = false;
-                                }
-                            }
-                        }
-
-                        if (!valid) continue;
-
-                        Node nxt;
-                        nxt.score = cur.score + len - lambda;
-                        nxt.ops = cur.ops + 1;
-
-                        int nxtPos = i + len;
-                        int nxtState = target + 1;
-
-                        relax(nxtPos, nxtState, nxt);
-                    }
-                }
-            }
-
-            Node best{NEG, NEG};
-            for (int state = 0; state < STATES; ++state) {
-                Node cur = dp[(n + 1) * STATES + state];
-                if (cur.score > best.score ||
-                    (cur.score == best.score && cur.ops > best.ops)) {
-                    best = cur;
-                }
-            }
-
-            C[lambda] = best.ops;
+        for (int k = 2; k <= N; ++k) {
+            ll invC = fact[k] * fact[N - k] % MOD * invfact[N] % MOD;
+            R[k] = sumComb[k] * invC % MOD;
         }
 
-        long long answer = 0;
-        for (int lambda = 1; lambda <= 5; ++lambda) {
-            answer += min(K, C[lambda]);
+        vector<ll> reach(N + 1, 0);
+        reach[N] = 1;
+
+        ll invMatchN = modpow(dfact[N], MOD - 2);
+        ll ans = 0;
+
+        int half = N / 2;
+
+        for (int k = N; k >= 2; --k) {
+            if (reach[k] == 0) continue;
+
+            int cmin = max(0, k - half);
+            int cmax = k / 2;
+
+            ll p0 = 0;
+
+            if (cmin == 0) {
+                int r = N - 2 * k;
+                p0 = fact[N - k] * invfact[r] % MOD * dfact[r] % MOD * invMatchN % MOD;
+            }
+
+            ll q = (1 - p0 + MOD) % MOD;
+            ll invq = modpow(q, MOD - 2);
+
+            ll occupation = reach[k] * invq % MOD;
+            ll coeff = (1 - R[k] + MOD) % MOD;
+            ans = (ans + coeff * occupation) % MOD;
+
+            int cstart = max(1, cmin);
+
+            for (int c = cstart; c <= cmax; ++c) {
+                int r = N - 2 * k + 2 * c;
+
+                ll p = fact[k] * invfact[2 * c] % MOD * invfact[k - 2 * c] % MOD;
+                p = p * dfact[2 * c] % MOD;
+                p = p * fact[N - k] % MOD * invfact[r] % MOD;
+                p = p * dfact[r] % MOD * invMatchN % MOD;
+
+                ll leaveProb = p * invq % MOD;
+                int nxt = k - c;
+
+                reach[nxt] += reach[k] * leaveProb % MOD;
+                if (reach[nxt] >= MOD) reach[nxt] -= MOD;
+            }
         }
 
-        cout << answer << '\n';
+        cout << ans % MOD << '\n';
     }
 
     return 0;

@@ -1,24 +1,22 @@
 ## Problem Description
 
-There are $k$ independent trees. Tree $i$ has $n_i$ vertices, with vertex 1 designated as its hole, and a ball initially at vertex $s_i$.
+Consider all rooted trees on vertices $1,\ldots,n$ with root 1 such that the parent $f_i$ of vertex $i$ satisfies $1\le f_i<i$ for $i=2,\ldots,n$.
 
-For each stroke, choose one tree. Its ball moves uniformly at random to one of the adjacent vertices. The other balls stay where they are. The process stops as soon as any ball reaches vertex 1 of its tree.
+For each tree, run depth-first search from vertex 1. Append a vertex to the order when first visiting it, and visit its children in increasing vertex-label order. Thus each tree produces one deterministic DFS preorder.
 
-Choices may depend on the current positions. Find the minimum possible expected number of strokes before the process stops.
+There are $(n-1)!$ possible parent arrays. Count how many different DFS orders they produce, modulo the supplied prime $P$. Orders are different when some position contains different vertices.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $k$. For each tree, read a line containing $n_i,s_i$, then $n_i-1$ lines containing edge endpoints $u_{i,j},v_{i,j}$.
+Read two integers $n,P$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum expected number of strokes as a finite real number, using decimal notation or scientific notation. Do not print non-finite values or any additional content. If your answer is $a$ and the reference answer is $b$, it is accepted when
-
-$$\frac{|a-b|}{\max(1,|b|)}\le10^{-6}.$$
+Print the number of distinct DFS orders modulo $P$.
 
 ## Examples
 
@@ -27,35 +25,27 @@ $$\frac{|a-b|}{\max(1,|b|)}\le10^{-6}.$$
 Input:
 
 ```text
-2
-4 2
-1 2
-2 3
-3 4
-4 3
-1 2
-2 3
-3 4
+4 114514199
 ```
 
 Output:
 
 ```text
-4.666666666666666
+2
 ```
 
 ## Explanation / Notes
 
-Only one ball moves on a stroke. The stopping condition is the first ball to enter a hole; reaching every hole is not required. Each initial vertex differs from the hole.
+For $n=4$, the two possible orders are $[1,2,3,4]$ and $[1,2,4,3]$. They can be obtained from parent arrays $(f_2,f_3,f_4)=(1,1,1)$ and $(1,1,2)$, respectively.
+
+The number of distinct orders is requested, so different trees producing the same order count only once.
 
 ## Constraints
 
-- The input contains exactly one test case.
-- $1\le k\le1000$.
-- For every tree, $2\le s_i\le n_i\le1000$.
-- These bounds imply $\sum_{i=1}^{k}n_i\le10^6$; there is no additional total-size restriction.
-- Every edge endpoint lies in $[1,n_i]$.
-- The listed $n_i-1$ edges are guaranteed to form a tree.
-
-- Required absolute-or-relative tolerance: $10^{-6}$, with the acceptance formula above.
+- One test case.
+- $1\le n\le2000$.
+- $10^8\le P\le1.01\times10^9$.
+- $P$ is guaranteed to be prime.
+- Every considered tree has root 1 and satisfies $1\le f_i<i$.
+- Child visitation order is increasing by label; it is not a free choice.
 - Time limit: 4 seconds; memory limit: 256 MB.

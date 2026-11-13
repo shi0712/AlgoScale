@@ -1,391 +1,326 @@
+// 云阶之差 (UOJ)
+//
+// h_i = (i + b/a)^2.  For i < j:
+//   h_j - h_i = (j-i)(i+j+2b/a) = d*(a*s+2b)/a,   d = j-i, s = i+j.
+// With t = i in [1, n-d]:
+//   N := d*(a*s+2b) = a*d^2 + 2*b*d + 2*a*d*t
+// For each d in [1,n-1] the values form an AP over t = 1..n-d.
+// The answer is N*/a in lowest terms, where N* is the k-th smallest N.
+//
+// count(M) = #{pairs : N <= M} is nondecreasing; the answer is the smallest M
+// with count(M) >= k.  Since maxval(d) = d*(a*(2n-d)+2b) increases with d and
+// row d's minimum is minval(d) = a*d^2+2bd+2ad:
+//   * rows 1..ds   (maxval <= M) contribute n-d each,           ds = max d with maxval(d) <= M
+//   * rows ds+1..Q (minval <= M) contribute (M-a*d^2-2*b*d)/(2*a*d) each,  Q = max d with minval(d) <= M
+//
+// Search: a smooth (Euler-Maclaurin) model of count() gives a starting point;
+// exact counts, anchored to the model's shape, drive Newton steps down to a
+// bracket holding at most VCAP values; those values are then enumerated and
+// selected directly.
 #include <bits/stdc++.h>
-#ifndef MINMUL
-#define MINMUL 32
-#endif
-#ifndef BLK
-#define BLK 32
-#endif
-
 using namespace std;
-typedef vector<int> vi;
-static const int MOD = 998244353;
 
-static int pw_(long long a, long long e) {
-    long long r = 1; a %= MOD;
-    while (e > 0) { if (e & 1) r = r * a % MOD; a = a * a % MOD; e >>= 1; }
-    return (int)r;
+typedef unsigned long long u64;
+typedef __uint128_t u128;
+typedef __int128_t i128;
+
+static u64 n, K, a, b;
+static u128 MAXVAL_LAST;   // largest value over all pairs
+static u64 CLAMP;          // saturation for count_upto
+static const u64 VCAP = 200000;
+
+static inline u128 maxval(u64 d) {
+    if (!d) return 0;
+    return (u128)d * ((u128)a * (2 * (u128)n - d) + 2 * (u128)b);
+}
+static inline u128 minval(u64 d) {
+    if (!d) return 0;
+    return (u128)d * ((u128)a * (u128)d + 2 * (u128)b) + (u128)2 * a * d;
 }
 
-static int se_[40], sie_[40];
-static void init_ntt() {
-    int cnt2 = 23;
-    long long e = pw_(3, (MOD - 1) >> cnt2), ie = pw_(e, MOD - 2);
-    long long es[40], ies[40];
-    for (int i = cnt2; i >= 2; i--) { es[i - 2] = e; ies[i - 2] = ie; e = e * e % MOD; ie = ie * ie % MOD; }
-    long long now = 1;
-    for (int i = 0; i <= cnt2 - 2; i++) { se_[i] = (int)(now * es[i] % MOD); now = now * ies[i] % MOD; }
-    now = 1;
-    for (int i = 0; i <= cnt2 - 2; i++) { sie_[i] = (int)(now * ies[i] % MOD); now = now * es[i] % MOD; }
+// largest d in [0,n-1] with maxval(d) <= M
+static inline u64 bs_max(u128 M) {
+    if (MAXVAL_LAST <= M) return n - 1;
+    u64 lo = 0, hi = n - 1;
+    while (lo < hi) {
+        u64 mid = lo + (hi - lo + 1) / 2;
+        if (maxval(mid) <= M) lo = mid; else hi = mid - 1;
+    }
+    return lo;
 }
-static inline int bsf_(unsigned int x) { return __builtin_ctz(x); }
-static void butterfly(vi &a) {
-    int n = (int)a.size();
-    int h = 31 - __builtin_clz((unsigned)n);
-    for (int ph = 1; ph <= h; ph++) {
-        int w = 1 << (ph - 1), p = 1 << (h - ph);
-        long long now = 1;
-        for (int s = 0; s < w; s++) {
-            int offset = s << (h - ph + 1);
-            int *base = a.data() + offset;
-            for (int i = 0; i < p; i++) {
-                int l = base[i];
-                int r = (int)((long long)base[i + p] * now % MOD);
-                int x = l + r; if (x >= MOD) x -= MOD;
-                int y = l - r; if (y < 0) y += MOD;
-                base[i] = x; base[i + p] = y;
-            }
-            now = now * se_[bsf_(~(unsigned)s)] % MOD;
+// largest d in [0,n-1] with minval(d) <= M
+static inline u64 bs_min(u128 M) {
+    if (minval(n - 1) <= M) return n - 1;
+    u64 lo = 0, hi = n - 1;
+    while (lo < hi) {
+        u64 mid = lo + (hi - lo + 1) / 2;
+        if (minval(mid) <= M) lo = mid; else hi = mid - 1;
+    }
+    return lo;
+}
+
+// number of pairs with N <= M, saturated at CLAMP
+static u64 count_upto(u128 M) {
+    if (M == 0) return 0;
+    u64 ds = bs_max(M);
+    u128 capv = (u128)ds * n - (u128)ds * (ds + 1) / 2;
+    if (capv >= (u128)CLAMP) return CLAMP;
+    u64 Q = bs_min(M);
+    u128 sum = capv;
+    if (Q <= ds) return (u64)sum;
+
+    u64 d = ds + 1;
+    u128 A = (u128)a * ((u128)d * d) + (u128)2 * b * d;   // row constant
+    u128 Ainc = (u128)a * (2 * (u128)d + 1) + 2 * (u128)b;
+    u64 den = 2 * a * d;
+    const u64 dinc = 2 * a;
+    const double Mf = (double)M;
+    const double af = (double)a, bf = 2.0 * (double)b;
+    for (; d <= Q; ++d) {
+        // quotient estimate in doubles: exact value is (M - A)/den, and it is
+        // at most n-1 <= 1e12, so the relative error (<=1e-16) is far below the
+        // 1/100 guard band below.
+        double Aest = (double)d * (af * (double)d + bf);
+        double qf = (Mf - Aest) / (double)den;
+        double fl = floor(qf);
+        u64 q = (u64)fl;
+        if (qf - fl < 0.01 || fl - qf < 0.01) {              // near an integer: exact
+            u128 num = M - A;
+            q = (u64)(num / den);
         }
+        sum += q;
+        if (sum >= (u128)CLAMP) return CLAMP;
+        A += Ainc; Ainc += dinc; den += dinc;
     }
-}
-static void butterfly_inv(vi &a) {
-    int n = (int)a.size();
-    int h = 31 - __builtin_clz((unsigned)n);
-    for (int ph = h; ph >= 1; ph--) {
-        int w = 1 << (ph - 1), p = 1 << (h - ph);
-        long long inow = 1;
-        for (int s = 0; s < w; s++) {
-            int offset = s << (h - ph + 1);
-            int *base = a.data() + offset;
-            for (int i = 0; i < p; i++) {
-                int l = base[i], r = base[i + p];
-                int x = l + r; if (x >= MOD) x -= MOD;
-                int y = l - r; if (y < 0) y += MOD;
-                base[i] = x; base[i + p] = (int)((long long)y * inow % MOD);
-            }
-            inow = inow * sie_[bsf_(~(unsigned)s)] % MOD;
-        }
-    }
-    int ninv = pw_(n, MOD - 2);
-    for (auto &x : a) x = (int)((long long)x * ninv % MOD);
+    return (u64)sum;
 }
 
-static vi mul(const vi &a, const vi &b) {
-    if (a.empty() || b.empty()) return vi();
-    int n = (int)a.size(), m = (int)b.size();
-    if (min(n, m) <= MINMUL) {
-        vi c(n + m - 1, 0);
-        for (int i = 0; i < n; i++) {
-            if (!a[i]) continue;
-            long long ai = a[i];
-            for (int j = 0; j < m; j++) c[i + j] = (int)((c[i + j] + ai * b[j]) % MOD);
-        }
-        return c;
-    }
-    int need = n + m - 1, sz = 1;
-    while (sz < need) sz <<= 1;
-    vi fa(a.begin(), a.end()), fb(b.begin(), b.end());
-    fa.resize(sz); fb.resize(sz);
-    butterfly(fa); butterfly(fb);
-    for (int i = 0; i < sz; i++) fa[i] = (int)((long long)fa[i] * fb[i] % MOD);
-    butterfly_inv(fa);
-    fa.resize(need);
-    return fa;
+// ------------------------- smooth model of count() -------------------------
+
+static double harm(u64 x) {
+    if (x == 0) return 0.0;
+    if (x < 64) { double s = 0; for (int i = 1; i <= (int)x; ++i) s += 1.0 / i; return s; }
+    double v = 1.0 / (double)x, v2 = v * v;
+    return log((double)x) + 0.5772156649015328606 + 0.5 * v - v2 / 12.0 + v2 * v2 / 120.0;
+}
+static double harm_diff(u64 hi, u64 lo) {  // H_hi - H_lo
+    if (lo == 0) return harm(hi);
+    if (hi < 64 || lo < 64) return harm(hi) - harm(lo);
+    double x = 1.0 / (double)hi, y = 1.0 / (double)lo;
+    double x2 = x * x, y2 = y * y;
+    return log((double)hi / (double)lo) + 0.5 * (x - y)
+         - (x2 - y2) / 12.0 + (x2 * x2 - y2 * y2) / 120.0;
 }
 
-static vi pinv(const vi &a, int n) {
-    vi r(1, pw_(a[0], MOD - 2));
-    while ((int)r.size() < n) {
-        int m = min(2 * (int)r.size(), n);
-        vi f(a.begin(), a.begin() + min((int)a.size(), m));
-        vi fr = mul(f, r);
-        fr.resize(m);
-        for (auto &x : fr) if (x) x = MOD - x;
-        fr[0] = (fr[0] + 2) % MOD;
-        r = mul(r, fr);
-        r.resize(m);
-    }
+struct ModelInfo { double val, err, rho; };
+
+static ModelInfo model(u128 M) {
+    ModelInfo r;
+    u64 ds = bs_max(M), Q = bs_min(M);
+    double capv = (double)ds * (double)n - 0.5 * (double)ds * (double)(ds + 1);
+    if (Q <= ds) { r.val = capv; r.err = 1.0; r.rho = 0.0; return r; }
+    double q1 = (double)Q, d1 = (double)ds;
+    double hd = harm_diff(Q, ds);
+    // sum over d in (ds, Q] of (M - a*d^2 - 2*b*d) / (2*a*d)
+    //   = M/(2a)*(H_Q - H_ds) - (Q(Q+1)-ds(ds+1))/4 - (b/a)*(Q-ds)
+    // minus 1/2 per row for the floor.
+    r.val = capv
+          + (double)M / (2.0 * (double)a) * hd
+          - (q1 * (q1 + 1.0) - d1 * (d1 + 1.0)) / 4.0
+          - ((double)b / (double)a + 0.5) * (q1 - d1);
+    r.err = 0.5 * (q1 - d1) + 8.0 + 1e-12 * fabs(r.val);
+    r.rho = hd / (2.0 * (double)a);
     return r;
 }
 
-// a mod b ; irev = inverse of reversed b truncated (length >= deg(a)-deg(b)+2)
-static vi pmod(const vi &a, const vi &b, const vi &irev) {
-    int n = (int)a.size(), m = (int)b.size();
-    if (n < m) return a;
-    if (m == 1) return vi();
-    int qlen = n - m + 1;
-    vi ra(qlen);
-    for (int i = 0; i < qlen; i++) ra[i] = a[n - 1 - i];
-    vi t(qlen, 0);
-    if (qlen <= (int)irev.size()) {
-        for (int i = 0; i < qlen; i++) t[i] = irev[i];
-    } else {                       // defensive: lengthen the inverse series if ever needed
-        vi rev(b.rbegin(), b.rend());
-        vi full = pinv(rev, qlen);
-        for (int i = 0; i < qlen; i++) t[i] = full[i];
+static u128 model_solve(double target) {
+    u128 lo = 0, hi = MAXVAL_LAST;
+    while (lo + 1 < hi) {
+        u128 mid = lo + (hi - lo) / 2;
+        if (model(mid).val >= target) hi = mid; else lo = mid;
     }
-    vi q = mul(ra, t);
-    q.resize(qlen);
-    reverse(q.begin(), q.end());
-    vi bq = mul(b, q);
-    vi r(m - 1, 0);
-    for (int i = 0; i < m - 1; i++) {
-        long long v = (i < n ? a[i] : 0);
-        if (i < (int)bq.size()) v -= bq[i];
-        v %= MOD; if (v < 0) v += MOD;
-        r[i] = (int)v;
+    return hi;
+}
+// smallest x in [lo,hi] with model(x) >= target (returns hi if none)
+static u128 model_ge_in(u128 lo, u128 hi, double target) {
+    if (model(lo).val >= target) return lo;
+    while (lo + 1 < hi) {
+        u128 mid = lo + (hi - lo) / 2;
+        if (model(mid).val >= target) hi = mid; else lo = mid;
     }
-    return r;
+    return hi;
 }
 
-// ---------------- per test ----------------
-struct PT {
-    int lo, hi;
-    vi poly, irev, actL;
-    int lc, rc;
-};
-static vector<PT> pt;
-static int n_;
-static vi Ans, factAt, Evec, prefAct;
-static const int B = BLK;
-
-static int buildPT(int lo, int hi) {
-    int id = (int)pt.size();
-    pt.push_back(PT{lo, hi, {}, {}, {}, -1, -1});
-    if (hi - lo == 1) {
-        pt[id].poly = vi{(int)((MOD - (long long)(lo % MOD)) % MOD), 1};
-        return id;
+static u128 dbl_to_u128(double x) {
+    if (!(x > 0)) return 0;
+    if (x > 1e34) x = 1e34;
+    return (u128)x;
+}
+static u128 add_clamped(u128 x, double d) {  // x + d, kept in [0, MAXVAL_LAST]
+    if (d >= 0) {
+        u128 add = dbl_to_u128(d);
+        if (MAXVAL_LAST - x <= add) return MAXVAL_LAST;
+        return x + add;
+    } else {
+        u128 sub = dbl_to_u128(-d);
+        if (x <= sub) return 0;
+        return x - sub;
     }
-    int mid = (lo + hi) >> 1;
-    int l = buildPT(lo, mid), r = buildPT(mid, hi);
-    pt[id].lc = l; pt[id].rc = r;
-    pt[id].poly = mul(pt[l].poly, pt[r].poly);
-    return id;
 }
 
-static vi truncMul(const vi &a, const vi &b, int n) {
-    if (n <= 0 || a.empty() || b.empty()) return vi();
-    if (min(a.size(), b.size()) <= MINMUL) {
-        vi c(n, 0);
-        for (int i = 0; i < (int)a.size() && i < n; i++) {
-            if (!a[i]) continue;
-            long long ai = a[i];
-            int lim = min((int)b.size(), n - i);
-            for (int j = 0; j < lim; j++) c[i + j] = (int)((c[i + j] + ai * b[j]) % MOD);
-        }
-        return c;
-    }
-    vi c = mul(a, b);
-    c.resize(min((int)c.size(), n));
-    return c;
-}
-// d = degree bound of the carried polynomial at this node (d < size(id))
-static void buildIrevTop(int id, int d) {
-    int lo = pt[id].lo, hi = pt[id].hi;
-    if (hi - lo <= B) return;
-    int lc = pt[id].lc, rc = pt[id].rc;
-    int sL = pt[lc].hi - pt[lc].lo, sR = pt[rc].hi - pt[rc].lo;
-    int mid = pt[rc].lo;
-    int a = prefAct[mid + 1] - prefAct[lo + 1];   // # factors with lo < Delta <= mid
-    int ql = d - sL + 1, qr = d + a - sR + 1;
-    int needL = max(ql, sL + 2), needR = max(qr, sR + 2);
-    {
-        vi revR(pt[rc].poly.rbegin(), pt[rc].poly.rend());
-        vi t(pt[id].irev.begin(), pt[id].irev.begin() + min((size_t)needL, pt[id].irev.size()));
-        pt[lc].irev = truncMul(t, revR, needL);
-        pt[lc].irev.resize(needL, 0);
-    }
-    {
-        vi revL(pt[lc].poly.rbegin(), pt[lc].poly.rend());
-        vi t(pt[id].irev.begin(), pt[id].irev.begin() + min((size_t)needR, pt[id].irev.size()));
-        pt[rc].irev = truncMul(t, revL, needR);
-        pt[rc].irev.resize(needR, 0);
-    }
-    buildIrevTop(lc, min(d, sL - 1));
-    buildIrevTop(rc, min(d + a, sR - 1));
-}
-
-static vi factorPoly(int j) { // (E_j - x)
-    return vi{(int)(Evec[j] % MOD), MOD - 1};
-}
-
-// returns product of factors with lo < Delta <= hi ; stores left-half product in pt[id].actL when node split
-static vi buildAct(int id) {
-    int lo = pt[id].lo, hi = pt[id].hi;
-    if (hi - lo <= B) {
-        vi p{1};
-        for (int v = lo + 1; v <= hi; v++) {
-            int j = (v <= n_ ? factAt[v] : -1);
-            if (j >= 0) p = mul(p, factorPoly(j));
-        }
-        return p;
-    }
-    int mid = (lo + hi) >> 1;
-    int lc = pt[id].lc, rc = pt[id].rc;
-    vi L = buildAct(lc);
-    vi R = buildAct(rc);
-    pt[id].actL = L;
-    return mul(L, R);
-}
-
-static void solve(int id, vi P) {
-    int lo = pt[id].lo, hi = pt[id].hi;
-    if (hi - lo <= B) {
-        for (int u = lo; u < hi; u++) {
-            long long val = 0;
-            for (int k = (int)P.size() - 1; k >= 0; k--) val = (val * u + P[k]) % MOD;
-            for (int v = lo + 1; v <= u; v++) {
-                int j = (v <= n_ ? factAt[v] : -1);
-                if (j >= 0) {
-                    long long f = ((Evec[j] - u) % MOD + MOD) % MOD;
-                    val = val * f % MOD;
-                }
-            }
-            Ans[u] = (int)val;
-        }
-        return;
-    }
-    int mid = (lo + hi) >> 1;
-    int lc = pt[id].lc, rc = pt[id].rc;
-    vi PL = pmod(P, pt[lc].poly, pt[lc].irev);
-    solve(lc, PL);
-    vi PA = mul(P, pt[id].actL);
-    vi PR = pmod(PA, pt[rc].poly, pt[rc].irev);
-    solve(rc, PR);
-}
-
-static char ibuf_[1 << 16];
-static int ipos_ = 0, ilen_ = 0;
-static inline int gc_() {
-    if (ipos_ == ilen_) { ilen_ = (int)fread(ibuf_, 1, sizeof(ibuf_), stdin); ipos_ = 0; if (ilen_ <= 0) return -1; }
-    return ibuf_[ipos_++];
-}
-static inline int readInt_() {
-    int c = gc_();
-    while (c != -1 && (c < '0' || c > '9')) c = gc_();
-    int x = 0;
-    while (c >= '0' && c <= '9') { x = x * 10 + (c - '0'); c = gc_(); }
-    return x;
+static void print_u128(u128 v) {
+    if (!v) { putchar('0'); return; }
+    char buf[45]; int p = 0;
+    while (v) { buf[p++] = char('0' + (int)(v % 10)); v /= 10; }
+    while (p) putchar(buf[--p]);
 }
 
 int main() {
-    init_ntt();
-    int T = readInt_();
-    if (T <= 0) return 0;
-    // read all tests
-    struct Test { int n, m; vector<int> a; };
-    vector<Test> tests(T);
-    int maxn = 2;
-    for (int t = 0; t < T; t++) {
-        int n = readInt_(), m = readInt_();
-        tests[t].n = n; tests[t].m = m;
-        tests[t].a.resize(m);
-        for (int i = 0; i < m; i++) tests[t].a[i] = readInt_();
-        maxn = max(maxn, n);
-    }
-    // inverses up to 2*maxn
-    int LIM = 2 * maxn + 10;
-    vector<int> inv(LIM);
-    inv[1] = 1;
-    for (int i = 2; i < LIM; i++) inv[i] = (int)((long long)(MOD - MOD / i) * inv[MOD % i] % MOD);
+    if (scanf("%llu %llu %llu %llu", &n, &K, &a, &b) != 4) return 0;
 
-    for (int t = 0; t < T; t++) {
-        int n = tests[t].n, m = tests[t].m;
-        vector<int> &a = tests[t].a;
-        // A[] and nxt
-        vector<int> nxt(m, -1), last(2 * n + 2, -1);
-        for (int i = m - 1; i >= 0; i--) { nxt[i] = last[a[i]]; last[a[i]] = i; }
-        vector<long long> A(m, 0);
-        for (int i = m - 2; i >= 0; i--) {
-            long long b = A[i + 1] + 1;
-            if (nxt[i] >= 0) b = max(b, A[nxt[i]] + n + 1);
-            A[i] = b;
-        }
-        long long A0 = A[0];
-        // first occurrences and Deltas
-        vector<char> seen(2 * n + 2, 0);
-        vector<long long> Deltas; // 1-based order
-        for (int i = 0; i < m; i++) {
-            if (!seen[a[i]]) { seen[a[i]] = 1; Deltas.push_back(A0 - A[i]); }
-        }
-        // active factors: Delta <= n-1
-        Evec.clear(); factAt.assign(n + 2, -1);
-        int Kact = 0;
-        for (int j = 0; j < (int)Deltas.size(); j++) {
-            long long d = Deltas[j];
-            if (d <= n - 1) {
-                Kact++;
-                int jj = j + 1; // 1-based
-                long long E = 2LL * n + d - jj;
-                Evec.push_back((int)(E % MOD));
-                factAt[(int)d] = (int)Evec.size() - 1;
+    MAXVAL_LAST = maxval(n - 1);
+    CLAMP = K + VCAP + 16;
+
+    u128 answer = 0;
+
+    if (K == 1) {
+        answer = (u128)a + 2 * (u128)b + 2 * (u128)a;   // value at d = 1, t = 1
+    } else {
+        // ---------- initial bracket around the model's prediction ----------
+        u128 M0 = model_solve((double)K);
+        ModelInfo mi0 = model(M0);
+        double rho0 = mi0.rho;
+        if (!(rho0 > 1e-18)) rho0 = 1e-18;
+        double W = (mi0.err + 16.0) / rho0;
+        if (!isfinite(W) || W > 1e30) W = 1e30;
+        if (W < 1.0) W = 1.0;
+
+        u128 lo = 0, hi = MAXVAL_LAST;
+        u64 c_lo = 0, c_hi = 0;
+        bool c_hi_ok = false;
+
+        {   // hi: grow geometrically until count(hi) >= K
+            for (int k = 0; k < 64; ++k) {
+                u128 cand = add_clamped(M0, ldexp(2.0 * W, k));
+                if (cand < hi) hi = cand;
+                c_hi = count_upto(hi);
+                c_hi_ok = (c_hi < CLAMP);
+                if (c_hi >= K) break;
+                if (hi >= MAXVAL_LAST) { hi = MAXVAL_LAST; c_hi = count_upto(hi); c_hi_ok = (c_hi < CLAMP); break; }
             }
+            if (c_hi < K) { hi = MAXVAL_LAST; c_hi = count_upto(hi); c_hi_ok = (c_hi < CLAMP); }
         }
-        prefAct.assign(n + 2, 0);
-        {
-            vector<int> cntAt(n + 1, 0);
-            for (int j = 0; j < (int)Deltas.size(); j++) if (Deltas[j] <= n - 1) cntAt[(int)Deltas[j]]++;
-            for (int v = 0; v <= n; v++) prefAct[v + 1] = prefAct[v] + cntAt[v];
+        {   // lo: shrink geometrically until count(lo) < K
+            for (int k = 0; k < 64; ++k) {
+                u128 cand = (M0 > dbl_to_u128(ldexp(2.0 * W, k))) ? add_clamped(M0, -ldexp(2.0 * W, k)) : 0;
+                if (cand > lo) lo = cand;
+                c_lo = count_upto(lo);
+                if (c_lo < K) break;
+                if (lo == 0) { c_lo = 0; break; }
+            }
+            if (c_lo >= K) { lo = 0; c_lo = 0; }
         }
-        // compute N(u) for u=0..n-1
-        Ans.assign(n, 0);
-        n_ = n;
-        double lg = log2((double)n);
-        bool useNaive = (n <= B) || ((double)Kact * n <= 6.3 * lg * lg * n + 1e5);
-#ifdef FORCE_NAIVE
-        useNaive = (n <= B);
-#endif
-#ifdef FORCE_POLY
-        useNaive = false;
-#endif
-        if (useNaive) {
-            // naive: factors in Delta order (== 1-based j order)
-            int nf = (int)Evec.size();
-            for (int u = 0; u < n; u++) {
-                long long val = 1;
-                for (int j = 0; j < nf; j++) {
-                    long long E = Evec[j];      // 2n + Delta_j - j
-                    long long d = E - 2LL * n + (j + 1); // Delta_j
-                    if (d > u) break;
-                    val = val * ((E - u) % MOD) % MOD;
+
+        // ---------- tighten to an enumerable window ----------
+        // Goal: c_lo < K <= c_hi with c_hi - c_lo <= VCAP.  Each probe aims at a
+        // count of K -/+ 0.45*VCAP, which puts both bracket ends close to K in a
+        // single step.  The model is shifted to pass through the last exact
+        // count, which cancels its systematic bias and makes the aim accurate.
+        u128 M = 0;          // last probe position
+        u64 cM = 0;          // its count (meaningful only if Mok)
+        bool Mok = false;    // true when cM is an exact count
+        bool done = false;
+        const double BAND = 0.45 * (double)VCAP;
+        for (int it = 0; it < 64; ++it) {
+            if (hi <= lo + 1) { answer = hi; done = true; break; }
+            if (c_hi_ok && c_hi - c_lo <= VCAP) break;      // few enough values: enumerate
+
+            double target = ((double)c_lo < (double)K - BAND) ? ((double)K - BAND)
+                                                             : ((double)K + BAND);
+            u128 probe; bool have = false;
+            {
+                double mt = Mok ? model(M).val + (target - (double)cM) : target;
+                u128 p = model_ge_in(lo, hi, mt);
+                if (p > lo && p < hi && p != M) { probe = p; have = true; }
+            }
+            if (!have) probe = lo + (hi - lo) / 2;
+            if (probe <= lo) probe = lo + 1;
+            if (probe >= hi) probe = hi - 1;
+            if (probe <= lo || probe >= hi) break;
+            u64 c = count_upto(probe);
+            Mok = (c < CLAMP);
+            cM = c;
+            if (c >= K) { if (probe < hi) { hi = probe; c_hi = c; c_hi_ok = Mok; } }
+            else        { if (probe > lo) { lo = probe; c_lo = c; } }
+            M = probe;
+        }
+
+        if (!done) {
+            if (hi <= lo + 1) {
+                answer = hi;
+            } else if (c_hi_ok && c_hi - c_lo <= VCAP) {
+                u64 rank = K - c_lo;      // rank-th smallest value in (lo, hi]
+                u64 ds = bs_max(lo), Qh = bs_min(hi);
+                vector<u128> vals;
+                vals.reserve(VCAP + 16);
+                const double loF = (double)lo, hiF = (double)hi;
+                const double af = (double)a, bf = 2.0 * (double)b;
+                for (u64 d = ds + 1; d <= Qh; ++d) {
+                    double Aest = (double)d * (af * (double)d + bf);
+                    u128 A = (u128)a * ((u128)d * d) + (u128)2 * b * d;
+                    u64 step = 2 * a * d;
+                    u64 maxT = n - d;
+                    u64 tlo = 1, thi = maxT;
+                    if (lo > A) {
+                        u64 t = (Aest < loF) ? (u64)floor((loF - Aest) / (double)step) : 0;
+                        int g = 0;
+                        while (t > 0 && A + (u128)step * t > lo && g < 4) { --t; ++g; }
+                        while (A + (u128)step * (t + 1) <= lo && g < 4) { ++t; ++g; }
+                        if (g >= 4) t = (u64)((lo - A) / step);      // exact fallback
+                        tlo = t + 1;
+                    }
+                    if (hi > A) {
+                        u64 t = (Aest < hiF) ? (u64)floor((hiF - Aest) / (double)step) : 0;
+                        int g = 0;
+                        while (t > 0 && A + (u128)step * t > hi && g < 4) { --t; ++g; }
+                        while (A + (u128)step * (t + 1) <= hi && g < 4) { ++t; ++g; }
+                        if (g >= 4) t = (u64)((hi - A) / step);      // exact fallback
+                        thi = t;
+                    } else thi = 0;
+                    if (thi > maxT) thi = maxT;
+                    if (tlo < 1) tlo = 1;
+                    if (tlo <= thi) {
+                        u128 v = A + (u128)step * (u128)tlo;
+                        for (u64 t = tlo; t <= thi; ++t, v += step) vals.push_back(v);
+                    }
                 }
-                Ans[u] = (int)val;
+                if (rank >= 1 && rank <= vals.size()) {
+                    nth_element(vals.begin(), vals.begin() + (rank - 1), vals.end());
+                    answer = vals[rank - 1];
+                } else {
+                    // should not happen; fall back to exact bisection
+                    while (lo + 1 < hi) {
+                        u128 mid = lo + (hi - lo) / 2;
+                        if (count_upto(mid) >= K) hi = mid; else lo = mid;
+                    }
+                    answer = hi;
+                }
+            } else {
+                // last resort: plain binary search
+                while (lo + 1 < hi) {
+                    u128 mid = lo + (hi - lo) / 2;
+                    if (count_upto(mid) >= K) hi = mid; else lo = mid;
+                }
+                answer = hi;
             }
-        } else {
-            pt.clear();
-            int root = buildPT(0, n);
-            if (pt[root].lc >= 0) {
-                int sL0 = pt[pt[root].lc].hi - pt[pt[root].lc].lo;
-                int sR0 = pt[pt[root].rc].hi - pt[pt[root].rc].lo;
-                int need = max(sL0, sR0) + 2;
-                vi rev(pt[root].poly.rbegin(), pt[root].poly.rend());
-                pt[root].irev = pinv(rev, need);
-            }
-            buildIrevTop(root, 1);
-            buildAct(root);
-            vi P = factorPoly(factAt[0] >= 0 ? factAt[0] : 0);
-            // base at u=0: factor with Delta = 0 (always exists: first occurrence has Delta=0)
-            solve(root, P);
-            pt.clear();
         }
-        // sum
-        long long S = 0;
-        long long Dinv = 1; // product_{j=1..q} inv(2n-j+1)
-        int q = 0;
-        for (int u = 0; u < n; u++) {
-            while (q < Kact) {
-                long long d = Deltas[q];
-                if (d <= u) {
-                    q++;
-                    Dinv = Dinv * inv[2 * n - q + 1] % MOD;
-                } else break;
-            }
-            long long Pv = (long long)Ans[u] * Dinv % MOD;
-            S = (S + 1 - Pv) % MOD;
-            if (S < 0) S += MOD;
-        }
-        long long ans = ((A0 % MOD) + 1 + S) % MOD;
-        printf("%lld\n", ans);
     }
+
+    u128 x = answer, y = (u128)a;
+    while (y) { u128 t = x % y; x = y; y = t; }
+    print_u128(answer / x);
+    putchar(' ');
+    print_u128((u128)a / x);
+    putchar('\n');
     return 0;
 }

@@ -1,165 +1,229 @@
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <utility>
+#include <vector>
+
 using namespace std;
 
-using u64 = uint64_t;
-using u128 = __uint128_t;
-using i64 = int64_t;
+class Solver {
+    int n;
+    vector<int> first, to, next_edge;
+    vector<int> parent, height, heavy, offset, length;
+    vector<int> bucket_head, bucket_tail, next_child;
+    vector<int> order, path;
+#ifdef LOCAL_CHECK
+    long long bucket_scans = 0;
+    long long diameter_sum = 0;
+    int initial_potential = 0;
+#endif
 
-static constexpr i64 MOD = 998244353;
-
-static u64 mul_mod(u64 a, u64 b, u64 mod) {
-    return static_cast<u128>(a) * b % mod;
-}
-
-static u64 pow_mod(u64 a, u64 e, u64 mod) {
-    u64 result = 1;
-    while (e != 0) {
-        if (e & 1) result = mul_mod(result, a, mod);
-        a = mul_mod(a, a, mod);
-        e >>= 1;
-    }
-    return result;
-}
-
-static bool is_prime(u64 n) {
-    if (n < 2) return false;
-    for (u64 p : {2ULL, 3ULL, 5ULL, 7ULL, 11ULL, 13ULL, 17ULL, 19ULL,
-                  23ULL, 29ULL, 31ULL, 37ULL}) {
-        if (n % p == 0) return n == p;
+    void add_edge(int u, int v) {
+        next_edge.push_back(first[u]);
+        to.push_back(v);
+        first[u] = static_cast<int>(to.size()) - 1;
     }
 
-    u64 d = n - 1;
-    int s = 0;
-    while ((d & 1) == 0) {
-        d >>= 1;
-        ++s;
-    }
-
-    // This base set is deterministic for every unsigned 64-bit integer.
-    for (u64 a : {2ULL, 325ULL, 9375ULL, 28178ULL, 450775ULL,
-                  9780504ULL, 1795265022ULL}) {
-        if (a % n == 0) continue;
-        u64 x = pow_mod(a % n, d, n);
-        if (x == 1 || x == n - 1) continue;
-        bool composite = true;
-        for (int r = 1; r < s; ++r) {
-            x = mul_mod(x, x, n);
-            if (x == n - 1) {
-                composite = false;
-                break;
+    int find_endpoint(int start) {
+        fill(parent.begin(), parent.end(), 0);
+        order.clear();
+        order.push_back(start);
+        parent[start] = -1;
+        height[start] = 0;
+        int farthest = start;
+        for (int i = 0; i < static_cast<int>(order.size()); ++i) {
+            int u = order[i];
+            if (height[u] > height[farthest]) farthest = u;
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (v == parent[u]) continue;
+                parent[v] = u;
+                height[v] = height[u] + 1;
+                order.push_back(v);
             }
         }
-        if (composite) return false;
+        return farthest;
     }
-    return true;
-}
 
-static mt19937_64 rng(0x9e3779b97f4a7c15ULL);
-
-static u64 pollard_rho(u64 n) {
-    if (n % 2 == 0) return 2;
-    if (n % 3 == 0) return 3;
-
-    while (true) {
-        const u64 c = uniform_int_distribution<u64>(1, n - 1)(rng);
-        u64 x = uniform_int_distribution<u64>(0, n - 1)(rng);
-        u64 y = x;
-        u64 divisor = 1;
-
-        auto step = [&](u64 value) -> u64 {
-            return (mul_mod(value, value, n) + c) % n;
-        };
-
-        while (divisor == 1) {
-            x = step(x);
-            y = step(step(y));
-            const u64 difference = x > y ? x - y : y - x;
-            divisor = gcd(difference, n);
+    void append_to_bucket(int u, int v) {
+        int h = height[v];
+        assert(0 <= h && h < length[u]);
+        int index = offset[u] + h;
+        next_child[v] = 0;
+        if (bucket_head[index] == 0) {
+            bucket_head[index] = v;
+        } else {
+            next_child[bucket_tail[index]] = v;
         }
-        if (divisor != n) return divisor;
+        bucket_tail[index] = v;
     }
-}
 
-static void factorize(u64 n, vector<u64>& factors) {
-    if (n == 1) return;
-    if (is_prime(n)) {
-        factors.push_back(n);
-        return;
+    void initialize_rooted_tree(int root) {
+        fill(parent.begin(), parent.end(), 0);
+        order.clear();
+        order.push_back(root);
+        parent[root] = -1;
+        for (int i = 0; i < static_cast<int>(order.size()); ++i) {
+            int u = order[i];
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (v == parent[u]) continue;
+                parent[v] = u;
+                order.push_back(v);
+            }
+        }
+
+        int total_length = 0;
+        for (int i = n - 1; i >= 0; --i) {
+            int u = order[i];
+            heavy[u] = 0;
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (parent[v] != u) continue;
+                if (heavy[u] == 0 || height[v] > height[heavy[u]]) heavy[u] = v;
+            }
+            height[u] = heavy[u] == 0 ? 0 : height[heavy[u]] + 1;
+            length[u] = 0;
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (parent[v] == u && v != heavy[u]) {
+                    length[u] = max(length[u], height[v] + 1);
+                }
+            }
+            offset[u] = total_length;
+            total_length += length[u];
+        }
+        assert(total_length <= n - 1);
+        bucket_head.assign(total_length, 0);
+        bucket_tail.assign(total_length, 0);
+        for (int u : order) {
+            for (int e = first[u]; e != -1; e = next_edge[e]) {
+                int v = to[e];
+                if (parent[v] == u && v != heavy[u]) append_to_bucket(u, v);
+            }
+        }
+#ifdef LOCAL_CHECK
+        initial_potential = total_length;
+#endif
     }
-    const u64 divisor = pollard_rho(n);
-    factorize(divisor, factors);
-    factorize(n / divisor, factors);
-}
 
-struct PrimePowerContribution {
-    u64 prime;
-    vector<i64> weight;
+    void merge_buckets(int a, int b) {
+        if (length[a] < length[b]) {
+            swap(length[a], length[b]);
+            swap(offset[a], offset[b]);
+        }
+        for (int h = 0; h < length[b]; ++h) {
+#ifdef LOCAL_CHECK
+            ++bucket_scans;
+#endif
+            int x = offset[a] + h;
+            int y = offset[b] + h;
+            if (bucket_head[y] == 0) continue;
+            if (bucket_head[x] == 0) {
+                bucket_head[x] = bucket_head[y];
+            } else {
+                next_child[bucket_tail[x]] = bucket_head[y];
+            }
+            bucket_tail[x] = bucket_tail[y];
+        }
+        length[b] = 0;
+    }
+
+    void restore_vertex(int u, int chain_child) {
+        if (chain_child != 0 &&
+            (length[u] == 0 || height[chain_child] >= length[u] - 1)) {
+            heavy[u] = chain_child;
+        } else if (length[u] != 0) {
+            int index = offset[u] + length[u] - 1;
+            int v = bucket_head[index];
+            assert(v != 0);
+            bucket_head[index] = next_child[v];
+            if (bucket_head[index] == 0) bucket_tail[index] = 0;
+            next_child[v] = 0;
+            heavy[u] = v;
+
+            // Insert before trimming. Thus the logical bucket array never grows.
+            if (chain_child != 0) append_to_bucket(u, chain_child);
+            while (length[u] != 0 &&
+                   bucket_head[offset[u] + length[u] - 1] == 0) {
+                --length[u];
+#ifdef LOCAL_CHECK
+                ++bucket_scans;
+#endif
+            }
+        } else {
+            heavy[u] = 0;
+        }
+        height[u] = heavy[u] == 0 ? 0 : height[heavy[u]] + 1;
+    }
+
+public:
+    explicit Solver(int n_) : n(n_), first(n + 1, -1), parent(n + 1),
+        height(n + 1), heavy(n + 1), offset(n + 1), length(n + 1),
+        next_child(n + 1) {
+        to.reserve(2 * max(0, n - 1));
+        next_edge.reserve(2 * max(0, n - 1));
+        order.reserve(n);
+        path.reserve(n);
+    }
+
+    void read_edges() {
+        for (int i = 1; i < n; ++i) {
+            int u, v;
+            cin >> u >> v;
+            add_edge(u, v);
+            add_edge(v, u);
+        }
+    }
+
+    int run() {
+        int root = find_endpoint(1);
+        initialize_rooted_tree(root);
+        int answer = 0;
+
+        while (heavy[root] != 0) {
+            path.clear();
+            int u = root;
+            while (u != 0) {
+                path.push_back(u);
+                int v = heavy[u];
+                heavy[u] = 0;
+                u = v;
+            }
+            int diameter = static_cast<int>(path.size()) - 1;
+#ifdef LOCAL_CHECK
+            diameter_sum += diameter;
+#endif
+            for (int i = 0; i < (diameter + 1) / 2; ++i) {
+                merge_buckets(path[i], path[diameter - i]);
+            }
+            int last = diameter / 2;
+            for (int i = last; i >= 0; --i) {
+                restore_vertex(path[i], i == last ? 0 : path[i + 1]);
+            }
+            ++answer;
+        }
+
+#ifdef LOCAL_CHECK
+        assert(bucket_scans == initial_potential);
+        assert(diameter_sum <= 2LL * (n - 1));
+#endif
+        return answer;
+    }
 };
-
-static i64 solve(u64 n, u64 m) {
-    vector<u64> factors;
-    factorize(n, factors);
-    sort(factors.begin(), factors.end());
-
-    vector<PrimePowerContribution> groups;
-    i64 answer = 1;  // Empty product for n = 1.
-
-    for (size_t i = 0; i < factors.size();) {
-        const u64 prime = factors[i];
-        u64 prime_power = 1;
-        int exponent = 0;
-        while (i < factors.size() && factors[i] == prime) {
-            prime_power *= prime;
-            ++exponent;
-            ++i;
-        }
-
-        const i64 phi = static_cast<i64>((prime_power - prime_power / prime) % MOD);
-        const i64 power_mod = static_cast<i64>(prime_power % MOD);
-
-        // f(n, 0) contributes product_p (p^e + e * phi(p^e)).
-        answer = answer * ((power_mod + exponent * phi) % MOD) % MOD;
-
-        const int highest = (exponent + 1) / 2;
-        vector<i64> weight(highest + 1, 2 * phi % MOD);
-        weight[0] = phi;
-        weight[highest] = (exponent & 1)
-            ? power_mod
-            : (power_mod + phi) % MOD;
-        groups.push_back({prime, move(weight)});
-    }
-
-    auto enumerate = [&](auto&& self, size_t index, u64 divisor, i64 weight) -> void {
-        if (index == groups.size()) {
-            answer = (answer + weight * static_cast<i64>((m / divisor) % MOD)) % MOD;
-            return;
-        }
-
-        const auto& group = groups[index];
-        for (size_t exponent = 0; exponent < group.weight.size(); ++exponent) {
-            self(self, index + 1, divisor,
-                 weight * group.weight[exponent] % MOD);
-            if (exponent + 1 == group.weight.size() || divisor > m / group.prime) {
-                break;
-            }
-            divisor *= group.prime;
-        }
-    };
-
-    if (m > 0) enumerate(enumerate, 0, 1, 1);
-    return answer;
-}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int test_count;
-    cin >> test_count;
-    while (test_count--) {
-        u64 n, m;
-        cin >> n >> m;
-        cout << solve(n, m) << '\n';
+    int tests;
+    cin >> tests;
+    while (tests--) {
+        int n;
+        cin >> n;
+        Solver solver(n);
+        solver.read_edges();
+        cout << solver.run() << '\n';
     }
     return 0;
 }

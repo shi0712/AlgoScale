@@ -1,63 +1,52 @@
 ## Problem Description
 
-Given sequences $a_1,\ldots,a_n$ and $b_1,\ldots,b_n$ and a threshold $k$, construct a bipartite graph with $n$ left vertices and $n$ right vertices. Connect left vertex $i$ to right vertex $j$ exactly when
+A balanced bracket sequence consists of opening and closing parentheses, has equally many of each, and has no prefix with more closing than opening parentheses.
 
-$$a_i\mathbin{\oplus}b_j\ge k,$$
+In a balanced sequence $s$, a matching pair is a pair of positions $(i,j)$ such that $i<j$, $s_i$ is `(`, $s_j$ is `)`, and the substring strictly between them is balanced, including when that substring is empty.
 
-where $\oplus$ is bitwise XOR.
+Consider ordered pairs $(s,t)$ of balanced sequences, each of length $2n$. A matching pair is **common** if the same positions $(i,j)$ form a matching pair in both sequences. For every $k=0,1,\ldots,n$, count the ordered pairs with exactly $k$ common matching pairs, modulo $M$.
 
-For each size $x=1,\ldots,n$, count the matchings containing exactly $x$ edges, modulo $998244353$.
+Two ordered pairs differ if either of their component strings differs.
 
 ## Input Format
 
 Read from standard input.
 
-Read three lines: $n,k$; then the $n$ entries of $a$; then the $n$ entries of $b$.
+The first line contains the number of test cases $t$. Each test case is one line containing $n$ and the prime modulus $M$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ nonnegative integers, in increasing order of matching size. The $i$-th integer is the count for size $i$ modulo $998244353$. The example prints these integers on separate lines.
+For each case, print $n+1$ integers. The integer in position $k+1$ is the required count for exactly $k$ common matching pairs, reduced modulo $M$.
 
 ## Examples
 
 Input:
 
 ```text
-9 5
-1 7 2 8 4 9 2 5 10
-1 3 2 4 5 8 8 8 9
+1
+1 998244353
 ```
 
 Output:
 
 ```text
-51
-1034
-10768
-62195
-200965
-348924
-294444
-97344
-7200
+0 1
 ```
 
 ## Explanation / Notes
 
-A matching is a set of edges in which no vertex is used twice. Vertices are distinguished by their indices, even if their associated numeric values are equal.
-
-The threshold comparison is inclusive: XOR equal to $k$ creates an edge. A size-zero matching is not requested.
+For $n=1$, the only balanced bracket sequence is `()`. The only ordered pair therefore has exactly one common matching pair. There are zero pairs with no common matching pairs and one pair with one, giving `0 1`.
 
 ## Constraints
 
-- There is one input instance.
-- $1\le n\le200$.
-- $0\le k<2^{60}$.
-- $0\le a_i<2^{60}$ and $0\le b_i<2^{60}$ for every index.
-- All inputs are integers; the upper bound $2^{60}$ is **exclusive**.
-- Repeated values in either sequence are allowed.
-- Every count is taken modulo $998244353$.
-- Time limit: 1 second.
-- Memory limit: 256 MB.
+- $1\le t\le500$.
+- $1\le n\le500$ for each case.
+- $\sum n\le500$ over the complete input.
+- $10^8\le M\le10^9$, and $M$ is guaranteed to be prime.
+- Both sequences in each counted ordered pair have exactly $2n$ characters and are balanced.
+- The number of common matching pairs is between 0 and $n$, inclusive.
+- Each answer is reported modulo the modulus supplied for that case; different cases may use different moduli.
+- Time limit: 2,000 ms.
+- Memory limit: 256,000 KB.

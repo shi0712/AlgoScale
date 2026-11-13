@@ -1,343 +1,264 @@
+// 交通枢纽复建
 #include <bits/stdc++.h>
 using namespace std;
+typedef long long ll;
+typedef unsigned long long u64;
+typedef unsigned int u32;
 
-/*
-  For an edge (i,j) and a key point k with i<=k<=j let
-      t_k = h-y_k,  b_k = sqrt(x_j-x_k),  p_k = sqrt(x_k-x_i).
-  The arch condition at k is  |p_k - b_k| <= sqrt(2 t_k), which is
-  equivalent to
-      L_k(j) <= x_i <= U_k(j),
-      L_k(j) = x_k - (sqrt(x_j-x_k)+sqrt(2t_k))^2
-      U_k(j) = x_k - max(0, sqrt(x_j-x_k)-sqrt(2t_k))^2.
-
-  * Lower bounds:  since L_k(j) <= x_k, the condition x_i >= L_k(j)
-    for all k in [i,j] is the same as x_i >= max_{k<=j} L_k(j) = M_j.
-  * Upper bounds:  x_i <= U_k(j) is equivalent (for k>=i) to
-    x_j <= C_k(i), where C_k(i)=x_k+(sqrt(x_k-x_i)+sqrt(2t_k))^2.
-    Hence all upper conditions are equivalent to
-    x_j <= D_i = min_{k>=i} C_k(i), which depends only on i.
-
-  Therefore edge (i,j) is legal iff
-       x_i >= M_j   and   x_j <= D_i.
-  M_j is computed with a max-Li-Chao (prefix), D_i with a min-Li-Chao
-  (suffix), both batched on a segment tree over indices.  Afterwards the
-  DP is a standard CHT DP with the two independent restrictions.
-*/
-
-static const long long INFLL = (long long)4e18;
-static const double INFDB = 1e18;
-static const double EPS = 1e-7;
-
-int n;
-long long h, alpha, bet;
-vector<int> xs;        // x coordinates
-vector<int> tt;        // t_i = h - y_i
-vector<double> ss;     // sqrt(2*t_i)
-
-vector<vector<int>> qs;   // query lists attached to segment tree nodes
-
-void addQuery(int node, int l, int r, int ql, int qr, int id) {
-    if (qr < l || r < ql) return;
-    if (ql <= l && r <= qr) { qs[node].push_back(id); return; }
-    int mid = (l + r) >> 1;
-    addQuery(node << 1, l, mid, ql, qr, id);
-    addQuery(node << 1 | 1, mid + 1, r, ql, qr, id);
+static const int BUFSZ = 1 << 22;
+static char ibuf[BUFSZ];
+static int ipos = 0, ilen = 0;
+static inline int gc() {
+    if (ipos >= ilen) { ilen = (int)fread(ibuf, 1, BUFSZ, stdin); ipos = 0; if (ilen <= 0) return -1; }
+    return ibuf[ipos++];
+}
+static inline bool readInt(ll& out) {
+    int c = gc();
+    while (c != -1 && (c < '0' || c > '9') && c != '-') c = gc();
+    if (c == -1) return false;
+    bool neg = false;
+    if (c == '-') { neg = true; c = gc(); }
+    ll v = 0;
+    while (c >= '0' && c <= '9') { v = v * 10 + (c - '0'); c = gc(); }
+    out = neg ? -v : v;
+    return true;
 }
 
-/* ---------------- Li Chao: minimum of C_k(u), valid u<=x_k --------------- */
-struct LiChaoC {
-    const vector<int>* crd;
-    vector<int> tr;
-    inline double val(int id, int u) const {
-        double p = sqrt((double)xs[id] - u) + ss[id];
-        return (double)xs[id] + p * p;
-    }
-    void init(const vector<int>& c) {
-        crd = &c;
-        tr.assign(4 * (int)c.size() + 4, -1);
-    }
-    void add(int v, int l, int r, int id) {
-        int &cur = tr[v];
-        if (cur == -1) { cur = id; return; }
-        int mid = (l + r) >> 1;
-        int um = (*crd)[mid], ul = (*crd)[l];
-        bool midBetter  = val(id, um) < val(cur, um);
-        bool leftBetter = val(id, ul) < val(cur, ul);
-        if (midBetter) swap(cur, id);
-        if (l == r) return;
-        if (leftBetter != midBetter) add(v << 1, l, mid, id);
-        else                         add(v << 1 | 1, mid + 1, r, id);
-    }
-    double query(int v, int l, int r, int u) const {
-        double res = INFDB;
-        if (tr[v] != -1) res = val(tr[v], u);
-        if (l == r) return res;
-        int mid = (l + r) >> 1;
-        if (u <= (*crd)[mid]) return min(res, query(v << 1, l, mid, u));
-        return min(res, query(v << 1 | 1, mid + 1, r, u));
+struct DSU {
+    vector<int> p, sz;
+    void init(int n) { p.resize(n); iota(p.begin(), p.end(), 0); sz.assign(n, 1); }
+    int find(int x) { while (p[x] != x) { p[x] = p[p[x]]; x = p[x]; } return x; }
+    int uni(int a, int b) {
+        a = find(a); b = find(b);
+        if (a == b) return a;
+        if (sz[a] < sz[b]) swap(a, b);
+        p[b] = a; sz[a] += sz[b];
+        return a;
     }
 };
-
-/* ---------------- Li Chao: maximum of L_k(u), valid u>=x_k --------------- */
-struct LiChaoL {
-    const vector<int>* crd;
-    vector<int> tr;
-    inline double val(int id, int u) const {
-        double p = sqrt((double)u - xs[id]) + ss[id];
-        return (double)xs[id] - p * p;
-    }
-    void init(const vector<int>& c) {
-        crd = &c;
-        tr.assign(4 * (int)c.size() + 4, -1);
-    }
-    void add(int v, int l, int r, int id) {
-        int &cur = tr[v];
-        if (cur == -1) { cur = id; return; }
-        int mid = (l + r) >> 1;
-        int um = (*crd)[mid], ul = (*crd)[l];
-        bool midBetter  = val(id, um) > val(cur, um);
-        bool leftBetter = val(id, ul) > val(cur, ul);
-        if (midBetter) swap(cur, id);
-        if (l == r) return;
-        if (leftBetter != midBetter) add(v << 1, l, mid, id);
-        else                         add(v << 1 | 1, mid + 1, r, id);
-    }
-    double query(int v, int l, int r, int u) const {
-        double res = -INFDB;
-        if (tr[v] != -1) res = val(tr[v], u);
-        if (l == r) return res;
-        int mid = (l + r) >> 1;
-        if (u <= (*crd)[mid]) return max(res, query(v << 1, l, mid, u));
-        return max(res, query(v << 1 | 1, mid + 1, r, u));
-    }
-};
-
-/* ---------------- Li Chao: DP lines b + m*u, minimum (exact) ------------ */
-struct LiChaoDP {
-    const vector<int>* crd;
-    const vector<long long> *mm, *bb;
-    vector<int> tr;
-    inline long long val(int id, int u) const {
-        return (*bb)[id] + (*mm)[id] * (long long)u;
-    }
-    void init(const vector<int>& c, const vector<long long>& m,
-              const vector<long long>& b) {
-        crd = &c; mm = &m; bb = &b;
-        tr.assign(4 * (int)c.size() + 4, -1);
-    }
-    void add(int v, int l, int r, int id) {
-        int &cur = tr[v];
-        if (cur == -1) { cur = id; return; }
-        int mid = (l + r) >> 1;
-        int um = (*crd)[mid], ul = (*crd)[l];
-        bool midBetter  = val(id, um) < val(cur, um);
-        bool leftBetter = val(id, ul) < val(cur, ul);
-        if (midBetter) swap(cur, id);
-        if (l == r) return;
-        if (leftBetter != midBetter) add(v << 1, l, mid, id);
-        else                         add(v << 1 | 1, mid + 1, r, id);
-    }
-    long long query(int v, int l, int r, int u) const {
-        long long res = INFLL;
-        if (tr[v] != -1) res = val(tr[v], u);
-        if (l == r) return res;
-        int mid = (l + r) >> 1;
-        if (u <= (*crd)[mid]) return min(res, query(v << 1, l, mid, u));
-        return min(res, query(v << 1 | 1, mid + 1, r, u));
-    }
-};
-
-vector<double> Dval, Mval;
-
-void processD(int v, int l, int r) {
-    if (!qs[v].empty()) {
-        vector<int> coords;
-        coords.reserve(qs[v].size());
-        for (int id : qs[v]) coords.push_back(xs[id]);
-        sort(coords.begin(), coords.end());
-        coords.erase(unique(coords.begin(), coords.end()), coords.end());
-        LiChaoC lc;
-        lc.init(coords);
-        int m = (int)coords.size();
-        for (int k = l; k <= r; ++k) lc.add(1, 0, m - 1, k);
-        for (int id : qs[v]) {
-            double cur = lc.query(1, 0, m - 1, xs[id]);
-            if (cur < Dval[id]) Dval[id] = cur;
-        }
-    }
-    if (l < r) {
-        int mid = (l + r) >> 1;
-        processD(v << 1, l, mid);
-        processD(v << 1 | 1, mid + 1, r);
-    }
-}
-
-void processM(int v, int l, int r) {
-    if (!qs[v].empty()) {
-        vector<int> coords;
-        coords.reserve(qs[v].size());
-        for (int id : qs[v]) coords.push_back(xs[id]);
-        sort(coords.begin(), coords.end());
-        coords.erase(unique(coords.begin(), coords.end()), coords.end());
-        LiChaoL lc;
-        lc.init(coords);
-        int m = (int)coords.size();
-        for (int k = l; k <= r; ++k) lc.add(1, 0, m - 1, k);
-        for (int id : qs[v]) {
-            double cur = lc.query(1, 0, m - 1, xs[id]);
-            if (cur > Mval[id]) Mval[id] = cur;
-        }
-    }
-    if (l < r) {
-        int mid = (l + r) >> 1;
-        processM(v << 1, l, mid);
-        processM(v << 1 | 1, mid + 1, r);
-    }
-}
-
-vector<int> segL, segR;
-vector<int> Rreach;              // last j with edge(i,j) upper-valid
-
-void collectDP(int v, int l, int r, vector<vector<int>>& byR) {
-    if (!qs[v].empty()) {
-        segL[v] = l; segR[v] = r;
-        byR[r].push_back(v);     // all its lines are known at time r
-    }
-    if (l < r) {
-        int mid = (l + r) >> 1;
-        collectDP(v << 1, l, mid, byR);
-        collectDP(v << 1 | 1, mid + 1, r, byR);
-    }
-}
-
-void processDPNode(int v, vector<long long>& dp, vector<long long>& contrib,
-                   const vector<long long>& lm, const vector<long long>& lbv) {
-    int L = segL[v], R = segR[v];
-    vector<int> lines;
-    lines.reserve(R - L + 1);
-    for (int i = L; i <= R; ++i)
-        if (dp[i] < INFLL) lines.push_back(i);
-    if (lines.empty()) return;
-
-    sort(lines.begin(), lines.end(), [&](int a, int b) {
-        if (Rreach[a] != Rreach[b]) return Rreach[a] > Rreach[b];
-        return a > b;
-    });
-
-    vector<int> coords;
-    coords.reserve(qs[v].size());
-    for (int j : qs[v]) coords.push_back(xs[j]);
-    sort(coords.begin(), coords.end());
-    coords.erase(unique(coords.begin(), coords.end()), coords.end());
-
-    LiChaoDP lc;
-    lc.init(coords, lm, lbv);
-    int qn = (int)coords.size();
-    int ptr = 0, sz = (int)lines.size();
-
-    // qs[v] is in increasing j; process decreasing j, adding lines as R_i>=j.
-    for (int qi = (int)qs[v].size() - 1; qi >= 0; --qi) {
-        int j = qs[v][qi];
-        while (ptr < sz && Rreach[lines[ptr]] >= j) {
-            lc.add(1, 0, qn - 1, lines[ptr]);
-            ++ptr;
-        }
-        if (ptr == 0) continue;
-        long long cur = lc.query(1, 0, qn - 1, xs[j]);
-        if (cur < contrib[j]) contrib[j] = cur;
-    }
-}
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+    ll n_, m_, k_;
+    if (!readInt(n_)) return 0;
+    readInt(m_); readInt(k_);
+    int n = (int)n_, m = (int)m_, k = (int)k_;
 
-    int alphai, betai;
-    if (!(cin >> n >> h >> alphai >> betai)) return 0;
-    alpha = alphai; bet = betai;
-
-    xs.resize(n);
-    vector<long long> yin(n);
-    for (int i = 0; i < n; ++i) cin >> xs[i] >> yin[i];
-
-    tt.resize(n);
-    ss.resize(n);
-    for (int i = 0; i < n; ++i) {
-        tt[i] = (int)(h - yin[i]);
-        ss[i] = sqrt(2.0 * (double)tt[i]);
+    vector<u64> ce(m);
+    for (int i = 0; i < m; i++) {
+        ll u, v, w;
+        readInt(u); readInt(v); readInt(w);
+        u--; v--;
+        ce[i] = ((u64)w << 34) | ((u64)u << 17) | (u64)v;
+    }
+    vector<ll> c(k);
+    vector<u32> av((size_t)k * n);
+    for (int j = 0; j < k; j++) {
+        ll cj; readInt(cj); c[j] = cj;
+        for (int i = 0; i < n; i++) { ll x; readInt(x); av[(size_t)j * n + i] = (u32)x; }
     }
 
-    int N4 = 4 * n + 5;
-    qs.assign(N4, {});
+    if (n == 1) { printf("0\n"); return 0; }
 
-    /* ---------- D_i = min_{k>=i} C_k(x_i) ---------- */
-    Dval.assign(n, INFDB);
-    for (int i = 0; i + 1 < n; ++i)
-        addQuery(1, 0, n - 1, i + 1, n - 1, i);
-    processD(1, 0, n - 1);
-
-    Rreach.assign(n, n - 1);
-    for (int i = 0; i < n; ++i) {
-        double d = Dval[i];
-        double own = (double)xs[i] + 2.0 * (double)tt[i];
-        if (own < d) d = own;
-        int r = (int)(upper_bound(xs.begin(), xs.end(), d + EPS) - xs.begin()) - 1;
-        if (r < i) r = i;
-        if (r > n - 1) r = n - 1;
-        Rreach[i] = r;
+    // ---------- 1. MST of city graph ----------
+    sort(ce.begin(), ce.end());
+    DSU d1; d1.init(n);
+    vector<u64> t0; t0.reserve(n - 1);
+    ll W0 = 0;
+    for (int i = 0; i < m && (int)t0.size() < n - 1; i++) {
+        u64 e = ce[i];
+        int u = (int)((e >> 17) & 0x1FFFF), v = (int)(e & 0x1FFFF);
+        if (d1.find(u) != d1.find(v)) {
+            d1.uni(u, v);
+            t0.push_back(e);
+            W0 += (ll)(e >> 34);
+        }
     }
+    vector<u64>().swap(ce);
 
-    for (auto& v : qs) v.clear();
+    if (k == 0) { printf("%lld\n", W0); return 0; }
 
-    /* ---------- M_j = max_{k<=j} L_k(x_j) ---------- */
-    Mval.assign(n, -INFDB);
-    for (int j = 0; j < n; ++j)
-        addQuery(1, 0, n - 1, 0, j, j);
-    processM(1, 0, n - 1);
-
-    vector<int> lowIdx(n);
-    for (int j = 0; j < n; ++j) {
-        int p = (int)(lower_bound(xs.begin(), xs.end(), Mval[j] - EPS) - xs.begin());
-        if (p < 0) p = 0;
-        if (p > j) p = j;
-        lowIdx[j] = p;
+    // ---------- 2. Kruskal reconstruction tree of T0 ----------
+    int numNodes = n + (int)t0.size();
+    vector<int> formN(numNodes, 0), mergeN(numNodes, INT_MAX);
+    vector<int> cl(numNodes, -1), cr(numNodes, -1);
+    vector<int> nodeOf(n);
+    for (int i = 0; i < n; i++) nodeOf[i] = i;
+    {
+        DSU d2; d2.init(n);
+        int nxt = n;
+        for (auto& e : t0) {
+            int u = (int)((e >> 17) & 0x1FFFF), v = (int)(e & 0x1FFFF);
+            int w = (int)(e >> 34);
+            int ru = d2.find(u), rv = d2.find(v);
+            int x = nxt++;
+            formN[x] = w;
+            cl[x] = nodeOf[ru]; cr[x] = nodeOf[rv];
+            mergeN[nodeOf[ru]] = w; mergeN[nodeOf[rv]] = w;
+            int nr = d2.uni(ru, rv);
+            nodeOf[nr] = x;
+        }
+        mergeN[nodeOf[d2.find(0)]] = INT_MAX;
     }
+    vector<int>().swap(nodeOf);
 
-    for (auto& v : qs) v.clear();
+    int full = (1 << k) - 1;
 
-    /* ---------- DP ---------- */
-    vector<long long> dp(n, INFLL), contrib(n, INFLL);
-    vector<long long> lm(n, 0), lb(n, 0);
-
-    if (n == 1) {
-        cout << (long long)alpha * tt[0] << '\n';
-        return 0;
-    }
-
-    for (int j = 1; j < n; ++j) {
-        int lo = lowIdx[j], hi = j - 1;
-        if (lo <= hi) addQuery(1, 0, n - 1, lo, hi, j);
-    }
-
-    segL.assign(N4, 0); segR.assign(N4, 0);
-    vector<vector<int>> byR(n);
-    collectDP(1, 0, n - 1, byR);
-
-    dp[0] = alpha * (long long)tt[0];
-    lm[0] = -2LL * bet * xs[0];
-    lb[0] = dp[0] + bet * 1LL * xs[0] * xs[0];
-
-    for (int j = 1; j < n; ++j) {
-        for (int v : byR[j - 1]) processDPNode(v, dp, contrib, lm, lb);
-        if (contrib[j] < INFLL) {
-            long long xx = xs[j];
-            dp[j] = alpha * (long long)tt[j] + bet * xx * xx + contrib[j];
-            lm[j] = -2LL * bet * xx;
-            lb[j] = dp[j] + bet * xx * xx;
+    // ---------- 3. Phi(S) preprocessing ----------
+    vector<u32> V((size_t)numNodes * k);
+    {
+        for (int i = 0; i < n; i++) {
+            u32* dst = &V[(size_t)i * k];
+            for (int j = 0; j < k; j++) dst[j] = av[(size_t)j * n + i];
+        }
+        for (int x = n; x < numNodes; x++) {
+            const u32* Vl = &V[(size_t)cl[x] * k];
+            const u32* Vr = &V[(size_t)cr[x] * k];
+            u32* Vx = &V[(size_t)x * k];
+            for (int j = 0; j < k; j++) Vx[j] = min(Vl[j], Vr[j]);
         }
     }
 
-    if (dp[n - 1] >= INFLL) cout << "impossible\n";
-    else cout << dp[n - 1] << '\n';
+    vector<ll> T((size_t)(full + 1) * k, 0);
+    {
+        u32 vals[16]; int idx[16];
+        for (int x = 0; x < numNodes; x++) {
+            ll f = formN[x], mg = mergeN[x];
+            const u32* Vx = &V[(size_t)x * k];
+            for (int j = 0; j < k; j++) { vals[j] = Vx[j]; idx[j] = j; }
+            for (int a = 1; a < k; a++) {
+                u32 vv = vals[a]; int ii = idx[a];
+                int b = a - 1;
+                while (b >= 0 && vals[b] > vv) { vals[b + 1] = vals[b]; idx[b + 1] = idx[b]; b--; }
+                vals[b + 1] = vv; idx[b + 1] = ii;
+            }
+            int mask = 0;
+            for (int t = 0; t < k; t++) {
+                ll v = vals[t]; int j = idx[t];
+                ll mm = (mg < v) ? mg : v;
+                if (mm > f) T[(size_t)mask * k + j] += mm - f;
+                mask |= (1 << j);
+            }
+        }
+    }
+    vector<u32>().swap(V);
+    vector<int>().swap(formN); vector<int>().swap(mergeN);
+    vector<int>().swap(cl); vector<int>().swap(cr);
+
+    // subset zeta transform over the mask index: T[S][j] = sum_{E subset S} T0[E][j]
+    for (int b = 0; b < k; b++) {
+        for (int mask = 0; mask <= full; mask++) {
+            if ((mask >> b) & 1) {
+                ll* A = &T[(size_t)mask * k];
+                ll* B = &T[(size_t)(mask ^ (1 << b)) * k];
+                for (int j = 0; j < k; j++) A[j] += B[j];
+            }
+        }
+    }
+
+    // ---------- 4. delta(j,j') sweep ----------
+    vector<int> delta((size_t)k * k, INT_MAX);
+    {
+        // Event ids: [0,nC) are the MST city edges, the rest are star edges (j,i) with
+        // j = (id-nC)/n, i = (id-nC)%n.  Sort key = (weight << 21) | id.
+        int nC = (int)t0.size();
+        size_t nStar = (size_t)n * k;
+        vector<u64> ev((size_t)nC + nStar);
+        vector<u64> cityUV(nC);
+        for (int idx = 0; idx < nC; idx++) {
+            u64 e = t0[idx];
+            cityUV[idx] = (e & ((1ULL << 34) - 1)) | (1ULL << 34);  // marks a valid payload
+            ev[idx] = (((e >> 34) << 21) | (u64)idx);
+        }
+        vector<u64>().swap(t0);
+        for (size_t j = 0; j < (size_t)k; j++) {
+            const u32* aj = &av[j * n];
+            u64* dst = &ev[nC + j * n];
+            for (int i = 0; i < n; i++) dst[i] = ((u64)aj[i] << 21) | (u64)(nC + j * n + i);
+        }
+        vector<u32>().swap(av);
+        sort(ev.begin(), ev.end());
+
+        DSU d3; d3.init(n);
+        vector<int> mask3(n, 0);
+        vector<int> R(k, 0);
+        for (int j = 0; j < k; j++) R[j] = (1 << j);
+        for (auto& e : ev) {
+            u32 id = (u32)(e & ((1u << 21) - 1));
+            u32 w = (u32)(e >> 21);
+            if (id < (u32)nC) {
+                u64 uv = cityUV[id];
+                int u = (int)((uv >> 17) & 0x1FFFF), v = (int)(uv & 0x1FFFF);
+                int ru = d3.find(u), rv = d3.find(v);
+                if (ru == rv) continue;
+                int m1 = mask3[ru], m2 = mask3[rv];
+                if (__builtin_popcount(m1) > __builtin_popcount(m2)) swap(m1, m2);
+                int tmp = m1;
+                while (tmp) {
+                    int j = __builtin_ctz(tmp); tmp &= tmp - 1;
+                    int other = m2 & ~R[j];
+                    while (other) {
+                        int j2 = __builtin_ctz(other); other &= other - 1;
+                        delta[(size_t)j * k + j2] = (int)w;
+                        delta[(size_t)j2 * k + j] = (int)w;
+                        R[j] |= 1 << j2; R[j2] |= 1 << j;
+                    }
+                }
+                int nr = d3.uni(ru, rv);
+                mask3[nr] = m1 | m2;
+            } else {
+                u32 t = id - (u32)nC;
+                int j = (int)(t / (u32)n), i = (int)(t % (u32)n);
+                int ri = d3.find(i);
+                int other = mask3[ri] & ~R[j];
+                while (other) {
+                    int j2 = __builtin_ctz(other); other &= other - 1;
+                    delta[(size_t)j * k + j2] = (int)w;
+                    delta[(size_t)j2 * k + j] = (int)w;
+                    R[j] |= 1 << j2; R[j2] |= 1 << j;
+                }
+                mask3[ri] |= 1 << j;
+            }
+        }
+    }
+
+    // ---------- 5. enumerate subsets ----------
+    vector<ll> cs(full + 1, 0), mh(full + 1, 0);
+    for (int S = 1; S <= full; S++) {
+        int lb = __builtin_ctz(S);
+        cs[S] = cs[S ^ (1 << lb)] + c[lb];
+    }
+    ll best = W0;
+    for (int S = 1; S <= full; S++) {
+        // HubMST(S)
+        if ((S & (S - 1)) == 0) mh[S] = 0;
+        else {
+            ll bv = LLONG_MAX;
+            for (int t = S; t; t &= t - 1) {
+                int j = __builtin_ctz(t);
+                int rest = S ^ (1 << j);
+                if (rest == 0) continue;
+                int cm = INT_MAX;
+                for (int t2 = rest; t2; t2 &= t2 - 1) {
+                    int j2 = __builtin_ctz(t2);
+                    int d = delta[(size_t)j * k + j2];
+                    if (d < cm) cm = d;
+                }
+                if (cm == INT_MAX) continue;
+                ll cand = mh[rest] + (ll)cm;
+                if (cand < bv) bv = cand;
+            }
+            mh[S] = (bv == LLONG_MAX) ? (LLONG_MAX / 4) : bv;
+        }
+        // Phi(S)
+        int comp = full ^ S;
+        ll phi = 0;
+        for (int t = S; t; t &= t - 1) {
+            int j = __builtin_ctz(t);
+            phi += T[(size_t)comp * k + j];
+        }
+        ll tot = cs[S] + phi + mh[S];
+        if (tot < best) best = tot;
+    }
+    printf("%lld\n", best);
     return 0;
 }

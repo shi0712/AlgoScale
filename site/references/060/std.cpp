@@ -1,82 +1,99 @@
-#include <algorithm>
-#include <cstdint>
-#include <iostream>
-#include <vector>
-
+#include <bits/stdc++.h>
 using namespace std;
+using i128 = __int128_t;
+using int64 = long long;
 
-namespace {
-constexpr int MOD = 998244353;
-
-inline void add_to(int& x, int64_t y) {
-    x = static_cast<int>((x + y) % MOD);
+static long long isqrt_u64(unsigned long long x) {
+    unsigned long long lo = 0, hi = 4000000001ULL;
+    while (lo + 1 < hi) {
+        unsigned long long md = (lo + hi) >> 1;
+        if ((__uint128_t)md * md <= x) lo = md;
+        else hi = md;
+    }
+    return (long long)lo;
 }
+
+static unsigned long long floor_sqrt_ratio(long long h, long long s, long long w) {
+    i128 q = (i128)h * s / w;
+    unsigned long long lo = 0, hi = 1000000000000000001ULL;
+    while (lo + 1 < hi) {
+        unsigned long long md = (lo + hi) >> 1;
+        i128 z = (i128)md * md;
+        if (z <= q) lo = md; else hi = md;
+    }
+    return lo;
+}
+
+static long long ceil_div(long long a, long long b) { return a / b + (a % b != 0); }
+
+static long long F(long long h, long long w, long long s, long long x) {
+    long long y = s / x;
+    return ceil_div(h, x) + ceil_div(w, y);
+}
+
+static long long G(long long h, long long w, long long s, long long p) {
+    long long x = ceil_div(h, p);
+    if (x > s) return (long long)4e18;
+    long long y = s / x;
+    return p + ceil_div(w, y);
+}
+
+static long long solve_one(long long h, long long w, long long s) {
+    if (h > w) swap(h, w);
+    if ((i128)h * w <= s) return 0;
+    long long lim = min(h, s);
+    long long best = (long long)4e18;
+
+    if (w > s) {
+        long long x0 = (long long)floor_sqrt_ratio(h, s, w);
+        x0 = max(1LL, min(x0, lim));
+        long long u = F(h, w, s, x0), ux = x0;
+        if (x0 < lim && F(h, w, s, x0 + 1) < u) u = F(h, w, s, x0 + 1), ux = x0 + 1;
+        auto ok = [&](long long x) {
+            // w*x^2 - u*s*x + h*s <= 0, rearranged to avoid overflow.
+            i128 a = (i128)u * s - (i128)w * x;
+            if (a < 0) return false;
+            i128 need = ((i128)h * s + x - 1) / x;
+            return need <= a;
+        };
+        long long L = 1, R = ux;
+        while (L < R) { long long md = L + (R - L) / 2; if (ok(md)) R = md; else L = md + 1; }
+        long long left = L;
+        L = ux; R = lim;
+        while (L < R) { long long md = L + (R - L + 1) / 2; if (ok(md)) L = md; else R = md - 1; }
+        long long right = L;
+        for (long long x = left; x <= right; ++x) best = min(best, F(h, w, s, x));
+    } else {
+        long long x0 = (long long)floor_sqrt_ratio(h, s, w);
+        x0 = max(1LL, min(x0, lim));
+        long long u = F(h, w, s, x0), ux = x0;
+        if (x0 < lim && F(h, w, s, x0 + 1) < u) u = F(h, w, s, x0 + 1), ux = x0 + 1;
+        long long p0 = ceil_div(h, ux);
+        long long pmax = min(h, u - 1);
+        if (pmax >= 1) {
+            p0 = max(1LL, min(p0, pmax));
+            auto ok = [&](long long p) {
+                // s*p^2 - u*s*p + h*w <= 0, rearranged to avoid overflow.
+                i128 a = (i128)u * s - (i128)s * p;
+                if (a < 0) return false;
+                i128 need = ((i128)h * w + p - 1) / p;
+                return need <= a;
+            };
+            long long L = 1, R = p0;
+            while (L < R) { long long md = L + (R - L) / 2; if (ok(md)) R = md; else L = md + 1; }
+            long long left = L;
+            L = p0; R = pmax;
+            while (L < R) { long long md = L + (R - L + 1) / 2; if (ok(md)) L = md; else R = md - 1; }
+            long long right = L;
+            for (long long p = left; p <= right; ++p) best = min(best, G(h, w, s, p));
+        }
+    }
+    return best - 2;
 }
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
-    int n;
-    if (!(cin >> n)) return 0;
-    vector<int> left(n), right(n);
-    for (int i = 0; i < n; ++i) {
-        cin >> left[i] >> right[i];
-        --left[i];
-        --right[i];
-    }
-
-    vector<vector<int>> weight(n, vector<int>(n));
-    vector<int> path(n);
-    for (int length = 1; length < n; ++length) {
-        for (int l = 0; l + length < n; ++l) {
-            const int r = l + length;
-            fill(path.begin() + l, path.begin() + r + 1, 0);
-            path[l] = 1;
-            for (int v = l + 1; v < r; ++v) {
-                if (left[v] <= l || right[v] >= r) continue;
-                int64_t sum = 0;
-                for (int u = l; u < v; ++u) {
-                    sum += static_cast<int64_t>(path[u]) * weight[u][v] % MOD;
-                    if (sum >= (INT64_C(1) << 62)) sum %= MOD;
-                }
-                path[v] = static_cast<int>(sum % MOD);
-            }
-            int64_t bad = 0;
-            for (int u = l + 1; u < r; ++u) {
-                bad += static_cast<int64_t>(path[u]) * weight[u][r] % MOD;
-                if (bad >= (INT64_C(1) << 62)) bad %= MOD;
-            }
-            weight[l][r] = static_cast<int>((1 - bad % MOD + MOD) % MOD);
-        }
-    }
-
-    const size_t plane = static_cast<size_t>(n) * n;
-    vector<int> dp(static_cast<size_t>(n) * plane);
-    auto at = [&](int i, int bound, int open) -> int& {
-        return dp[static_cast<size_t>(i) * plane + static_cast<size_t>(bound) * n + open];
-    };
-
-    int answer = 0;
-    for (int i = 0; i < n; ++i) {
-        add_to(at(i, right[i], i), 1);
-        for (int bound = i; bound < n; ++bound) {
-            for (int open = 0; open <= i; ++open) {
-                const int current = at(i, bound, open);
-                if (current == 0) continue;
-                if (open == i) {
-                    answer += current;
-                    if (answer >= MOD) answer -= MOD;
-                }
-                for (int next = i + 1; next <= bound; ++next) {
-                    const int next_bound = max(bound, right[next]);
-                    const int next_open = left[next] <= open ? next : open;
-                    add_to(at(next, next_bound, next_open),
-                           static_cast<int64_t>(current) * weight[i][next] % MOD);
-                }
-            }
-        }
-    }
-    cout << answer << '\n';
-    return 0;
+    int T; if (!(cin >> T)) return 0;
+    while (T--) { long long h, w, s; cin >> h >> w >> s; cout << solve_one(h, w, s) << '\n'; }
 }

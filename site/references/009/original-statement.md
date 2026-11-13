@@ -1,25 +1,33 @@
 ## Problem Description
 
-There are $n$ stations in a fixed order. Station $j$ has level $a_j$. Each of $m$ train services has parameters $(p_i,x_i,y_i)$ and stops at precisely the stations satisfying either of these conditions:
+There are $n$ indexed items and a knapsack of capacity $W$. Item $i$ has positive integer weight $w_i$ and value $r_i$. Some entries are missing, but an item never has both entries missing.
 
-- $j\le p_i$ and $a_j\ge x_i$;
-- $j>p_i$ and $a_j\ge y_i$.
+Two algorithms select items as follows:
 
-Two different stations are directly connected if some service stops at both. A network is efficient when every pair of different stations of equal level is directly connected.
+- Alice orders items by increasing weight, breaking ties by increasing original index. She takes a prefix of this order, stopping immediately when the next item would exceed the remaining capacity.
+- Bob orders items by decreasing value, again breaking ties by increasing original index. He examines every item in that order, taking it if it fits and otherwise skipping it.
 
-The levels $a$, switching points $p$, and thresholds $x$ are given. Count the arrays $(y_1,\ldots,y_m)$, with every $y_i$ an integer in $[1,k]$, that make the network efficient. Return the count modulo $998244353$.
+Fill in every missing entry so that the two algorithms choose exactly the same set of item indices. Report impossibility if no such completion exists. Existing nonzero entries must remain unchanged.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n,m,k$. The second line contains $a_1,\ldots,a_n$. Each of the next $m$ lines contains $p_i,x_i$ for one service.
+The first line contains the number of test cases $T$.
+
+For each case:
+
+1. Read $n,W$.
+2. Read the $n$ weights $w_1,\ldots,w_n$.
+3. Read the $n$ values $r_1,\ldots,r_n$.
+
+A zero denotes a missing entry.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of valid arrays modulo $998244353$.
+For an impossible case, print `No` on one line. Otherwise print `Yes`, followed by the completed weights on one line and the completed values on the next line. Every completed entry must be between $1$ and $10^9$, inclusive. Any valid completion is accepted. The words `Yes` and `No` are case-insensitive.
 
 ## Examples
 
@@ -28,35 +36,33 @@ Print the number of valid arrays modulo $998244353$.
 Input:
 
 ```text
-4 2 10
-3 7 2 5
-1 4
-3 3
+1
+3 5
+0 2 3
+2 4 0
 ```
 
 Output:
 
 ```text
-100
+Yes
+3 2 3
+2 4 1
 ```
 
 ## Explanation / Notes
 
-All four station levels in the example are distinct, so there is no pair of different stations with equal level to constrain the choices. Both thresholds may take any value in $[1,10]$, giving $10^2=100$ arrays.
+In the example, both algorithms take item 2 and then item 1.
 
-A service with $x_i=y_i=1$ visits every station. With $x_i=y_i=k$, it visits only level-$k$ stations. With $x_i=1,y_i=k$, it visits every station up to $p_i$ and only level-$k$ stations afterwards.
-
-A level need not occur in the station sequence. The condition concerns direct service, not connectivity through transfers.
+The two algorithms treat a non-fitting item differently: Alice stops, while Bob continues to examine later items. Equality of the selected sets is required; equality of their selection orders is not.
 
 ## Constraints
 
-- One test case.
-- $2\le n\le 10^3$.
-- $1\le m\le 10^3$.
-- $1\le k\le500$.
-- $1\le a_j\le k$ for every station.
-- $1\le p_i<n$ and $1\le x_i\le k$ for every service.
-- Each unknown $y_i$ must lie in $[1,k]$.
-- No requirement says that all $k$ levels appear.
-- Modulus: $998244353$.
-- Time limit: 3 seconds; memory limit: 2048 MB.
+- $1\le T\le100$.
+- $1\le n\le3000$ per case, and $\sum n\le3000$ over the input.
+- $1\le W\le10^9$.
+- Input entries satisfy $0\le w_i,r_i\le10^9$.
+- For each item, at most one of $w_i,r_i$ is zero.
+- Output entries must satisfy $1\le w_i,r_i\le10^9$; the upper bounds also apply to newly assigned entries.
+- All nonzero input entries are fixed.
+- Time limit: 2 seconds; memory limit: 1024 MB.

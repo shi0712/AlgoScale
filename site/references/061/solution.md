@@ -1,7 +1,4 @@
-# 解法记录
+Track the number `r` of distinct initial ancestors represented by all current elements. Its transition probability is
+`p(r,x)=r!(N-r)! 2^(r-2x) m! / ((r-2x)! x! (m-r+x)! N!)`, where the next state is `r-x`.
 
-对一个尚未出现星号的字符串，单次操作最终删除的连续段长度只能是 3、4 或 5。先枚举原字符串中可能作为第一次删除的最长段，再枚举两个相交候选段在先后删除后留下的可行区间；由于每个候选段长度至多 5，所有候选区间总数是线性的。`mask[r]` 记录右端点为 `r` 的长度 3/4/5 区间。
-
-之后问题变成：从这些区间中选择至多 `K` 个互不相交的区间，使长度和最大。令 `G(lambda)` 为最大化“区间总长度 - lambda * 区间个数”，则对 `lambda=0..5` 做一次普通区间 DP 即可。区间长度的取值只有 3、4、5，最优值满足 `F(K)=min_lambda(G(lambda)+lambda*K)`，因此无需把 `K` 放入状态。
-
-标程中所有下标均使用半开区间，整数范围足够覆盖 `|S| <= 200000`。
+Processing states downwards gives their expected total residence times. The probability that an `r`-subset has one initial color is `sum_i C(a_i,r)/C(N,r)`, so summing the residence times weighted by the complementary probability gives the answer. The standard runs in `O(m^2+n)` time and `O(m+n)` space. The new limit is `n <= 2m <= 4000` with total `sum m <= 2000`.

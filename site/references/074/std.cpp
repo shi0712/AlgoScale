@@ -1,163 +1,103 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-struct Edge {
-    int u, v, w;
-};
+using int64 = long long;
 
-struct Fraction {
-    long long num = 0, den = 0;  // den == 0: no candidate
+// 内部使用 0-based 编号；返回值 n 表示环上的点 0。
+template <class Ask>
+pair<int64, int64> locate(int64 n, Ask ask) {
+    const int64 m = (n - 1) / 2;
+    const int64 k = (m + 1) / 2;
+    const int64 u = ask(0);
 
-    void relax(long long length, long long sum, long long square_sum) {
-        long long a = length * square_sum - sum * sum;
-        long long b = length * length;
-        if (den == 0 || a * den < num * b) {
-            num = a;
-            den = b;
-        }
-    }
-};
-
-Fraction solve(int n, const vector<Edge>& input) {
-    vector<vector<int>> g(n), rg(n);
-    for (const auto& e : input) {
-        g[e.u].push_back(e.v);
-        rg[e.v].push_back(e.u);
+    // n = 3 单独处理，保证最多两次询问。
+    if (n == 3) {
+        if (u == 2) return {1, 2};
+        const int64 v = ask(1);
+        if (v == 1) return {0, 1};
+        return {0, 2};
     }
 
-    auto reach = [&](int start, const vector<vector<int>>& graph) {
-        vector<char> vis(n, false);
-        vector<int> st{start};
-        vis[start] = true;
-        while (!st.empty()) {
-            int u = st.back();
-            st.pop_back();
-            for (int v : graph[u]) {
-                if (!vis[v]) {
-                    vis[v] = true;
-                    st.push_back(v);
-                }
-            }
-        }
-        return vis;
+    const int64 v = ask(k);
+    const int64 S = u + v;
+    const int64 D = u - v;
+
+    // 两点处在同一短段中，且已知展开坐标之和 p。
+    auto same_segment = [&](int64 p) -> pair<int64, int64> {
+        const int64 x = p / 2;
+        int64 gap;
+        if (x == 0) gap = u;
+        else if (x == k) gap = v;
+        else gap = ask(x);
+        return {(p - gap) / 2, (p + gap) / 2};
     };
 
-    auto from_s = reach(0, g);
-    if (!from_s[n - 1]) return {};
-    auto to_t = reach(n - 1, rg);
+    // 必须先处理这些极值情况，再处理后面的 D == 0。
+    if (S == 2 * k || D == 2 * k)
+        return same_segment(u);
+    if (S == 2 * (n - k) || D == -2 * k)
+        return same_segment(2 * n - u);
 
-    vector<int> id(n, -1);
-    int N = 0;
-    for (int v = 0; v < n; ++v) {
-        if (from_s[v] && to_t[v]) id[v] = N++;
-    }
-    const int source = id[0], target = id[n - 1];
-
-    vector<Edge> edges;
-    int W = 0;
-    for (const auto& e : input) {
-        if (id[e.u] != -1 && id[e.v] != -1) {
-            edges.push_back({id[e.u], id[e.v], e.w});
-            W = max(W, e.w);
+    // 两点满足 b = a + n - u，只需在连续区间内确定 a。
+    if (S == n || D == 0) {
+        int64 l, r;
+        if (S == n) {
+            l = max<int64>(0, u - m);
+            r = min(k, u - m + k - 1);
+        } else {
+            l = max(k, u - m + k);
+            r = min(m, u);
         }
-    }
 
-    const int S = N * W + 1;
-    const int layer_size = N * S;
-    const int INF = 1000000000;
-
-    // Minimum sum of squares for the current / next length.
-    vector<int> dp(layer_size, INF), ndp(layer_size, INF);
-    // Parent edge for every length, endpoint, and weight sum.
-    vector<int> parent((N + 1) * layer_size, -1);
-    dp[source * S] = 0;
-
-    Fraction answer;
-    for (int len = 1; len <= N; ++len) {
-        fill(ndp.begin(), ndp.end(), INF);
-        const int prev_max_sum = (len - 1) * W;
-        for (int i = 0; i < (int)edges.size(); ++i) {
-            const auto& e = edges[i];
-            int from = e.u * S;
-            int to = e.v * S + e.w;
-            for (int sum = 0; sum <= prev_max_sum; ++sum) {
-                if (dp[from + sum] == INF) continue;
-                int candidate = dp[from + sum] + e.w * e.w;
-                if (candidate < ndp[to + sum]) {
-                    ndp[to + sum] = candidate;
-                    parent[len * layer_size + to + sum] = i;
-                }
+        while (l < r) {
+            if (u <= m) {
+                // f(x) == u 当且仅当 x <= a。
+                const int64 mid = (l + r + 1) / 2;
+                if (ask(mid) == u) l = mid;
+                else r = mid - 1;
+            } else {
+                // f(x) == n-u 当且仅当 a <= x。
+                const int64 mid = (l + r) / 2;
+                if (ask(mid) == n - u) r = mid;
+                else l = mid + 1;
             }
         }
-        dp.swap(ndp);
-
-        if (len < N) {
-            for (int sum = 0; sum <= len * W; ++sum) {
-                int q = dp[target * S + sum];
-                if (q != INF) answer.relax(len, sum, q);
-            }
-            if (answer.den != 0 && answer.num == 0) return answer;
-        }
+        return {l, l + n - u};
     }
 
-    // Every N-edge walk on N vertices contains a cycle.
-    // Only the first cycle found in each representative walk is needed.
-    vector<int> seen(N), saved_sum(N), saved_square_sum(N);
-    for (int end = 0; end < N; ++end) {
-        for (int total = 0; total < S; ++total) {
-            if (dp[end * S + total] == INF) continue;
-            fill(seen.begin(), seen.end(), -1);
-
-            int v = end, sum = total;
-            int steps = 0, accumulated_sum = 0, accumulated_square_sum = 0;
-            seen[v] = 0;
-            saved_sum[v] = 0;
-            saved_square_sum[v] = 0;
-
-            for (int len = N; len >= 1; --len) {
-                int edge_id = parent[len * layer_size + v * S + sum];
-                const auto& e = edges[edge_id];
-                v = e.u;
-                sum -= e.w;
-                ++steps;
-                accumulated_sum += e.w;
-                accumulated_square_sum += e.w * e.w;
-
-                if (seen[v] != -1) {
-                    answer.relax(steps - seen[v],
-                                 accumulated_sum - saved_sum[v],
-                                 accumulated_square_sum - saved_square_sum[v]);
-                    break;
-                }
-                seen[v] = steps;
-                saved_sum[v] = accumulated_sum;
-                saved_square_sum[v] = accumulated_square_sum;
-            }
-            if (answer.den != 0 && answer.num == 0) return answer;
-        }
+    // 其余情况下，两次回答已经唯一确定答案。
+    if (S % 2 == 0) {
+        if (D > 0)
+            return {D / 2, S / 2};
+        return {k + D / 2, n + k - S / 2};
     }
-    return answer;
+    if (D > 0)
+        return {(S - n + 2 * k) / 2, (n + 2 * k - D) / 2};
+    return {(n - D) / 2, (3 * n - S) / 2};
 }
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n, m;
-    if (!(cin >> n >> m)) return 0;
-    vector<Edge> edges(m);
-    for (auto& e : edges) {
-        cin >> e.u >> e.v >> e.w;
-        --e.u;
-        --e.v;
-    }
+    int T;
+    if (!(cin >> T)) return 0;
+    while (T--) {
+        int64 n;
+        if (!(cin >> n) || n < 3) return 0;
 
-    Fraction result = solve(n, edges);
-    if (result.den == 0) {
-        cout << "-1\n";
-    } else {
-        cout << fixed << setprecision(15)
-             << (long double)result.num / result.den << '\n';
+        auto ask = [&](int64 x) -> int64 {
+            x %= n;
+            cout << "? " << x + 1 << endl;  // endl 会刷新缓冲区。
+            int64 reply;
+            if (!(cin >> reply) || reply < 0) exit(0);
+            return reply;
+        };
+
+        auto [a, b] = locate(n, ask);
+        a %= n;
+        b %= n;
+        cout << "! " << a + 1 << ' ' << b + 1 << endl;
     }
     return 0;
 }

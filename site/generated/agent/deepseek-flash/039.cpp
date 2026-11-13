@@ -1,438 +1,217 @@
+// 加倍配平 (Doubling Balancing)
+//
+// ---------------------------------------------------------------- model ----
+// A solution picks disjoint sets A, B with equal post-doubling weight sums.
+// For one weight class t (all chips of weight t) let a / b be the numbers of
+// used chips put on side A / B and u / v the numbers of those that get
+// doubled.  With c = a+b used chips and qp = u+v doublings the class changes
+// the weight difference in units of t by
+//        K = a - b + u - v,
+// so the whole selection is balanced iff  sum_t t * K_t = 0.  Weight classes
+// are independent: only the (count, imbalance, doublings) triple of a class
+// matters, and the triples of different classes can be combined freely.
+//
+// Whether a class with c chips can reach imbalance K using qp doublings is
+// decided exactly by ach_exact() below; its conditions follow from writing
+// K = d + e with d = a-b (side imbalance) and e = u-v (doubling imbalance):
+//   |d| <= c, d = c (mod 2), |e| <= qp <= c, qp-e <= c-d, qp+e <= c+d,
+//   K = d+e (mod 2)  <=>  K = c+qp (mod 2).
+//
+// ------------------------------------------------------------------ value ---
+// Inside a class the best subset of a given size is the prefix of the largest
+// values (negative values are kept in the list because they may be needed to
+// fix a parity).  Reachability of K is monotone in the count: if c works then
+// c+2 works at the same or lower cost, so for every (K, budget) and every
+// count parity the best value is a suffix maximum of prefix sums.  Hence a
+// single class contributes  max{ prefix[j] : j = p (mod 2), j >= mincount }.
+//
+// --------------------------------------------------------------------- DP ---
+// DP over the 13 classes in decreasing weight with state
+//      (current imbalance D, doublings charged so far).
+// The imbalance window |D| <= 1200 and the doubling budget cap 13 are both
+// much larger than what any instance actually needs; the bounds come from the
+// weight set {1,...,13} being tiny.  Whenever a multiset of chips is feasible
+// at all, its per-class imbalances can be chosen so that every imbalance is
+// at most lcm(12,13) = 156 (the worst case is a 12-class against a 13-class
+// relation), and the total number of doublings needed by the cheapest witness
+// never exceeded 7 in exhaustive scans over class-count vectors (all pairs with
+// counts <= 60, all triples with counts <= 6, all-ones multisets, and hill
+// climbing over counts up to 200 for every k).  The window is additionally at
+// least 13*(1+2+...+13) = 1183, i.e. it contains every path whose class
+// imbalances are all <= 13; and 13 doublings are enough for the trivial
+// "use all positive chips" configuration in the classes where balance 0 is
+// reachable at price 0 (even counts) or 1 (odd counts >= 3).
 #include <bits/stdc++.h>
 using namespace std;
+typedef long long ll;
 
-struct Pt {
-    double x, y;
-    Pt() {}
-    Pt(double x, double y) : x(x), y(y) {}
-};
-static inline Pt operator+(Pt a, Pt b) { return Pt(a.x + b.x, a.y + b.y); }
-static inline Pt operator-(Pt a, Pt b) { return Pt(a.x - b.x, a.y - b.y); }
-static inline Pt operator*(Pt a, double t) { return Pt(a.x * t, a.y * t); }
-static inline double cross(Pt a, Pt b) { return a.x * b.y - a.y * b.x; }
-static inline double dot(Pt a, Pt b) { return a.x * b.x + a.y * b.y; }
+static const ll NEG = LLONG_MIN / 4;
+static const int B = 1200;      // imbalance window of the DP
+static const int KCAP = 1200;   // per-class |K| cap: KCAP/t + KCAP_B
+static const int KCAP_B = 8;
+static const int QCAP = 13;     // doublings budget cap (see above)
+static const int SMALL = 23;    // brute-force regime for the per-class cost
+static const int KTAB = 80;     // |K| range of the precomputed cost table
 
-int n, m;
-vector<Pt> poly, obs;
+static inline ll ceildiv2(ll x) { return (x >= 0) ? (x + 1) / 2 : -((-x) / 2); }
+static inline ll floordiv2(ll x) { return (x >= 0) ? x / 2 : -(((-x) + 1) / 2); }
 
-struct Seg {
-    Pt a, b;
-    int delta;   // +1 if dx > 0 (crossing the sweep line upward enters the region)
-    bool isWin;  // window (radial) segment
-    double xmin, xmax, ymin, ymax;
-    double sl, c0;  // line: y = c0 + sl * x
-};
-
-static void addSeg(vector<Seg> &segs, Pt u, Pt v, bool isWin) {
-    if (fabs(u.x - v.x) < 1e-12) return;  // vertical / degenerate -> no area effect
-    Seg s;
-    s.a = u;
-    s.b = v;
-    s.delta = (v.x > u.x) ? 1 : -1;
-    s.isWin = isWin;
-    s.xmin = min(u.x, v.x);
-    s.xmax = max(u.x, v.x);
-    s.ymin = min(u.y, v.y);
-    s.ymax = max(u.y, v.y);
-    s.sl = (v.y - u.y) / (v.x - u.x);
-    s.c0 = u.y - s.sl * u.x;
-    segs.push_back(s);
+// c chips of one class, exactly qp doublings, imbalance K?
+static inline bool ach_exact(int c, int qp, int K) {
+    if (qp > c) return false;
+    if (((K - c - qp) & 1) != 0) return false;      // parity of K = d + e
+    ll lo = max<ll>(-c, (ll)K - qp);                // |d| <= c and |e| <= qp
+    ll hi = min<ll>(c, (ll)K + qp);
+    lo = max(lo, ceildiv2((ll)qp + K - c));         // qp + e <= c + d
+    hi = min(hi, floordiv2((ll)c - qp + K));        // qp - e <= c - d
+    if (lo > hi) return false;
+    if (((lo - c) & 1) != 0) lo++;                  // d = c (mod 2)
+    return lo <= hi;
 }
 
-/* ray p + t*d (t>0) against segment a-b; returns t or -1 */
-static inline double rayEdge(Pt p, Pt d, Pt a, Pt b) {
-    Pt e = b - a;
-    double den = cross(d, e);
-    if (fabs(den) < 1e-9) return -1;
-    double t = cross(a - p, e) / den;
-    if (t <= 0) return -1;
-    double s = cross(a - p, d) / den;
-    if (s < -1e-12 || s > 1.0 + 1e-12) return -1;
-    return t;
+// costTab[c][K] = minimum doublings for c <= SMALL chips to reach imbalance K,
+// INT_MAX if impossible within QCAP doublings.
+static int costTab[SMALL + 1][2 * KTAB + 1];
+
+// Minimum count of parity p reaching imbalance K with at most q doublings;
+// a result > cnt means "impossible".
+static inline int minC(int K, int q, int p, int cnt) {
+    if (K >= -KTAB && K <= KTAB) {                  // small counts: table
+        int lim = cnt < SMALL ? cnt : SMALL;
+        for (int c = p; c <= lim; c += 2)
+            if (costTab[c][K + KTAB] <= q) return c;
+    }
+    if (cnt <= SMALL) return INT_MAX;
+    // For c >= 24 the conditions collapse to: exists qp <= q with
+    // K = c+qp (mod 2) and c+qp >= |K|, i.e. cost = max(|K|-c, (K-c)&1).
+    ll c0 = max<ll>(SMALL + 1, (ll)llabs((ll)K) - q);
+    if (q == 0) {
+        if (((c0 - K) & 1) != 0) c0++;              // qp = 0 forces c = K (2)
+        if (((c0 - p) & 1) != 0) return INT_MAX;
+    } else {
+        if (((c0 - p) & 1) != 0) c0++;              // qp >= 1: both parities
+    }
+    if (c0 > cnt) return INT_MAX;
+    return (int)c0;
 }
 
-static inline Pt hitLine(Pt p, double th, Pt a, Pt b) {
-    Pt d(cos(th), sin(th));
-    Pt e = b - a;
-    double den = cross(d, e);
-    if (fabs(den) < 1e-12) {
-        double ta = dot(a - p, d), tb = dot(b - p, d);
-        return (ta < tb) ? a : b;
+// ---------------------------------------------------------------- input ----
+static char *ibuf;
+static size_t ipos = 0, ilen = 0;
+
+static inline int gc() {
+    if (ipos == ilen) {
+        ilen = fread(ibuf, 1, 1 << 16, stdin);
+        ipos = 0;
+        if (ilen == 0) return -1;
     }
-    double t = cross(a - p, e) / den;
-    return p + d * t;
+    return ibuf[ipos++];
 }
 
-/* Build the visibility polygon of p and append its boundary as oriented segments. */
-static void buildVis(Pt p, vector<Seg> &segs) {
-    vector<double> ang(n);
-    for (int i = 0; i < n; i++) ang[i] = atan2(poly[i].y - p.y, poly[i].x - p.x);
-    sort(ang.begin(), ang.end());
-    vector<double> A;
-    A.reserve(n);
-    for (double a : ang)
-        if (A.empty() || a - A.back() > 1e-12) A.push_back(a);
-    int K = (int)A.size();
-    if (K < 2) return;
-
-    vector<int> nearE(K, -1);
-    for (int k = 0; k < K; k++) {
-        double a1 = A[k];
-        double a2 = (k + 1 < K) ? A[k + 1] : A[0] + 2.0 * M_PI;
-        double mid = 0.5 * (a1 + a2);
-        Pt d(cos(mid), sin(mid));
-        double best = 1e300;
-        int be = -1;
-        for (int i = 0; i < n; i++) {
-            double t = rayEdge(p, d, poly[i], poly[(i + 1) % n]);
-            if (t > 0 && t < best) { best = t; be = i; }
-        }
-        nearE[k] = be;
-    }
-
-    int start = 0;
-    for (int k = 0; k < K; k++)
-        if (nearE[k] != nearE[(k - 1 + K) % K]) { start = k; break; }
-
-    vector<Pt> firsts, seconds;
-    int k = start;
-    for (int iter = 0; iter <= K; iter++) {
-        int e = nearE[k];
-        if (e < 0) break;
-        int kend = k;
-        for (int step = 0; step < K; step++) {
-            int nx = (kend + 1) % K;
-            if (nx == start) break;
-            if (nearE[nx] != e) break;
-            kend = nx;
-        }
-        Pt A1 = hitLine(p, A[k], poly[e], poly[(e + 1) % n]);
-        Pt B1 = hitLine(p, A[(kend + 1) % K], poly[e], poly[(e + 1) % n]);
-        firsts.push_back(A1);
-        seconds.push_back(B1);
-        k = (kend + 1) % K;
-        if (k == start) break;
-    }
-
-    int R = (int)firsts.size();
-    if (R == 0) return;
-    for (int i = 0; i < R; i++) {
-        addSeg(segs, firsts[i], seconds[i], false);           // boundary piece
-        addSeg(segs, seconds[i], firsts[(i + 1) % R], true);  // window
-    }
-}
-
-/* ---------------- segment intersection ---------------- */
-struct Cross {
-    double x;
-    int i, j;
-};
-
-static inline bool segInterX(const Seg &s1, const Seg &s2, double &outX) {
-    Pt d1 = s1.b - s1.a, d2 = s2.b - s2.a;
-    double den = cross(d1, d2);
-    if (fabs(den) < 1e-14) return false;
-    Pt r = s2.a - s1.a;
-    double t = cross(r, d2) / den;
-    double u = cross(r, d1) / den;
-    if (t < -1e-12 || t > 1.0 + 1e-12) return false;
-    if (u < -1e-12 || u > 1.0 + 1e-12) return false;
-    outX = s1.a.x + d1.x * t;
-    return true;
-}
-
-/* ---------------- incremental vertical sweep ---------------- */
-static vector<Seg> *GS;  // current segment array
-static double curX;
-static vector<vector<int>> blk;
-static const int BLOCKSZ = 40;
-
-struct BAgg {
-    int SD;
-    int mP;  // minimum prefix depth over internal gaps (INT_MAX if none)
-    double mW0, mW1;
-    double f0, f1, l0, l1;
-};
-static vector<BAgg> agg;
-
-static inline double segYof(int id, double x) { return (*GS)[id].c0 + (*GS)[id].sl * x; }
-
-/* Order of segments at the current sweep position.
-   Comparisons closer than EPS are treated as exact ties and broken by slope:
-   this reproduces the (symbolically perturbed) exact order for degenerate
-   configurations, whose floating point images are only accurate to ~1e-12. */
-static const double EPS = 1e-9;
-static inline bool segLessId(int a, int b) {
-    const Seg &A = (*GS)[a], &B = (*GS)[b];
-    double ya = A.c0 + A.sl * curX, yb = B.c0 + B.sl * curX;
-    if (ya < yb - EPS) return true;
-    if (ya > yb + EPS) return false;
-    if (A.sl != B.sl) return A.sl < B.sl;
-    return a < b;
-}
-
-static void rebuild(int bi) {
-    BAgg &g = agg[bi];
-    const vector<int> &v = blk[bi];
-    g.SD = 0;
-    g.mP = INT_MAX;
-    g.mW0 = g.mW1 = 0.0;
-    const Seg &s0 = (*GS)[v[0]];
-    g.f0 = s0.c0;
-    g.f1 = s0.sl;
-    double p0 = s0.c0, p1 = s0.sl;
-    for (size_t p = 0; p < v.size(); p++) {
-        const Seg &s = (*GS)[v[p]];
-        if (p > 0) {
-            double w0 = s.c0 - p0, w1 = s.sl - p1;
-            if (g.SD < g.mP) { g.mP = g.SD; g.mW0 = w0; g.mW1 = w1; }
-            else if (g.SD == g.mP) { g.mW0 += w0; g.mW1 += w1; }
-        }
-        g.SD += s.delta;
-        p0 = s.c0;
-        p1 = s.sl;
-    }
-    g.l0 = p0;
-    g.l1 = p1;
-}
-
-static void splitBlock(int bi) {
-    vector<int> &v = blk[bi];
-    int half = (int)v.size() / 2;
-    vector<int> nv(v.begin() + half, v.end());
-    v.resize(half);
-    blk.insert(blk.begin() + bi + 1, nv);
-    agg.insert(agg.begin() + bi + 1, BAgg());
-    rebuild(bi);
-    rebuild(bi + 1);
-}
-
-/* first block whose last element is greater than id, or blk.size() */
-static int findBlockFor(int id) {
-    int lo = 0, hi = (int)blk.size() - 1, res = (int)blk.size();
-    while (lo <= hi) {
-        int mid = (lo + hi) >> 1;
-        if (segLessId(id, blk[mid].back())) { res = mid; hi = mid - 1; }
-        else lo = mid + 1;
-    }
-    return res;
-}
-
-static void insertSeg(int id) {
-    if (blk.empty()) {
-        blk.push_back(vector<int>{id});
-        agg.push_back(BAgg());
-        rebuild(0);
-        return;
-    }
-    int bi = findBlockFor(id);
-    if (bi == (int)blk.size()) bi = (int)blk.size() - 1;
-    vector<int> &v = blk[bi];
-    int pos = (int)v.size();
-    {
-        int lo = 0, hi = (int)v.size();
-        while (lo < hi) {
-            int mid = (lo + hi) >> 1;
-            if (segLessId(id, v[mid])) hi = mid;
-            else lo = mid + 1;
-        }
-        pos = lo;
-    }
-    v.insert(v.begin() + pos, id);
-    rebuild(bi);
-    if ((int)v.size() > 2 * BLOCKSZ) splitBlock(bi);
-}
-
-static bool eraseSeg(int id) {
-    if (blk.empty()) return false;
-    int bi = findBlockFor(id);
-    if (bi >= (int)blk.size()) bi = (int)blk.size() - 1;
-    for (int d = 0; d <= 1; d++) {
-        for (int sgn = -1; sgn <= 1; sgn += 2) {
-            int b = bi + sgn * d;
-            if (b < 0 || b >= (int)blk.size()) continue;
-            vector<int> &v = blk[b];
-            for (size_t p = 0; p < v.size(); p++) {
-                if (v[p] == id) {
-                    v.erase(v.begin() + p);
-                    if (v.empty()) {
-                        blk.erase(blk.begin() + b);
-                        agg.erase(agg.begin() + b);
-                    } else {
-                        rebuild(b);
-                    }
-                    return true;
-                }
-            }
-            if (d == 0) break;  // avoid double-checking b==bi
-        }
-    }
-    // fallback: global scan (only reachable if the order invariant was disturbed)
-    for (int b = 0; b < (int)blk.size(); b++) {
-        vector<int> &v = blk[b];
-        for (size_t p = 0; p < v.size(); p++) {
-            if (v[p] == id) {
-                v.erase(v.begin() + p);
-                if (v.empty()) { blk.erase(blk.begin() + b); agg.erase(agg.begin() + b); }
-                else rebuild(b);
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-static double coveredLen(double x) {
-    int D = 0, mP = INT_MAX;
-    double mW0 = 0, mW1 = 0;
-    double f0 = 0, f1 = 0, pl0 = 0, pl1 = 0;
-    bool first = true;
-    for (size_t i = 0; i < blk.size(); i++) {
-        const BAgg &g = agg[i];
-        if (first) { f0 = g.f0; f1 = g.f1; first = false; }
-        else {
-            double w0 = g.f0 - pl0, w1 = g.f1 - pl1;
-            if (D < mP) { mP = D; mW0 = w0; mW1 = w1; }
-            else if (D == mP) { mW0 += w0; mW1 += w1; }
-        }
-        if (g.mP != INT_MAX) {
-            int cand = D + g.mP;
-            if (cand < mP) { mP = cand; mW0 = g.mW0; mW1 = g.mW1; }
-            else if (cand == mP) { mW0 += g.mW0; mW1 += g.mW1; }
-        }
-        D += g.SD;
-        pl0 = g.l0;
-        pl1 = g.l1;
-    }
-    if (first) return 0.0;
-    double c0 = pl0 - f0, c1 = pl1 - f1;
-    if (mP == 0) { c0 -= mW0; c1 -= mW1; }
-    return c0 + c1 * x;
-}
-
-static double unionArea(vector<Seg> &segs) {
-    int E = (int)segs.size();
-    if (E == 0) return 0.0;
-
-    vector<double> xs;
-    xs.reserve(2 * E);
-    for (auto &s : segs) {
-        xs.push_back(s.xmin);
-        xs.push_back(s.xmax);
-    }
-
-    vector<Cross> crs;
-    {
-        vector<int> ord(E);
-        iota(ord.begin(), ord.end(), 0);
-        sort(ord.begin(), ord.end(), [&](int a, int b) { return segs[a].xmin < segs[b].xmin; });
-        vector<int> active;
-        active.reserve(E);
-        for (int idx : ord) {
-            const Seg &curs = segs[idx];
-            int w = 0;
-            for (int j = 0; j < (int)active.size(); j++) {
-                if (segs[active[j]].xmax < curs.xmin) continue;
-                active[w++] = active[j];
-            }
-            active.resize(w);
-            for (int j : active) {
-                const Seg &o = segs[j];
-                if (!curs.isWin && !o.isWin) continue;
-                if (o.ymax < curs.ymin || curs.ymax < o.ymin) continue;
-                if (o.xmax < curs.xmin || curs.xmax < o.xmin) continue;
-                double x;
-                if (segInterX(o, curs, x)) {
-                    crs.push_back({x, j, idx});
-                    xs.push_back(x);
-                }
-            }
-            active.push_back(idx);
-        }
-    }
-
-    sort(xs.begin(), xs.end());
-    xs.erase(unique(xs.begin(), xs.end()), xs.end());
-    int T = (int)xs.size();
-    if (T < 2) return 0.0;
-
-    sort(crs.begin(), crs.end(), [](const Cross &a, const Cross &b) { return a.x < b.x; });
-
-    vector<vector<int>> insAt(T), delAt(T);
-    for (int i = 0; i < E; i++) {
-        int i0 = (int)(lower_bound(xs.begin(), xs.end(), segs[i].xmin) - xs.begin());
-        int i1 = (int)(lower_bound(xs.begin(), xs.end(), segs[i].xmax) - xs.begin());
-        insAt[i0].push_back(i);
-        delAt[i1].push_back(i);
-    }
-
-    GS = &segs;
-    blk.clear();
-    agg.clear();
-    blk.reserve(64);
-    agg.reserve(64);
-    vector<char> isActive(E, 0);
-    vector<int> reinsert;
-
-    double area = 0.0;
-    size_t cptr = 0;
-    for (int i = 0; i + 1 < T; i++) {
-        double x = xs[i];
-        curX = (i > 0) ? 0.5 * (xs[i - 1] + x) : x;
-
-        for (int id : delAt[i])
-            if (isActive[id]) { eraseSeg(id); isActive[id] = 0; }
-
-        reinsert.clear();
-        while (cptr < crs.size() && crs[cptr].x <= x) {
-            if (crs[cptr].x < x) { cptr++; continue; }  // should not happen
-            int a = crs[cptr].i, b = crs[cptr].j;
-            if (isActive[a]) { eraseSeg(a); isActive[a] = 0; reinsert.push_back(a); }
-            if (isActive[b]) { eraseSeg(b); isActive[b] = 0; reinsert.push_back(b); }
-            cptr++;
-        }
-
-        curX = x;
-        for (int id : reinsert)
-            if (segs[id].xmax > x) { insertSeg(id); isActive[id] = 1; }
-        for (int id : insAt[i]) { insertSeg(id); isActive[id] = 1; }
-
-        double xr = xs[i + 1];
-        double L1 = coveredLen(x);
-        double L2 = coveredLen(xr);
-        area += 0.5 * (L1 + L2) * (xr - x);
-    }
-    return area;
+static inline ll readInt() {
+    int c = gc();
+    while (c != '-' && (c < '0' || c > '9')) c = gc();
+    int sg = 1;
+    if (c == '-') { sg = -1; c = gc(); }
+    ll x = 0;
+    while (c >= '0' && c <= '9') { x = x * 10 + (c - '0'); c = gc(); }
+    return sg * x;
 }
 
 int main() {
-    if (scanf("%d", &n) != 1) return 0;
-    poly.resize(n);
+    ibuf = (char *)malloc(1 << 16);
+    int n = (int)readInt();
+    int k = (int)readInt();
+
+    vector<ll> vals[14];
     for (int i = 0; i < n; i++) {
-        int x, y;
-        if (scanf("%d %d", &x, &y) != 2) return 0;
-        poly[i] = Pt(x, y);
+        ll v = readInt();
+        int t = (int)readInt();
+        vals[t].push_back(v);
     }
-    if (scanf("%d", &m) != 1) return 0;
-    obs.resize(m);
-    for (int i = 0; i < m; i++) {
-        int x, y;
-        if (scanf("%d %d", &x, &y) != 2) return 0;
-        obs[i] = Pt(x, y);
+
+    // per-class prefix sums and suffix maxima split by the parity of the count
+    vector<ll> pref[14], Par0[14], Par1[14];
+    int cnt[14] = {0};
+    for (int t = 1; t <= 13; t++) {
+        auto &vv = vals[t];
+        int c = (int)vv.size();
+        cnt[t] = c;
+        sort(vv.rbegin(), vv.rend());
+        pref[t].assign(c + 2, 0);
+        for (int i = 0; i < c; i++) pref[t][i + 1] = pref[t][i] + vv[i];
+        Par0[t].assign(c + 2, NEG);
+        Par1[t].assign(c + 2, NEG);
+        ll b0 = NEG, b1 = NEG;
+        for (int j = c; j >= 0; j--) {
+            if ((j & 1) == 0) b0 = max(b0, pref[t][j]);
+            else b1 = max(b1, pref[t][j]);
+            Par0[t][j] = b0;
+            Par1[t][j] = b1;
+        }
     }
-    sort(obs.begin(), obs.end(), [](const Pt &a, const Pt &b) {
-        return a.x < b.x || (a.x == b.x && a.y < b.y);
-    });
-    obs.erase(unique(obs.begin(), obs.end(), [](const Pt &a, const Pt &b) {
-                  return a.x == b.x && a.y == b.y;
-              }),
-              obs.end());
-    m = (int)obs.size();
 
-    vector<Seg> segs;
-    for (auto &p : obs) buildVis(p, segs);
+    // per-class doubling cost for small counts
+    for (int c = 0; c <= SMALL; c++)
+        for (int K = -KTAB; K <= KTAB; K++) {
+            int best = INT_MAX;
+            for (int qp = 0; qp <= min(c, QCAP); qp++)
+                if (ach_exact(c, qp, K)) { best = qp; break; }
+            costTab[c][K + KTAB] = best;
+        }
 
-    double ans = unionArea(segs);
-    printf("%.9f\n", ans);
+    int Q = min(k, QCAP);
+    int S = Q + 1;
+    vector<ll> dp((size_t)(2 * B + 1) * S, NEG), ndp((size_t)(2 * B + 1) * S, NEG);
+    dp[(size_t)B * S] = 0;
+
+    for (int t = 13; t >= 1; t--) {                 // decreasing weight order
+        int c = cnt[t];
+        if (c == 0) continue;
+        int Kmax = min(2 * c, B / t + 1);
+        Kmax = min(Kmax, KCAP / t + KCAP_B);
+
+        int Kw = 2 * Kmax + 1;
+        vector<ll> val((size_t)S * Kw, NEG);
+        for (int qt = 0; qt <= Q; qt++) {
+            ll *vrow = &val[(size_t)qt * Kw];
+            for (int K = -Kmax; K <= Kmax; K++) {
+                ll best = NEG;
+                int c0 = minC(K, qt, 0, c);
+                if (c0 <= c) best = Par0[t][c0];
+                int c1 = minC(K, qt, 1, c);
+                if (c1 <= c) best = max(best, Par1[t][c1]);
+                vrow[K + Kmax] = best;
+            }
+        }
+
+        fill(ndp.begin(), ndp.end(), NEG);
+        for (int qt = 0; qt <= Q; qt++) {
+            const ll *vrow = &val[(size_t)qt * Kw];
+            int qlim = Q - qt;
+            for (int K = -Kmax; K <= Kmax; K++) {
+                ll v = vrow[K + Kmax];
+                if (v <= NEG / 2) continue;
+                int shift = t * K;
+                int dlo = max(-B, -B - shift);
+                int dhi = min(B, B - shift);
+                for (int D = dlo; D <= dhi; D++) {
+                    const ll *src = &dp[(size_t)(D + B) * S];
+                    ll *dst = &ndp[(size_t)(D + shift + B) * S];
+                    for (int q = 0; q <= qlim; q++) {
+                        ll cur = src[q];
+                        if (cur <= NEG / 2) continue;
+                        ll nv = cur + v;
+                        if (nv > dst[q + qt]) dst[q + qt] = nv;
+                    }
+                }
+            }
+        }
+        dp.swap(ndp);
+    }
+
+    ll ans = 0;
+    for (int q = 0; q <= Q; q++) ans = max(ans, dp[(size_t)B * S + q]);
+    printf("%lld\n", ans);
     return 0;
 }

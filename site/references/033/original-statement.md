@@ -1,62 +1,54 @@
 ## Problem Description
 
-A pool contains $n$ cards in $m$ types. Type $i$ initially has $a_i$ cards, and the target collection requires $b_i$ cards of that type.
+A park is the region enclosed by a simple polygon. A receiver is placed at each polygon vertex. All receivers use the same radius $r$, and each covers the disk of radius $r$ centered at its vertex.
 
-Each refresh draws one card uniformly from the cards currently remaining in the pool. If the target still needs that type, keep the card and remove it from the pool. Otherwise, immediately return it to the pool. Continue until all target counts have been collected.
-
-Compute the expected number of refreshes. Represent this rational expectation modulo $998244353$.
+Find the smallest $r$ for which the union of these disks covers the entire park. Coverage includes points inside the polygon, not just its boundary.
 
 ## Input Format
 
 Read from standard input.
 
-Read three lines:
-
-1. $n,m$;
-2. $a_1,\ldots,a_m$;
-3. $b_1,\ldots,b_m$.
+Read $n$, followed by $n$ lines of integer coordinates $x,y$. These are the polygon's vertices in counter-clockwise order; the final vertex is connected back to the first.
 
 ## Output Format
 
 Write to standard output.
 
-Let the expectation in lowest terms be $p/q$. Print
-
-$$p\,q^{-1}\pmod{998244353}$$
-
-as an integer from 0 through $998244352$. It is guaranteed that the denominator is not divisible by the modulus.
+Print the minimum common radius. The allowed absolute or relative error is at most $10^{-6}$.
 
 ## Examples
 
 Input:
 
 ```text
-2 2
-1 1
-1 1
+5
+0 0
+170 0
+140 30
+60 30
+0 70
 ```
 
 Output:
 
 ```text
-2
+50
 ```
 
 ## Explanation / Notes
 
-A returned card remains available for later refreshes. A kept card is no longer eligible to be drawn. Sampling is uniform over individual remaining cards, so the probability of a type depends on its current multiplicity.
+Receivers cover circular regions without a line-of-sight restriction. It does not matter if parts of their disks extend outside the park.
 
-In the example, both cards are required, so every draw keeps a card and exactly two refreshes are needed. If every $b_i$ is zero, the target is already complete and the expectation is zero.
+For the example, radius 35 leaves some park points uncovered, while radius 50 covers the whole polygon and is optimal.
 
 ## Constraints
 
 - There is one input instance.
-- $1\le n\le1000$.
-- $1\le m\le12$.
-- $1\le a_i\le n$ and $\sum_{i=1}^{m}a_i=n$.
-- $0\le b_i\le a_i$ for every type.
-- All input counts are integers.
-- Empty target requirements are allowed, including $b_i=0$ for every type.
-- For the reduced expectation $p/q$, $q\not\equiv0\pmod{998244353}$.
-- Time limit: 2 seconds.
-- Memory limit: 1024 MB.
+- $3\le n\le2000$.
+- All coordinates are integers and satisfy $|x|,|y|\le10^4$.
+- Vertices are supplied counter-clockwise.
+- All polygon vertices are distinct.
+- Edges do not intersect or touch, except that consecutive edges meet at their shared endpoint; the polygon is simple.
+- Convexity is not guaranteed.
+- Error tolerance: at most $10^{-6}$, absolute or relative.
+- Time limit: 10 seconds.

@@ -1,26 +1,4 @@
-# 解法
+For a fixed maximum height `x`, the minimum number of horizontal and vertical strips is
+`ceil(h/x) + ceil(w/floor(s/x))`. A continuous lower bound confines the relevant integer values to an interval around the continuous optimum. Binary searches find the interval endpoints; only `O(s^(1/4))` values are evaluated.
 
-把每个位置视为一个有向图顶点，并从 $i$ 向 $[a_i,b_i]$ 中所有顶点连边。一个非空点集能够成为某次闭合行程的访问集合，当且仅当它的诱导子图强连通。
-
-按下标递增选出候选核心点。对于相邻核心点 $l<r$，位于其间且满足 $a_x>l,b_x<r$ 的点可能形成被多计的内部结构。定义权值 $w_{l,r}$，使所有具有同一强连通核心的扩展集合权值之和为 $1$。按跨度递增计算：令 $q_l=1$，对允许的中间点
-
-$$
-q_v=\sum_{u<v}q_u w_{u,v},
-$$
-
-则
-
-$$
-w_{l,r}=1-\sum_{l<u<r}q_u w_{u,r}.
-$$
-
-主动态规划使用状态 $f[i][B][m]$：$i$ 是最后一个选点，$B$ 是已选点的 $b$ 最大值，$m$ 表示最左侧尚未被向左跨过的切口；若全部切口已满足，则 $m=i$。选择下一个点 $j$ 时必须有 $i<j\le B$，并更新
-
-$$
-B'=\max(B,b_j),\qquad
-m'=\begin{cases}j,&a_j\le m,\\m,&a_j>m.\end{cases}
-$$
-
-转移乘以 $w_{i,j}$。所有 $m=i$ 的状态都贡献答案。
-
-权值预处理与主动态规划均为 $O(n^4)$ 时间；动态规划数组占 $O(n^3)$ 空间。
+The standard runs in `O(s^(1/4) + log s)` time and `O(1)` extra space. The original solution scans `x = 1..min(h,s)` and is `O(s^(1/2))`; the new limit is `h,w,s <= 10^18`.

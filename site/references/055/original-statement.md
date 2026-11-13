@@ -1,20 +1,24 @@
 ## Problem Description
 
-You are given a permutation $p$ of $1,\ldots,n$. In one operation, choose $i$ uniformly from $1,\ldots,n$, sort the prefix $p_1,\ldots,p_i$ in ascending order, and separately sort the suffix $p_{i+1},\ldots,p_n$ in ascending order.
+A magical string initially contains lowercase English letters and has no run of three or more equal consecutive letters.
 
-Repeat until the entire permutation is increasing. Find the expected number of operations, represented modulo $998244353$.
+In one operation, change one letter into another letter. The change is permitted only if it immediately creates a run of at least three equal consecutive letters. The whole resulting maximal run is then replaced by one asterisk, `*`.
+
+An asterisk is inert: it cannot be edited, cannot join a run of letters, and is never removed, even when several asterisks become adjacent.
+
+Given a magical string $S$ and an integer $K$, perform at most $K$ operations to maximize the number of original characters absorbed into asterisks. Replacing a run of length $r$ contributes $r$ to this count, not one.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $T$, the number of test cases. Each case has a line containing $n$, followed by a line containing the permutation $p_1,\ldots,p_n$.
+The first line contains the number of test cases $T$. Each of the next $T$ lines contains the string $S$ and integer $K$, separated by a space.
 
 ## Output Format
 
 Write to standard output.
 
-For each test case, print the expected operation count modulo $998244353$ on a separate line.
+For each case, print the maximum number of characters that can be transformed into asterisks using at most $K$ edits.
 
 ## Examples
 
@@ -22,30 +26,27 @@ Input:
 
 ```text
 1
-2
-2 1
+cabacbc 2
 ```
 
 Output:
 
 ```text
-2
+6
 ```
 
 ## Explanation / Notes
 
-For the shown permutation, choosing $i=1$ changes nothing, while choosing $i=2$ sorts the whole permutation. Each choice has probability $1/2$, so the expected number of operations is 2.
-
-When $i=n$, the suffix is empty and the operation sorts the whole permutation. Sorting the prefix and suffix separately does not otherwise sort across their boundary.
-
-If the initial permutation is already increasing, no operation is needed. Division in a rational expectation modulo a prime uses a modular multiplicative inverse.
+Edit the third character of `cabacbc` from `b` to `a`, obtaining `caaacbc`, then replace `aaa` to get `c*cbc`. Editing the remaining `b` to `c` removes another three letters, giving `c**` and a total of six absorbed characters.
 
 ## Constraints
 
-- $1\le T\le100$.
-- $1\le n\le500$ in each test case.
-- $1\le p_j\le n$ and every number in $1,\ldots,n$ appears exactly once.
-- Across all test cases in one input, $\sum n\le2000$.
-- The random split is chosen uniformly from the **$n$ indices $1,\ldots,n$**; index zero is not an option.
-- Answer modulus: $998244353$.
-- Time limit: **4 seconds**. Memory limit: **512 MB**.
+- $1\le T\le50$.
+- $1\le |S|\le1000$ for each test case.
+- $1\le K\le1000$.
+- The initial string uses only the 26 lowercase English letters `a`–`z`.
+- Initially, every run of equal consecutive letters has length at most two.
+- Each operation must immediately create a run of at least three equal letters; arbitrary preparatory edits are not permitted.
+- Each created run is replaced by exactly one permanent asterisk.
+- Fewer than $K$ operations may be used, including zero.
+- Time limit: **1 second**. Memory limit: **1024 MB**.

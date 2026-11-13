@@ -1,25 +1,22 @@
 ## Problem Description
 
-Let $[n]=\{1,\ldots,n\}$. Arrange all nonempty subsets of $[n]$ of size at most two into a sequence. Each singleton and each unordered pair appears exactly once, so the sequence has $n(n+1)/2$ entries.
+Given $n$ positive integers $a_1,\ldots,a_n$, calculate
 
-The arrangement must obey two rules:
+$$\sum_{S\subseteq\{1,\ldots,n\}}\varphi\left(\prod_{i\in S}a_i\right)\pmod{998244353}.$$
 
-- For each $x<y$, the pair $\{x,y\}$ appears between the singletons $\{x\}$ and $\{y\}$.
-- The singleton $\{x\}$ appears before $\{x+1\}$ for every $x<n$.
-
-For every $1\le i\le n$ and every position $1\le j\le n(n+1)/2$, count the valid arrangements in which singleton $\{i\}$ is at position $j$. Return all counts modulo the given prime $p$.
+Here $\varphi(x)$ is Euler's totient: the number of integers in $[1,x]$ that are coprime to $x$. The empty product is defined to be 1, and $\varphi(1)=1$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n,p$ on one line.
+Read $n$, then the $n$ integers $a_1,\ldots,a_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ rows, each with $n(n+1)/2$ integers. Row $i$, column $j$ is the number of valid arrangements placing $\{i\}$ at position $j$, modulo $p$.
+Print the requested sum modulo $998244353$.
 
 ## Examples
 
@@ -28,27 +25,28 @@ Print $n$ rows, each with $n(n+1)/2$ integers. Row $i$, column $j$ is the number
 Input:
 
 ```text
-1 851214401
+3
+1 2 3
 ```
 
 Output:
 
 ```text
-1
+12
 ```
 
 ## Explanation / Notes
 
-For $n=1$, the only subset is $\{1\}$, and it occupies position 1 in the unique valid arrangement.
+For the example, the eight index subsets produce products $1,1,2,2,3,3,6,6$. Since $\varphi(1)=\varphi(2)=1$ and $\varphi(3)=\varphi(6)=2$, their sum is $4\cdot1+4\cdot2=12$.
 
-Positions are one-based. Because the singletons occur in increasing order, a pair $\{x,y\}$ with $x<y$ must be after $\{x\}$ and before $\{y\}$.
+Subsets are subsets of indices. Different subsets still contribute separately when their products are equal. The empty subset contributes 1.
 
 ## Constraints
 
 - One test case.
-- $1\le n\le40$.
-- $10^8<p<10^9$; both inequalities are strict.
-- $p$ is guaranteed to be prime.
-- There are $n(n+1)/2$ positions in every arrangement.
-
-- Time limit: 5 seconds; memory limit: 1024 MB.
+- $1\le n\le2000$.
+- $1\le a_i\le3000$ for every index.
+- Equal input values are allowed.
+- Include all $2^n$ subsets, including the empty subset.
+- Modulus: the prime $998244353$.
+- Time limit: 2 seconds; memory limit: 512 MB.

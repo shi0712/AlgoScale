@@ -1,51 +1,91 @@
 ## Problem Description
 
-Consider a tree on vertices $1,\ldots,n$, rooted at vertex $1$. A depth-first search starts by visiting and recording the root. At each vertex, its children may be processed in any order; each child's entire subtree is explored before moving on to the next child. Record a vertex when it is first visited.
+This is an interactive problem.
 
-You are given $m$ permutations, each starting with $1$. Count the rooted trees for which **every** supplied permutation can be a DFS order. The ordering of children may differ between the DFS runs.
+For a sequence $A=(A_1,A_2,\ldots,A_n)$, let $MSS(A)$ denote its maximum subarray sum. The empty subarray is allowed, so
 
-Trees are distinct when their edge sets differ. Return the count modulo $10^9+7$.
+$$
+MSS(A)=\max\left(0,\max_{1\le i\le j\le n}\sum_{k=i}^{j}A_k\right).
+$$
+
+For example, $MSS([-2,1,4,-3,5])=7$, while $MSS([-5])=0$ and $MSS([-1,-2])=0$.
+
+Professor Kubic has a hidden integer sequence $a_1,a_2,\ldots,a_n$. You may ask for the maximum subarray sum of any contiguous interval of this sequence.
+
+Your task is to report a sequence $b_1,b_2,\ldots,b_n$ such that
+
+$$
+MSS(a_l,a_{l+1},\ldots,a_r)=MSS(b_l,b_{l+1},\ldots,b_r)
+$$
+
+for every subarray $[l,r]$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n,m$. Each of the next $m$ lines contains one permutation $p_{k,1},\ldots,p_{k,n}$ of $1,\ldots,n$.
+First read the integer $T$, the number of test cases. At the beginning of each test case, read the integer $n$. The hidden sequence itself is not supplied.
+
+After every valid query, read one integer: the maximum subarray sum of the queried interval.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of compatible rooted trees modulo $1000000007$.
+To query an interval, print:
+
+```text
+? l r
+```
+
+where $l$ and $r$ are valid interval endpoints. End the line and flush the output before reading the response.
+
+To answer a test case, print:
+
+```text
+! b_1 b_2 ... b_n
+```
+
+The final answer does not count as a query. After printing it, continue with the next test case or terminate the program if all test cases are complete.
+
+Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, `flush(output)` in Pascal, and `sys.stdout.flush()` in Python. Failing to flush a query may cause an idleness or time-limit verdict.
 
 ## Examples
 
-Input:
+The table shows one possible complete interaction in chronological order. A blank cell means that the other side sends the next message.
 
-```text
-4 1
-1 2 3 4
-```
-
-Output:
-
-```text
-5
-```
+| Judge sends | Program sends |
+| --- | --- |
+| `2` | |
+| `3` | |
+| | `? 1 1` |
+| `1` | |
+| | `? 2 2` |
+| `0` | |
+| | `? 3 3` |
+| `1` | |
+| | `! 1 -1 1` |
+| `5` | |
+| | `? 1 3` |
+| `4` | |
+| | `? 3 5` |
+| `5` | |
+| | `! 2 -1 3 -4 5` |
 
 ## Explanation / Notes
 
-Writing $(p_2,p_3,p_4)$ for the parents of vertices 2, 3, 4, the five compatible trees are $(1, 1, 1)$, $(1, 1, 3)$, $(1, 2, 1)$, $(1, 2, 2)$, and $(1, 2, 3)$.
+The hidden sequence for every test case is fixed before the interaction begins. The interactor is **non-adaptive**: it does not change the hidden values in response to your queries.
 
-This is a first-visit DFS order, not a sequence that records returns to ancestors. Child order is a choice made during a traversal and is not part of the identity of a counted tree.
+The transcript above is only an example. The judge responses depend on the hidden sequences and are not ordinary batch input that can be read in advance.
 
 ## Constraints
 
-- $1\le n,m\le500$.
-- Every supplied sequence contains each integer in $[1,n]$ exactly once.
-- $p_{k,1}=1$ for every sequence $k$.
-- Every candidate tree is undirected and connected, with exactly $n-1$ edges and root $1$.
-- One common tree must support all $m$ DFS orders, though different child-processing orders may be used.
-- Answer modulus: $10^9+7$.
-- There is one instance per input.
-- Time limit: **3 seconds**. Memory limit: **1024 MiB**.
+- $1\le T\le10^4$.
+- $1\le n\le2000$ in each test case.
+- Across all test cases, $\sum n\le10^4$.
+- $-10^9\le a_i\le10^9$.
+- Every query satisfies $1\le l\le r\le n$.
+- At most $2n$ queries may be issued in each test case.
+- Every reported value satisfies $-10^{15}\le b_i\le10^{15}$.
+- The interactor is non-adaptive.
+- Time limit: **1 second**. Memory limit: **1024 MB**.

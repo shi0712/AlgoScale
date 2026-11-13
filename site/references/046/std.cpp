@@ -1,224 +1,237 @@
 #include <bits/stdc++.h>
 using namespace std;
+using i64 = long long;
+using i128 = __int128_t;
 
-static constexpr int MOD = 998244353;
+struct Monster { i64 s, h, p; int pos; };
+struct Event { int pos; i64 delta; };
 
-int add_mod(int a, int b) {
-    a += b;
-    return a >= MOD ? a - MOD : a;
-}
-
-int sub_mod(int a, int b) {
-    a -= b;
-    return a < 0 ? a + MOD : a;
-}
-
-int mul_mod(int a, int b) {
-    return int(1LL * a * b % MOD);
-}
-
-int mod_pow(int a, int e) {
-    int r = 1;
-    while (e) {
-        if (e & 1) r = mul_mod(r, a);
-        a = mul_mod(a, a);
-        e >>= 1;
-    }
-    return r;
-}
-
-// A node with lc == 0 represents a constant function on its whole interval.
-// Otherwise mul/add is a pending affine transformation for the interval.
-class FunctionTree {
+// An immutable AVL rope of lower-hull edge vectors.
+struct Rope {
     struct Node {
-        int lc = 0, rc = 0;
-        int value = 0;
-        int mul = 1, add = 0;
+        i64 d = 0, e = 0, weight = 0;
+        int left = 0, right = 0, count = 0, height = 0, last = 0;
     };
-
-    vector<Node> tr;
-
-    void set_constant(int u, int value) {
-        tr[u] = Node{0, 0, value, 1, 0};
-    }
-
-    void apply_affine(int u, int mul, int add) {
-        if (mul == 0) {
-            set_constant(u, add);
-        } else if (tr[u].lc == 0) {
-            tr[u].value = add_mod(mul_mod(mul, tr[u].value), add);
-        } else {
-            tr[u].mul = mul_mod(mul, tr[u].mul);
-            tr[u].add = add_mod(mul_mod(mul, tr[u].add), add);
+    // Stable integer indices, with no full-arena reallocation/copy peaks.
+    struct NodeArena {
+        static constexpr unsigned SHIFT = 15;
+        static constexpr size_t BLOCK_SIZE = size_t(1) << SHIFT;
+        static constexpr size_t MASK = BLOCK_SIZE - 1;
+        vector<unique_ptr<Node[]>> blocks;
+        size_t used = 0;
+        size_t size() const { return used; }
+        size_t allocatedBytes() const { return blocks.size() * BLOCK_SIZE * sizeof(Node); }
+        Node& operator[](size_t i) { return blocks[i >> SHIFT][i & MASK]; }
+        const Node& operator[](size_t i) const { return blocks[i >> SHIFT][i & MASK]; }
+        void push_back(const Node& node) {
+            if ((used & MASK) == 0) blocks.emplace_back(new Node[BLOCK_SIZE]);
+            (*this)[used++] = node;
         }
+    };
+    struct Prefix { int count = 0; i64 d = 0, e = 0; };
+    NodeArena t;
+    Rope(int) { t.push_back({}); }
+    int leaf(i64 d, i64 e) {
+        int id = int(t.size());
+        t.push_back({d, e, 0, 0, 0, 1, 1, id});
+        return id;
     }
-
-    void push(int u) {
-        if (tr[u].mul == 1 && tr[u].add == 0) return;
-        const int mul = tr[u].mul;
-        const int add = tr[u].add;
-        apply_affine(tr[u].lc, mul, add);
-        apply_affine(tr[u].rc, mul, add);
-        tr[u].mul = 1;
-        tr[u].add = 0;
+    int make(int a, int b) {
+        if (!a) return b;
+        if (!b) return a;
+        Node z;
+        z.d = t[a].d + t[b].d;
+        z.e = t[a].e + t[b].e;
+        z.left = a; z.right = b;
+        z.count = t[a].count + t[b].count;
+        z.height = max(t[a].height, t[b].height) + 1;
+        z.last = t[b].last;
+        t.push_back(z);
+        return int(t.size()) - 1;
     }
-
-    void pull(int u) {
-        const int l = tr[u].lc;
-        const int r = tr[u].rc;
-        if (tr[l].lc == 0 && tr[r].lc == 0 && tr[l].value == tr[r].value) {
-            set_constant(u, tr[l].value);
+    int balance(int a, int b) {
+        if (t[a].height > t[b].height + 1) {
+            int l = t[a].left, r = t[a].right;
+            if (t[l].height >= t[r].height) {
+                int nr = make(r, b);
+                return make(l, nr);
+            }
+            int rl = t[r].left, rr = t[r].right;
+            int nl = make(l, rl), nr = make(rr, b);
+            return make(nl, nr);
         }
-    }
-
-public:
-    explicit FunctionTree(int n) {
-        tr.reserve(48 * n + 16);
-        tr.push_back(Node{});
-    }
-
-    int make_constant(int value) {
-        tr.push_back(Node{0, 0, value, 1, 0});
-        return int(tr.size()) - 1;
-    }
-
-    void affine(int u, int mul, int add) {
-        apply_affine(u, mul, add);
-    }
-
-    // Destructive pointwise multiplication. Both roots are consumed.
-    int multiply(int a, int b) {
-        if (tr[a].lc == 0) {
-            apply_affine(b, tr[a].value, 0);
-            return b;
+        if (t[b].height > t[a].height + 1) {
+            int l = t[b].left, r = t[b].right;
+            if (t[r].height >= t[l].height) {
+                int nl = make(a, l);
+                return make(nl, r);
+            }
+            int ll = t[l].left, lr = t[l].right;
+            int nl = make(a, ll), nr = make(lr, r);
+            return make(nl, nr);
         }
-        if (tr[b].lc == 0) {
-            apply_affine(a, tr[b].value, 0);
-            return a;
-        }
-        push(a);
-        push(b);
-        tr[a].lc = multiply(tr[a].lc, tr[b].lc);
-        tr[a].rc = multiply(tr[a].rc, tr[b].rc);
-        pull(a);
-        return a;
+        return make(a, b);
     }
-
-    int query(int u, int l, int r, int pos) {
-        if (tr[u].lc == 0) return tr[u].value;
-        push(u);
-        const int mid = (l + r) >> 1;
-        if (pos <= mid) return query(tr[u].lc, l, mid, pos);
-        return query(tr[u].rc, mid + 1, r, pos);
+    int join(int a, int b) {
+        if (!a) return b;
+        if (!b) return a;
+        if (t[a].height > t[b].height + 1) {
+            int l = t[a].left, r = t[a].right;
+            int nr = join(r, b);
+            return balance(l, nr);
+        }
+        if (t[b].height > t[a].height + 1) {
+            int l = t[b].left, r = t[b].right;
+            int nl = join(a, l);
+            return balance(nl, r);
+        }
+        return make(a, b);
     }
-
-    void assign_prefix(int u, int l, int r, int right, int value) {
-        if (right < l) return;
-        if (r <= right) {
-            set_constant(u, value);
-            return;
+    pair<int, int> split(int v, int k) {
+        if (!k) return {0, v};
+        if (k == t[v].count) return {v, 0};
+        int l = t[v].left, r = t[v].right;
+        int c = t[l].count;
+        if (k == c) return {l, r};
+        if (k < c) {
+            auto [a, b] = split(l, k);
+            return {a, join(b, r)};
         }
-        if (tr[u].lc == 0) {
-            const int old = tr[u].value;
-            const int lc = make_constant(old);
-            const int rc = make_constant(old);
-            tr[u].lc = lc;
-            tr[u].rc = rc;
-        } else {
-            push(u);
+        auto [a, b] = split(r, k - c);
+        return {join(l, a), b};
+    }
+    // The predicate is true on a prefix of the edge sequence.
+    template<class Predicate>
+    Prefix takePrefix(int v, Predicate pred) const {
+        Prefix ans;
+        while (v) {
+            if (!t[v].left) {
+                if (pred(ans.d, ans.e, t[v].d, t[v].e)) {
+                    ++ans.count; ans.d += t[v].d; ans.e += t[v].e;
+                }
+                break;
+            }
+            int l = t[v].left, last = t[l].last;
+            if (pred(ans.d + t[l].d - t[last].d,
+                     ans.e + t[l].e - t[last].e,
+                     t[last].d, t[last].e)) {
+                ans.count += t[l].count;
+                ans.d += t[l].d; ans.e += t[l].e;
+                v = t[v].right;
+            } else v = l;
         }
-        const int mid = (l + r) >> 1;
-        assign_prefix(tr[u].lc, l, mid, right, value);
-        if (right > mid) assign_prefix(tr[u].rc, mid + 1, r, right, value);
-        pull(u);
+        return ans;
+    }
+    Prefix support(int v, i64 num, i64 den) const {
+        return takePrefix(v, [&](i64, i64, i64 d, i64 e) {
+            return i128(e) * den <= i128(d) * num;
+        });
     }
 };
 
+struct Hull {
+    int root = 0;
+    i64 firstA = 0, firstC = -1, mass = 0;
+};
+
+struct HullTree {
+    int n;
+    Rope rope;
+    vector<Hull> tree;
+    HullTree(int n) : n(n), rope(n), tree(4 * n) {}
+    Hull merge(const Hull& a, const Hull& b) {
+        if (a.firstC < 0) return b;
+        if (b.firstC < 0) return a;
+        i64 ba = a.mass + b.firstA;
+        auto pa = rope.takePrefix(a.root, [&](i64 d0, i64 e0, i64 d, i64 e) {
+            auto pb = rope.support(b.root, e, d);
+            i64 aa = a.firstA + d0 + d, ac = a.firstC + e0 + e;
+            i64 bb = ba + pb.d, bc = b.firstC + pb.e;
+            return i128(aa - bb) * e >= i128(ac - bc) * d;
+        });
+        i64 aa = a.firstA + pa.d, ac = a.firstC + pa.e;
+        auto pb = rope.takePrefix(b.root, [&](i64 d0, i64 e0, i64 d, i64 e) {
+            i64 bb = ba + d0 + d, bc = b.firstC + e0 + e;
+            return i128(aa - bb) * e >= i128(ac - bc) * d;
+        });
+        i64 bb = ba + pb.d, bc = b.firstC + pb.e;
+        int left = rope.split(a.root, pa.count).first;
+        int right = rope.split(b.root, pb.count).second;
+        int bridge = rope.leaf(bb - aa, bc - ac);
+        int root = rope.join(rope.join(left, bridge), right);
+        return {root, a.firstA, a.firstC, a.mass + b.mass};
+    }
+    void update(int v, int l, int r, int pos, i64 h, i64 c) {
+        if (l == r) { tree[v] = {0, h, c, h}; return; }
+        int mid = (l + r) / 2;
+        if (pos <= mid) update(v * 2, l, mid, pos, h, c);
+        else update(v * 2 + 1, mid + 1, r, pos, h, c);
+        tree[v] = merge(tree[v * 2], tree[v * 2 + 1]);
+    }
+    void update(int pos, i64 h, i64 c) { update(1, 0, n - 1, pos, h, c); }
+};
+
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+    ios::sync_with_stdio(false); cin.tie(nullptr);
+    int n, L; i64 T;
+    cin >> n >> L >> T;
+    vector<Monster> a(n);
+    for (auto& m : a) cin >> m.s >> m.h >> m.p;
+    sort(a.begin(), a.end(), [](auto x, auto y) { return x.s > y.s; });
+    for (int i = 0; i < n; ++i) a[i].pos = i + 1;
+    sort(a.begin(), a.end(), [](auto x, auto y) { return x.p > y.p; });
 
-    int n, m;
-    if (!(cin >> n >> m)) return 0;
-
-    vector<vector<int>> children(n + 1);
-    vector<int> depth(n + 1), need(n + 1);
-    depth[1] = 1;
-    for (int u = 2; u <= n; ++u) {
-        int parent;
-        cin >> parent;
-        children[parent].push_back(u);
-        depth[u] = depth[parent] + 1;
+    HullTree ht(n + 1);
+    ht.update(0, 0, 0); // The permanent line zero.
+    for (int i = 0; i < n; ++i) {
+        ht.update(a[i].pos, a[i].h, T - a[i].s);
+        i64 weight = a[i].p - (i + 1 < n ? a[i + 1].p : 0);
+        ht.rope.t[ht.tree[1].root].weight += weight;
     }
-    for (int i = 0; i < m; ++i) {
-        int a, b;
-        cin >> a >> b;
-        need[b] = max(need[b], depth[a]);
+    vector<Event> events;
+    auto add = [&](i64 pos, i64 delta) {
+        if (pos <= L && delta) events.push_back({int(pos), delta});
+    };
+    auto& nodes = ht.rope.t;
+    for (int v = int(nodes.size()) - 1; v; --v) {
+        auto z = nodes[v];
+        if (!z.weight) continue;
+        if (z.left) {
+            nodes[z.left].weight += z.weight;
+            nodes[z.right].weight += z.weight;
+        } else {
+            i64 q = z.e / z.d, r = z.e % z.d;
+            add(q + 1, z.weight * (z.d - r));
+            add(q + 2, z.weight * r);
+        }
     }
-
-    // values[x] = P(x), where every vertex is independently unselected
-    // with the formal probability x.
-    vector<int> values(n + 1);
-    vector<int> roots(n + 1);
-    for (int x = 0; x <= n; ++x) {
-        FunctionTree functions(n);
-        for (int u = n; u >= 1; --u) {
-            int root = functions.make_constant(1);
-            for (int v : children[u]) {
-                root = functions.multiply(root, roots[v]);
+#ifdef STATS
+    cerr << "nodes=" << nodes.size()
+         << " node_size=" << sizeof(Rope::Node)
+         << " used_node_bytes=" << nodes.size() * sizeof(Rope::Node)
+         << " allocated_node_bytes=" << nodes.allocatedBytes()
+         << " events=" << events.size() << '\n';
+#endif
+    sort(events.begin(), events.end(), [](auto a, auto b) { return a.pos < b.pos; });
+    size_t at = 0;
+    int pos = 0, Q;
+    i64 value = 0, slope = 0;
+    cin >> Q;
+    while (Q--) {
+        i64 M; cin >> M;
+        int ans = L;
+        while (pos < L) {
+            while (at < events.size() && events[at].pos == pos + 1)
+                slope += events[at++].delta;
+            int end = at < events.size() ? events[at].pos - 1 : L;
+            i64 endValue = value + slope * (end - pos);
+            if (endValue > M) {
+                ans = pos + int((M - value) / slope);
+                break;
             }
-
-            const int selected_part = mul_mod(
-                sub_mod(1, x),
-                functions.query(root, 0, n, depth[u])
-            );
-            functions.affine(root, x, selected_part);
-            if (need[u] != 0) {
-                functions.assign_prefix(root, 0, n, need[u] - 1, selected_part);
-            }
-            roots[u] = root;
+            pos = end; value = endValue;
         }
-        values[x] = functions.query(roots[1], 0, n, 0);
+        cout << ans << '\n';
     }
-
-    // W(X) = product_{i=0}^n (X-i), low degree first.
-    vector<int> product(n + 2);
-    product[0] = 1;
-    for (int i = 0; i <= n; ++i) {
-        for (int j = i + 1; j >= 0; --j) {
-            product[j] = sub_mod(j == 0 ? 0 : product[j - 1],
-                                 mul_mod(i, product[j]));
-        }
-    }
-
-    vector<int> factorial(n + 1, 1), inv_factorial(n + 1, 1);
-    for (int i = 1; i <= n; ++i) factorial[i] = mul_mod(factorial[i - 1], i);
-    inv_factorial[n] = mod_pow(factorial[n], MOD - 2);
-    for (int i = n; i >= 1; --i) {
-        inv_factorial[i - 1] = mul_mod(inv_factorial[i], i);
-    }
-
-    // Lagrange interpolation at 0,1,...,n.
-    vector<int> coefficient(n + 1), quotient(n + 1);
-    for (int i = 0; i <= n; ++i) {
-        quotient[n] = product[n + 1];
-        for (int j = n - 1; j >= 0; --j) {
-            quotient[j] = add_mod(product[j + 1], mul_mod(i, quotient[j + 1]));
-        }
-
-        int scale = mul_mod(values[i],
-                            mul_mod(inv_factorial[i], inv_factorial[n - i]));
-        if ((n - i) & 1) scale = sub_mod(0, scale);
-        for (int j = 0; j <= n; ++j) {
-            coefficient[j] = add_mod(coefficient[j], mul_mod(scale, quotient[j]));
-        }
-    }
-
-    int integral = 0;
-    for (int k = 1; k <= n; ++k) {
-        const int inv_k = mul_mod(factorial[k - 1], inv_factorial[k]);
-        integral = add_mod(integral, mul_mod(coefficient[k], inv_k));
-    }
-    cout << mul_mod(n, sub_mod(0, integral)) << '\n';
     return 0;
 }

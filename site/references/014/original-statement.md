@@ -1,22 +1,20 @@
 ## Problem Description
 
-Consider all rooted trees on vertices $1,\ldots,n$ with root 1 such that the parent $f_i$ of vertex $i$ satisfies $1\le f_i<i$ for $i=2,\ldots,n$.
+A lake occupies the interior of a simple polygon in the Cartesian plane. A runner starts at $(0,0)$, travels outward along a land-only path of length $k$, and then returns. The origin is not strictly inside the lake.
 
-For each tree, run depth-first search from vertex 1. Append a vertex to the order when first visiting it, and visit its children in increasing vertex-label order. Thus each tree produces one deterministic DFS preorder.
-
-There are $(n-1)!$ possible parent arrays. Count how many different DFS orders they produce, modulo the supplied prime $P$. Orders are different when some position contains different vertices.
+Find the minimum area of a region that contains every possible such route, regardless of how the runner chooses the path. Travel through the lake's interior is forbidden. Equivalently, the region must contain the land locations reachable from the origin with a path length of at most $k$.
 
 ## Input Format
 
 Read from standard input.
 
-Read two integers $n,P$.
+Read $n,k$. Then read $n$ pairs $(x_i,y_i)$, the polygon's vertices in clockwise order.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of distinct DFS orders modulo $P$.
+Print the minimum area as a real number. The absolute error or relative error must be less than $10^{-6}$.
 
 ## Examples
 
@@ -25,27 +23,33 @@ Print the number of distinct DFS orders modulo $P$.
 Input:
 
 ```text
-4 114514199
+4 2
+0 0
+0 1
+1 1
+1 0
 ```
 
 Output:
 
 ```text
-2
+10.995574287564
 ```
 
 ## Explanation / Notes
 
-For $n=4$, the two possible orders are $[1,2,3,4]$ and $[1,2,4,3]$. They can be obtained from parent arrays $(f_2,f_3,f_4)=(1,1,1)$ and $(1,1,2)$, respectively.
+The minimum area in the example is $7\pi/2$.
 
-The number of distinct orders is requested, so different trees producing the same order count only once.
+The origin may lie on the lake boundary. In this example, it is a polygon vertex.
 
 ## Constraints
 
 - One test case.
-- $1\le n\le800$.
-- $10^8\le P\le1.01\times10^9$.
-- $P$ is guaranteed to be prime.
-- Every considered tree has root 1 and satisfies $1\le f_i<i$.
-- Child visitation order is increasing by label; it is not a free choice.
-- Time limit: 2 seconds; memory limit: 1024 MB.
+- $3\le n\le50$.
+- $1\le k\le3000$.
+- All coordinates are integers, with $|x_i|,|y_i|\le200$.
+- The polygon is simple and its vertices are given clockwise.
+- No three consecutive polygon vertices are collinear.
+- $(0,0)$ is not strictly inside the polygon; it may be on the boundary.
+- Required absolute or relative error: strictly less than $10^{-6}$.
+- Time limit: 4 seconds; memory limit: 512 MB.

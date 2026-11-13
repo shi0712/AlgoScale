@@ -1,24 +1,29 @@
 ## Problem Description
 
-For integers $n,k$, define $f(n,k)$ as the number of ordered integer pairs $(a,b)$ satisfying
+Start with an unrooted tree $G=(V,E)$. A path is a sequence of distinct vertices joined by consecutive edges. A diameter is a path with the greatest possible number of vertices.
 
-$$0\le a,b<n,\qquad k(a+b)\equiv ab\pmod n.$$
+While the tree contains more than one vertex, choose any current diameter $d_1,\ldots,d_k$, listed from one endpoint to the other, and fold it by merging symmetric vertices. Define
 
-Given $n,m$, compute
+$$f(v)=\begin{cases}
+d_{\min(i,k-i+1)},&v=d_i\text{ for some }1\le i\le k,\\
+v,&v\text{ is not on the chosen diameter}.
+\end{cases}$$
 
-$$\sum_{k=0}^{m}f(n,k)\pmod{998244353}.$$
+The resulting vertex set is $V'=\{f(v):v\in V\}$. Each old edge $\{u,v\}$ becomes $\{f(u),f(v)\}$ unless its endpoints coincide; such loops disappear. If multiple edges become the same unordered pair, retain one copy.
+
+The resulting graph is again a tree. Repeat until only one vertex remains. Find the maximum possible number of folds over all valid choices of diameters.
 
 ## Input Format
 
 Read from standard input.
 
-Read the test-case count $T$. Each of the next $T$ lines contains $n,m$ for one case.
+The first line contains the test-case count $T$. For each case, read $N$, followed by $N-1$ lines containing edge endpoints $x,y$.
 
 ## Output Format
 
 Write to standard output.
 
-Print one line per case containing the required sum modulo $998244353$.
+Print one integer per case: the maximum number of folds before the tree becomes a single vertex.
 
 ## Examples
 
@@ -26,28 +31,30 @@ Input:
 
 ```text
 1
-7 2
+1
 ```
 
 Output:
 
 ```text
-25
+0
 ```
 
 ## Explanation / Notes
 
-The sum includes both endpoints $k=0$ and $k=m$. The pair coordinates are independently chosen residues modulo $n$, so $(a,b)$ and $(b,a)$ are separate pairs when $a\ne b$.
+The example tree has one vertex, so no fold is permitted and the answer is 0.
 
-No primality assumption is made about $n$.
+For larger trees, the chosen path must be a diameter of the **current** tree at each step. The goal is to maximize the number of operations.
 
 ## Constraints
 
-- $1\le T\le10^4$.
-- $1\le n\le10^{14}$.
-- $0\le m<n$.
-- At most 10 test cases have $n>10^8$; all remaining cases therefore satisfy $n\le10^8$.
-- The counted pair coordinates satisfy the strict upper bounds $a<n$ and $b<n$.
-- Output modulus: $998244353$.
-- Time limit: 1 second.
-- Memory limit: 1024 MB.
+- $1\le T\le3\times10^3$.
+- $1\le N\le5\times10^4$ for each case.
+- $\sum N\le5\times10^4$ across all test cases.
+- Every edge satisfies $1\le x,y\le N$ and $x\ne y$.
+- The $N-1$ edges form a tree.
+- A fold is permitted only while the current vertex count exceeds 1.
+- Off-diameter vertices are not directly identified with other vertices, although their incident edges follow the specified endpoint mapping.
+- Loops are removed and parallel edges are merged after every fold; the result is guaranteed to remain a tree.
+- Time limit: 3 seconds.
+- Memory limit: 512 MB.

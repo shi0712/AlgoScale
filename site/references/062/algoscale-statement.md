@@ -1,57 +1,53 @@
 ## Problem Description
 
-An $n\times m$ board contains `*`, `+`, and `.` cells. Place as many pairwise disjoint trominoes as possible. Each tromino consists of a center cell and two distinct cells sharing edges with that center.
+Two connected simple undirected graphs, $A$ and $B$, each have $n$ vertices and $m$ edges. Their edges are indexed $1$ through $m$; equal indices do not necessarily have equal endpoints in the two graphs.
 
-- An L-shaped tromino uses two perpendicular neighbors; its center must contain `*` or `+`.
-- An I-shaped tromino uses two opposite neighbors; its center must contain `+`.
-- Both non-center cells must contain `.`.
-
-No cell may belong to more than one tromino. Output a board showing a placement with the maximum possible number of trominoes.
+Determine whether there is a set of edge indices that forms a spanning tree in $A$ but does not form a spanning tree in $B$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n,m$. Each of the next $n$ lines contains $m$ board characters.
+The first line contains the number of test cases $t$.
+
+Each case begins with $n,m$. Each of the next $m$ lines contains $u_A,v_A,u_B,v_B$. The $i$-th line gives the endpoints of edge $i$ in $A$ and edge $i$ in $B$ respectively.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ lines of $m$ characters. Replace the three cells of each chosen tromino by the same lowercase English letter. Edge-adjacent cells belonging to different trominoes must receive different letters. A cell not covered by a tromino must retain its original character.
-
-Each side-connected component of cells carrying the same lowercase letter must consist of exactly the three cells of one tromino.
-
-Any optimal placement and valid lettering are accepted. Do not print the number of trominoes separately. If no tromino can be placed, output the original board.
+For each case, print `YES` if such an index set exists, and `NO` otherwise. You do not need to construct or print the set.
 
 ## Examples
 
 Input:
 
 ```text
-2 2
-*.
-..
+1
+2 1
+1 2 2 1
 ```
 
 Output:
 
 ```text
-aa
-a.
+NO
 ```
 
 ## Explanation / Notes
 
-The letters identify trominoes in the output; they are not part of the original board. Different trominoes may reuse a letter when no cells from the two trominoes share an edge. A `*` center permits only an L, while a `+` center permits either shape.
+Both graphs consist of the same undirected edge between vertices 1 and 2. Their only spanning tree uses edge 1, so it cannot be a spanning tree in $A$ and fail in $B$.
+
+The condition is directional: it specifically requires a spanning tree of the first graph that fails in the second.
 
 ## Constraints
 
-- $2\le n,m\le500$.
-- Every input row has exactly $m$ characters, each one `*`, `+`, or `.`.
-- Each tromino occupies exactly three distinct grid cells.
-- The two non-center cells must have been `.` in the input.
-- Trominoes may not overlap; edge contact between different trominoes is allowed subject to different output letters.
-- Output labels use only lowercase English letters `a`–`z`.
-- There is one board per input.
-- Time limit: **9 seconds**. Memory limit: **256 MB**.
+- $1\le t\le2500$.
+- $2\le n\le10000$ per case.
+- $n-1\le m\le\min\left(10000,\frac{n(n-1)}2\right)$.
+- Every endpoint lies in $[1,n]$.
+- $u_A\ne v_A$ and $u_B\ne v_B$ for every edge.
+- Both graphs are undirected, connected, and simple: no self-loops or parallel edges.
+- Across all cases, $\sum n\le10000$ and, independently, $\sum m\le10000$.
+- A spanning tree includes every vertex and exactly $n-1$ of the indexed edges.
+- Time limit: **3 seconds**. Memory limit: **1024 MB**.

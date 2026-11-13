@@ -1,52 +1,62 @@
 ## Problem Description
 
-Given $n$ positive integers $a_1,\ldots,a_n$, calculate
+Initially, an undirected tree has vertices $1,\ldots,n$. Process a sequence of $n-1$ distinct original vertices.
 
-$$\sum_{S\subseteq\{1,\ldots,n\}}\varphi\left(\prod_{i\in S}a_i\right)\pmod{998244353}.$$
+When processing vertex $x$, first create a new vertex $x+n$. For every original vertex $i$ adjacent to $x$ in the original tree:
 
-Here $\varphi(x)$ is Euler's totient: the number of integers in $[1,x]$ that are coprime to $x$. The empty product is defined to be 1, and $\varphi(1)=1$.
+- If vertex $i+n$ does not yet exist, add edge $(x+n,i)$.
+- Otherwise, add edge $(x+n,i+n)$ and delete edge $(x,i+n)$. The latter edge is guaranteed to exist at this stage.
+
+After each operation, report the number of spanning trees of the current graph modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, then the $n$ integers $a_1,\ldots,a_n$.
+Read $n$. The next $n-1$ lines contain tree edges $u,v$. The final sequence contains $n-1$ distinct integers $b_1,\ldots,b_{n-1}$, the original vertices to process in order.
 
 ## Output Format
 
 Write to standard output.
 
-Print the requested sum modulo $998244353$.
+Print $n-1$ lines. Line $i$ contains the spanning-tree count after processing $b_i$, modulo $998244353$.
 
 ## Examples
-
-### Example
 
 Input:
 
 ```text
-3
-1 2 3
+5
+1 2
+1 3
+2 4
+2 5
+1 5 2 3
 ```
 
 Output:
 
 ```text
-12
+4
+4
+6
+1
 ```
 
 ## Explanation / Notes
 
-For the example, the eight index subsets produce products $1,1,2,2,3,3,6,6$. Since $\varphi(1)=\varphi(2)=1$ and $\varphi(3)=\varphi(6)=2$, their sum is $4\cdot1+4\cdot2=12$.
+An operation preserves the original edges $(x,i)$. The edge deletion in the second rule concerns $(x,i+n)$, which was created earlier; no other edge is removed.
 
-Subsets are subsets of indices. Different subsets still contribute separately when their products are equal. The empty subset contributes 1.
+A spanning tree includes every vertex currently present. After $j$ operations, the graph has $n+j$ vertices. When $n=1$, the operation sequence and required output are both empty.
 
 ## Constraints
 
-- One test case.
-- $1\le n\le2000$.
-- $1\le a_i\le3000$ for every index.
-- Equal input values are allowed.
-- Include all $2^n$ subsets, including the empty subset.
-- Modulus: the prime $998244353$.
-- Time limit: 2 seconds; memory limit: 512 MB.
+- $1\le n\le5000$.
+- Every input edge has endpoints in $[1,n]$.
+- The $n-1$ input edges form a valid tree.
+- $1\le b_i\le n$, and the $n-1$ sequence entries are pairwise distinct.
+- Each original vertex is processed at most once; exactly one original vertex is never processed.
+- New vertex labels are $n+1$ through $2n$, but only labels corresponding to processed vertices are created.
+- Counts are taken modulo $998244353$.
+- Time limit: 1 second.
+- Memory limit: 256 MB.

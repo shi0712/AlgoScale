@@ -1,24 +1,32 @@
 ## Problem Description
 
-An apple tree is a tree rooted at vertex $1$ in which every non-root vertex has **strictly fewer direct children than its parent**.
+An $n\times m$ grid of vertices has weighted undirected edges between every pair of orthogonally adjacent vertices. A journey may start at any vertex in column 1 and end at any vertex in column $m$. Its distance is the sum of the traversed edge weights, and the traveler chooses the shortest available journey over all such endpoints.
 
-For a given integer $k$, a configuration is a pair $(v,S)$: $v$ is a center vertex, and $S$ is a set of $k-1$ other vertices, all at one common distance from $v$. Distance is the number of edges on the unique path between two vertices.
-
-Count these pairs modulo $998244353$.
+One operation increases one edge weight by one. Make the shortest possible journey longer by $k$, using the minimum number of operations. Output both that minimum and a resulting set of edge weights.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $t$.
+The first line contains the number of test cases $T$.
 
-Each case starts with $n,k$. The next line contains $p_2,\ldots,p_n$, where $p_i$ is the parent of vertex $i$.
+For each case:
+
+- Read $n,m,k$.
+- Read $n$ rows, each containing $m-1$ weights $r_{i,1},\ldots,r_{i,m-1}$. Weight $r_{i,j}$ belongs to the horizontal edge $(i,j)$–$(i,j+1)$.
+- Read $n-1$ rows, each containing $m$ weights $c_{i,1},\ldots,c_{i,m}$. Weight $c_{i,j}$ belongs to the vertical edge $(i,j)$–$(i+1,j)$.
 
 ## Output Format
 
 Write to standard output.
 
-For every test case, print the number of valid pairs $(v,S)$ modulo $998244353$.
+For each case, print the minimum operation count, then the modified weights in the same layout: $n$ rows of $m-1$ horizontal weights followed by $n-1$ rows of $m$ vertical weights.
+
+The operation count is $\sum_e (w'_e-w_e)$, where $w_e$ and $w'_e$ are the original and modified weights of edge $e$, respectively.
+
+Only increases are allowed. Each resulting weight must lie in $[1,2\times10^9]$. Any optimal valid result is accepted.
+
+**Do not print trailing spaces at the ends of output lines.**
 
 ## Examples
 
@@ -26,33 +34,41 @@ Input:
 
 ```text
 1
-3 3
+3 3 3
 1 1
+2 2
+3 3
+1 1 1
+2 2 2
 ```
 
 Output:
 
 ```text
-1
+4
+4 1
+3 2
+3 3
+1 1 1
+2 2 2
 ```
 
 ## Explanation / Notes
 
-The only valid pair has center $1$ and $S=\{2, 3\}$.
+The original minimum distance is 2 along the top row. The shown construction increases the first top-row edge by 3 and the first middle-row edge by 1, for four operations in total. The new minimum distance is 5, so it has increased by the requested 3.
 
-The center is distinguished from the selected set. The common distance is only required to exist; it is not an additional component of the counted object. When $k=1$, the selected set is empty, giving one pair for each possible center.
-
-The condition compares numbers of **children**, not undirected degrees or subtree sizes.
+The traveler may move in either direction along any edge, including leftward moves. Starting and ending rows need not agree. The operation count equals the sum of all weight increments.
 
 ## Constraints
 
-- $1\le t\le10^4$.
-- $2\le n\le10^6$ per test case.
-- $1\le k\le n$.
-- $1\le p_i<i$ for every $i=2,\ldots,n$.
-- The input is guaranteed to describe an apple tree rooted at vertex $1$.
-- For every non-root vertex $v$, its number of direct children is strictly less than its parent's number of direct children.
-- Across all cases, $\sum n\le10^6$.
-- The members of $S$ are distinct and do not include the center; $|S|=k-1$.
-- Answer modulus: $998244353$.
-- Time limit: **0.5 seconds**. Memory limit: **256 MB**.
+- $1\le T\le50000$.
+- Each test case has integer $n,m,k$.
+- $2\le n,m\le500$.
+- $1\le nm\le500$.
+- $1\le k\le100$.
+- Every original horizontal and vertical weight is an integer in $[1,10^9]$.
+- Across all cases, $\sum nm\le2\times10^5$.
+- Each output weight is an integer in $[1,2\times10^9]$ and must be at least its original value.
+- Horizontal weight arrays have dimensions $n\times(m-1)$; vertical arrays have dimensions $(n-1)\times m$.
+- The modified minimum distance between the first and last columns must increase by $k$.
+- Time limit: **1 second**. Memory limit: **256 MB**.

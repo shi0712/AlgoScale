@@ -2,7 +2,7 @@
 
 AlgoScale is a competitive-programming benchmark for a specific form of algorithmic reasoning: a source problem is preserved, but its input scale is increased so that the original expected complexity no longer passes. Models must discover and implement the stronger algorithm.
 
-The current release contains **82 UOJ-judged problems** and two evaluation tracks:
+The current release contains **74 UOJ-judged problems** and two evaluation tracks:
 
 - **Direct generation** — one problem statement in, one C++20 solution out, without tools or feedback.
 - **Agent mode** — a coding agent may edit, compile, test, and iterate inside a Harbor sandbox before final judging.
@@ -111,7 +111,7 @@ model and track are removed.
 
 ```text
 site/                         Static GitHub Pages site
-  data/problems.json          Public 82-problem catalog
+  data/problems.json          Public 74-problem catalog
   data/leaderboard.json       Preliminary evaluation results
 scripts/build_problem_catalog.py
 scripts/export_generated_cpp.py  Export exact UOJ-submitted model sources

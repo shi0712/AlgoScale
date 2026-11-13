@@ -1,56 +1,65 @@
 ## Problem Description
 
-There are $n$ sets containing $2m$ distinct elements in total. Initially, set $i$ contains $a_i$ elements, and each element belongs to exactly one set.
+The training team has $m$ candidate players. You need to select $2n$ players, pair them up, and assign the resulting pairs to $n$ tennis doubles matches.
 
-In each round, randomly partition all elements into $m$ pairs. Independently for each pair, uniformly choose one of its two elements to keep its current set, and move the other element into that set. The random matching and endpoint selections are uniform.
+Player $i$ has an estimated ability $e_i$ and is classified as either a junior or a senior according to their training experience.
 
-Find the expected number of rounds until all elements belong to a single set. Express this expectation modulo $998244353$.
+Match $i$ requires the ability of each participating player not to exceed $l_i$. For stability, the absolute difference between the abilities of the two players in every pair must not exceed $d$.
+
+Players in a pair do not need to belong to the same category. To make full use of the potential of junior players, the coach wants to know the best possible lineup for every exact number of selected juniors.
+
+For each $t=0,1,\ldots,2n$, determine whether a valid pairing and assignment exists that contains exactly $t$ junior players. If it does not exist, the answer is $-1$. Otherwise, output the maximum possible sum of the abilities of the selected $2n$ players.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $T$.
+There is one instance per input file.
 
-Each case contains a line with $n,m$, followed by a line with the $n$ initial set sizes $a_1,\ldots,a_n$.
+The first line contains three integers $n$, $m$, and $d$.
+
+The second line contains $n$ integers $l_1,l_2,\ldots,l_n$.
+
+Each of the following $m$ lines contains two integers $e_i$ and $t_i$. Here, $e_i$ is the estimated ability of player $i$; $t_i=1$ denotes a junior, and $t_i=2$ denotes a senior.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print one integer. The expectation is guaranteed to be rational. If it is $P/Q$, output $P\cdot Q^{-1}\bmod998244353$, where the inverse satisfies $QQ^{-1}\equiv1\pmod{998244353}$.
+Output $2n+1$ integers on one line. The $(i+1)$-st integer is the answer when exactly $i$ junior players are selected, for every $i=0,1,\ldots,2n$.
 
 ## Examples
 
 Input:
 
 ```text
-1
-2 1
-1 1
+4 9 400
+800 900 1050 1200
+46 1
+264 2
+295 1
+305 1
+332 2
+678 1
+770 2
+903 2
+1291 2
 ```
 
 Output:
 
 ```text
-1
+-1 -1 -1 -1 3593 -1 -1 -1 -1
 ```
-
-## Explanation / Notes
-
-There are two elements, initially in separate sets. There is only one possible pair, and moving either endpoint puts both elements in one set. Exactly one round is required.
-
-Elements remain distinguishable even when they share a set. A set may become empty during the process. If all elements are already in one set, the required number of rounds is zero.
 
 ## Constraints
 
-- $1\le T\le100$.
-- $n,m$ are integers satisfying $1\le n\le2m\le4000$.
-- Each initial size satisfies $1\le a_i\le2m$.
-- $\sum_{i=1}^{n}a_i=2m$ in every test case.
-- All $2m$ elements are distinct and initially belong to exactly one set each.
-- Across all test cases, $\sum n\le8000$ and $\sum m\le2000$.
-- Every round pairs all elements, with exactly one selected endpoint per pair.
-- Answer modulus: $998244353$.
-- Time limit: 3 seconds.
-- Memory limit: 512 MB.
+- $1\le n\le500$.
+- $2n\le m\le10^5$.
+- $0\le d<10^9$.
+- $1\le l_i\le10^9$.
+- $1\le e_i\le10^9$.
+- $t_i\in\{1,2\}$.
+- Abilities and match limits may contain equal values.
+- Each player may be selected at most once; every selected player participates in exactly one match, and every match receives exactly one pair.
+- Time limit: 6 seconds. Memory limit: 256 MB.

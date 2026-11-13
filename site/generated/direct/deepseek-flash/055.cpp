@@ -1,17 +1,12 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-static constexpr int MOD = 998244353;
+struct Node {
+    int score;
+    int ops;
+};
 
-long long mod_pow(long long a, long long e) {
-    long long r = 1;
-    while (e) {
-        if (e & 1) r = r * a % MOD;
-        a = a * a % MOD;
-        e >>= 1;
-    }
-    return r;
-}
+const int NEG = -1000000000;
 
 int main() {
     ios::sync_with_stdio(false);
@@ -21,126 +16,140 @@ int main() {
     cin >> T;
 
     while (T--) {
-        int n;
-        cin >> n;
+        string S;
+        int K;
+        cin >> S >> K;
 
-        vector<int> p(n + 1);
-        bool sorted = true;
+        int n = (int)S.size();
+
+        // blocks[i] contains all valid operation blocks starting at position i (1-indexed).
+        // Each is {length, dominant_letter}.
+        vector<array<pair<int, int>, 3>> blocks(n + 2);
+        vector<unsigned char> blockCnt(n + 2, 0);
+
         for (int i = 1; i <= n; ++i) {
-            cin >> p[i];
-            if (p[i] != i) sorted = false;
-        }
+            for (int len = 3; len <= 5; ++len) {
+                int j = i + len - 1;
+                if (j > n) break;
 
-        if (sorted) {
-            cout << 0 << '\n';
-            continue;
-        }
+                int cnt[26] = {};
+                for (int p = i - 1; p < j; ++p) {
+                    ++cnt[S[p] - 'a'];
+                }
 
-        // n >= 2 here
-        int inv_n = (int)mod_pow(n, MOD - 2);
-        int inv_nm1 = (int)mod_pow(n - 1, MOD - 2);
-
-        // q = n / (n - 1), r = 1 / (n - 1)
-        int r = inv_nm1;
-        int q = (long long)n * r % MOD;
-
-        int q2 = (long long)q * q % MOD;
-        int s = (1 + 2LL * r) % MOD;
-        int twoq = 2LL * q % MOD;
-        int coeff = (s + q2) % MOD;
-        int sq = (long long)s * q % MOD;
-
-        int N = n + 1;
-        vector<int> H(N * N, 0);
-
-        /*
-            H[a][b] =
-            sum_{i=0..a, j=0..b}
-                C(a,i) C(b,j) C(i+j+1, i+1) r^(i+j+1)
-
-            Computed by a bivariate generating function recurrence.
-        */
-        for (int a = 0; a <= n; ++a) {
-            for (int b = 0; b <= n; ++b) {
-                long long val = 0;
-
-                if (a == 0 && b == 0) val += r;
-                else if (a == 0 && b == 1) val -= r;
-
-                if (a > 0)
-                    val += (long long)q * H[(a - 1) * N + b] % MOD;
-
-                if (b > 0)
-                    val += (long long)twoq * H[a * N + (b - 1)] % MOD;
-
-                if (a > 0 && b > 0)
-                    val -= (long long)coeff * H[(a - 1) * N + (b - 1)] % MOD;
-
-                if (b > 1)
-                    val -= (long long)q2 * H[a * N + (b - 2)] % MOD;
-
-                if (a > 0 && b > 1)
-                    val += (long long)sq * H[(a - 1) * N + (b - 2)] % MOD;
-
-                val %= MOD;
-                if (val < 0) val += MOD;
-                H[a * N + b] = (int)val;
-            }
-        }
-
-        vector<int> powq(n + 1, 1);
-        for (int i = 1; i <= n; ++i)
-            powq[i] = (long long)powq[i - 1] * q % MOD;
-
-        vector<char> present(n + 1, 0);
-        vector<int> countLE(n + 1, 0);
-
-        int mex = 1;
-        int prefMax = 0;
-        int sumF = 0;
-
-        for (int cut = 1; cut <= n - 1; ++cut) {
-            int v = p[cut];
-            present[v] = 1;
-
-            if (v == mex) {
-                while (mex <= n && present[mex]) ++mex;
-            }
-            if (v > prefMax) prefMax = v;
-
-            int run = 0;
-            countLE[0] = 0;
-            for (int x = 1; x <= n; ++x) {
-                run += present[x];
-                countLE[x] = run;
-            }
-
-            int z = mex;       // minimum suffix value
-            int o = prefMax;   // maximum prefix value
-
-            if (z < o) {
-                // Paths with no additional missing value
-                int pTotal = cut - countLE[z] - 1;
-                int y = powq[pTotal];
-
-                // Additional missing value s
-                for (int x = z + 1; x < o; ++x) {
-                    if (!present[x]) {
-                        int A = x - 2 - countLE[x - 1];
-                        int B = cut - countLE[x] - 1;
-                        y += H[A * N + B];
-                        if (y >= MOD) y -= MOD;
+                int dominant = -1;
+                for (int c = 0; c < 26; ++c) {
+                    if (cnt[c] == len - 1) {
+                        dominant = c;
+                        break;
                     }
                 }
 
-                int F = (long long)q * y % MOD;
-                sumF += F;
-                if (sumF >= MOD) sumF -= MOD;
+                if (dominant != -1) {
+                    blocks[i][blockCnt[i]++] = {len, dominant};
+                }
             }
         }
 
-        int ans = (1 + (long long)sumF * inv_n) % MOD;
-        cout << ans << '\n';
+        // C[lambda] = maximum number of operations among all optimal solutions
+        // for maximizing (stars - lambda * operations).
+        vector<int> C(6, 0);
+
+        const int STATES = 27;
+        // state 0: previous position is not covered by an adjacent block
+        // state d+1: previous position is covered and its block's final letter is d
+        vector<Node> dp((n + 2) * STATES);
+
+        for (int lambda = 1; lambda <= 5; ++lambda) {
+            fill(dp.begin(), dp.end(), Node{NEG, NEG});
+
+            auto relax = [&](int pos, int state, const Node &val) {
+                Node &to = dp[pos * STATES + state];
+                if (val.score > to.score ||
+                    (val.score == to.score && val.ops > to.ops)) {
+                    to = val;
+                }
+            };
+
+            dp[1 * STATES + 0] = {0, 0};
+
+            for (int i = 1; i <= n; ++i) {
+                for (int state = 0; state < STATES; ++state) {
+                    Node cur = dp[i * STATES + state];
+                    if (cur.score == NEG) continue;
+
+                    // Option 1: leave position i unstarred.
+                    bool canSkip = true;
+                    if (state > 0) {
+                        int prevTarget = state - 1;
+                        if (prevTarget == (S[i - 1] - 'a')) {
+                            canSkip = false;
+                        }
+                    }
+
+                    if (canSkip) {
+                        relax(i + 1, 0, cur);
+                    }
+
+                    // Option 2: start an operation block at i.
+                    for (int bi = 0; bi < blockCnt[i]; ++bi) {
+                        int len = blocks[i][bi].first;
+                        int target = blocks[i][bi].second;
+
+                        bool valid = true;
+
+                        if (i > 1) {
+                            int firstOfNew = S[i - 1] - 'a';
+                            int lastOfPrev = S[i - 2] - 'a';
+
+                            bool newDepends = (target == lastOfPrev);
+
+                            if (state == 0) {
+                                // The new block would extend into an unstarred gap.
+                                if (newDepends) valid = false;
+                            } else {
+                                int prevTarget = state - 1;
+                                bool prevDepends = (prevTarget == firstOfNew);
+
+                                // Both blocks need the other removed first -> impossible.
+                                if (prevDepends && newDepends) {
+                                    valid = false;
+                                }
+                            }
+                        }
+
+                        if (!valid) continue;
+
+                        Node nxt;
+                        nxt.score = cur.score + len - lambda;
+                        nxt.ops = cur.ops + 1;
+
+                        int nxtPos = i + len;
+                        int nxtState = target + 1;
+
+                        relax(nxtPos, nxtState, nxt);
+                    }
+                }
+            }
+
+            Node best{NEG, NEG};
+            for (int state = 0; state < STATES; ++state) {
+                Node cur = dp[(n + 1) * STATES + state];
+                if (cur.score > best.score ||
+                    (cur.score == best.score && cur.ops > best.ops)) {
+                    best = cur;
+                }
+            }
+
+            C[lambda] = best.ops;
+        }
+
+        long long answer = 0;
+        for (int lambda = 1; lambda <= 5; ++lambda) {
+            answer += min(K, C[lambda]);
+        }
+
+        cout << answer << '\n';
     }
 
     return 0;

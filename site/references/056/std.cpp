@@ -1,189 +1,260 @@
-#include <algorithm>
-#include <functional>
-#include <iostream>
-#include <limits>
-#include <queue>
-#include <utility>
-#include <vector>
+#include <bits/stdc++.h>
 using namespace std;
 
-using int64 = long long;
-static constexpr int64 INF = numeric_limits<int64>::max() / 4;
-
-struct MinCostFlow {
-    struct Edge { int to, rev, cap; int64 cost; };
-    vector<vector<Edge>> graph;
-    explicit MinCostFlow(int n) : graph(n) {}
-
-    int add_edge(int from, int to, int cap, int64 cost) {
-        int id = static_cast<int>(graph[from].size());
-        graph[from].push_back({to, static_cast<int>(graph[to].size()), cap, cost});
-        graph[to].push_back({from, id, 0, -cost});
-        return id;
+// Micali--Vazirani maximum-cardinality matching for a general graph.
+class MicaliVazirani {
+    static constexpr int INF = 1'000'000'000;
+    enum class EdgeState : unsigned char { Fresh, Prop, Bridge };
+    struct Arc { int to, rev; EdgeState state; };
+    struct PetalDSU {
+        vector<int> p, sz, bud, direct_parent;
+        void init(int n) {
+            p.resize(n); iota(p.begin(), p.end(), 0);
+            sz.assign(n, 1); bud.resize(n); iota(bud.begin(), bud.end(), 0);
+            direct_parent.assign(n, -1);
+        }
+        int find(int x) { return p[x] == x ? x : p[x] = find(p[x]); }
+        int top(int x) { return bud[find(x)]; }
+        void merge_into(int x, int y) {
+            direct_parent[x] = y;
+            int a = find(x), b = find(y);
+            if (a == b) return;
+            int wanted = bud[b];
+            if (sz[a] < sz[b]) { p[a] = b; sz[b] += sz[a]; bud[b] = wanted; }
+            else { p[b] = a; sz[a] += sz[b]; bud[a] = wanted; }
+        }
+    } dsu;
+    int n;
+    vector<vector<Arc>> g;
+    vector<int> mate, pred_it, dead, even_level, odd_level, color;
+    vector<vector<int>> pred;
+    vector<vector<pair<int,int>>> ddfs_child;
+    struct BridgeInfo { int a=-1,b=-1,ba=-1,bb=-1; };
+    vector<BridgeInfo> bridge_of;
+    int next_color = 1;
+    queue<int> killed_queue;
+    int min_level(int v) const { return min(even_level[v], odd_level[v]); }
+    int tenacity(int u, int v) const {
+        if (mate[u] == v) {
+            if (odd_level[u] >= INF || odd_level[v] >= INF) return INF;
+            long long z = 1LL * odd_level[u] + odd_level[v] + 1;
+            return z >= INF ? INF : (int)z;
+        }
+        if (even_level[u] >= INF || even_level[v] >= INF) return INF;
+        long long z = 1LL * even_level[u] + even_level[v] + 1;
+        return z >= INF ? INF : (int)z;
     }
-
-    pair<int, int64> flow(int source, int sink, int required) {
-        int n = static_cast<int>(graph.size()), sent = 0;
-        int64 total_cost = 0;
-        vector<int64> potential(n), distance(n);
-        vector<int> previous_vertex(n), previous_edge(n);
-        while (sent < required) {
-            fill(distance.begin(), distance.end(), INF);
-            priority_queue<pair<int64, int>, vector<pair<int64, int>>,
-                           greater<pair<int64, int>>> heap;
-            distance[source] = 0;
-            heap.push({0, source});
-            while (!heap.empty()) {
-                auto [dist, vertex] = heap.top();
-                heap.pop();
-                if (dist != distance[vertex]) continue;
-                for (int i = 0; i < static_cast<int>(graph[vertex].size()); ++i) {
-                    const Edge &edge = graph[vertex][i];
-                    if (edge.cap == 0) continue;
-                    int64 next_dist = dist + edge.cost + potential[vertex] - potential[edge.to];
-                    if (next_dist < distance[edge.to]) {
-                        distance[edge.to] = next_dist;
-                        previous_vertex[edge.to] = vertex;
-                        previous_edge[edge.to] = i;
-                        heap.push({next_dist, edge.to});
+    int descend_one(vector<int>& A, int ca, vector<int>& B, int cb,
+                    vector<int>& support) {
+        int u = A.back();
+        while (pred_it[u] < (int)pred[u].size()) {
+            int raw = pred[u][pred_it[u]++];
+            int v = dsu.top(raw);
+            if (dead[raw]) continue;
+            if (color[v] == 0) {
+                A.push_back(v); support.push_back(v);
+                ddfs_child[u].push_back({raw, v}); color[v] = ca;
+                return -1;
+            }
+            if (!B.empty() && v == B.back()) ddfs_child[u].push_back({raw, v});
+        }
+        A.pop_back();
+        if (A.empty()) {
+            if (B.size() == 1) { int z = B.back(); color[z] = 0; return z; }
+            A.push_back(B.back()); color[A.back()] = ca; B.pop_back();
+        }
+        return -1;
+    }
+    pair<int,int> double_dfs(int a, int b, vector<int>& support) {
+        vector<int> A{dsu.top(a)}, B{dsu.top(b)};
+        if (A[0] == B[0]) return {A[0], B[0]};
+        support = {A[0], B[0]};
+        int ca = ++next_color, cb = ++next_color;
+        color[A[0]] = ca; color[B[0]] = cb;
+        while (true) {
+            if (min_level(A.back()) == 0 && min_level(B.back()) == 0)
+                return {A.back(), B.back()};
+            int bottleneck;
+            if (min_level(A.back()) >= min_level(B.back()))
+                bottleneck = descend_one(A, ca, B, cb, support);
+            else bottleneck = descend_one(B, cb, A, ca, support);
+            if (bottleneck != -1) return {bottleneck, bottleneck};
+        }
+    }
+    void kill(int v) { if (!dead[v]) { dead[v] = 1; killed_queue.push(v); } }
+    void take_unmatched_edge(int u, int v) {
+        if (dead[u] || dead[v] || mate[u] == v) return;
+        kill(u); kill(v); mate[u] = v; mate[v] = u;
+    }
+    void augment_segment(int u, int target, bool force_bridge = false) {
+        if (u == target) return;
+        if (!force_bridge && min_level(u) == even_level[u]) {
+            int x = pred[u][0], k = 0;
+            while (dsu.top(pred[x][k]) != dsu.top(x)) ++k;
+            u = pred[x][k]; take_unmatched_edge(x, u);
+            augment_segment(u, target, false); return;
+        }
+        BridgeInfo bi = bridge_of[u];
+        int e0 = bi.a, e1 = bi.b, b0 = bi.ba, b1 = bi.bb;
+        if (((color[b0] ^ 1) == color[u]) || color[b1] == color[u]) {
+            swap(b0, b1); swap(e0, e1);
+        }
+        take_unmatched_edge(e0, e1);
+        bool ok1 = open_petal(e0, b0, u); assert(ok1);
+        int up = dsu.direct_parent[u];
+        bool ok2 = open_petal(e1, b1, up); assert(ok2);
+        augment_segment(up, target, false);
+    }
+    bool open_petal(int cur, int base_cur, int wanted) {
+        if (base_cur == wanted) { augment_segment(cur, base_cur, false); return true; }
+        for (auto [raw, b] : ddfs_child[base_cur]) {
+            if ((b == wanted || color[b] == color[base_cur]) &&
+                open_petal(raw, b, wanted)) {
+                augment_segment(cur, base_cur, false);
+                take_unmatched_edge(base_cur, raw); return true;
+            }
+        }
+        return false;
+    }
+    bool phase() {
+        vector<vector<int>> layer(n);
+        vector<vector<pair<int,int>>> bridge_by_tenacity(2*n + 3);
+        vector<int> lost_pred(n, 0);
+        auto assign_level = [&](int v, int lv) {
+            if (lv & 1) odd_level[v] = lv; else even_level[v] = lv;
+            if (lv < n) layer[lv].push_back(v);
+        };
+        for (int v=0; v<n; ++v) if (mate[v] == -1) assign_level(v, 0);
+        bool augmented = false;
+        for (int lv=0; lv<n && !augmented; ++lv) {
+            for (int u : layer[lv]) for (auto &e : g[u]) {
+                bool parity_ok = ((odd_level[u] == lv) == (mate[u] == e.to));
+                if (e.state != EdgeState::Fresh || !parity_ok) continue;
+                int v = e.to;
+                if (min_level(v) >= lv+1) {
+                    e.state = EdgeState::Prop; g[v][e.rev].state = EdgeState::Prop;
+                    if (min_level(v) > lv+1) assign_level(v, lv+1);
+                    pred[v].push_back(u);
+                } else {
+                    e.state = EdgeState::Bridge; g[v][e.rev].state = EdgeState::Bridge;
+                    int t = tenacity(u,v);
+                    if (t < INF && t < (int)bridge_by_tenacity.size())
+                        bridge_by_tenacity[t].push_back({u,v});
+                }
+            }
+            int tneed = 2*lv+1;
+            if (tneed >= (int)bridge_by_tenacity.size()) continue;
+            for (auto [a,b] : bridge_by_tenacity[tneed]) {
+                if (dead[dsu.top(a)] || dead[dsu.top(b)]) continue;
+                vector<int> support; auto [x,y] = double_dfs(a,b,support);
+                BridgeInfo info{a,b,dsu.top(a),dsu.top(b)};
+                for (int v : support) {
+                    if (v == y) continue;
+                    bridge_of[v] = info; dsu.merge_into(v,y);
+                    assign_level(v, tneed-min_level(v));
+                    if (even_level[v] > odd_level[v])
+                        for (auto const &e : g[v])
+                            if (e.state == EdgeState::Bridge && mate[v] != e.to) {
+                                int tt = tenacity(v,e.to);
+                                if (tt < INF && tt < (int)bridge_by_tenacity.size())
+                                    bridge_by_tenacity[tt].push_back({v,e.to});
+                            }
+                }
+                if (x != y) {
+                    augment_segment(x,y,true); augmented = true;
+                    while (!killed_queue.empty()) {
+                        int v=killed_queue.front(); killed_queue.pop();
+                        for (auto const &e : g[v])
+                            if (e.state == EdgeState::Prop &&
+                                min_level(e.to) > min_level(v) && !dead[e.to])
+                                if (++lost_pred[e.to] == (int)pred[e.to].size()) kill(e.to);
                     }
                 }
             }
-            if (distance[sink] == INF) break;
-            for (int v = 0; v < n; ++v)
-                if (distance[v] != INF) potential[v] += distance[v];
-
-            int add = required - sent;
-            for (int v = sink; v != source; v = previous_vertex[v])
-                add = min(add, graph[previous_vertex[v]][previous_edge[v]].cap);
-            for (int v = sink; v != source; v = previous_vertex[v]) {
-                Edge &edge = graph[previous_vertex[v]][previous_edge[v]];
-                total_cost += static_cast<int64>(add) * edge.cost;
-                edge.cap -= add;
-                graph[v][edge.rev].cap += add;
-            }
-            sent += add;
         }
-        return {sent, total_cost};
+        return augmented;
+    }
+    void reset_phase_state() {
+        for (auto &adj:g) for (auto &e:adj) e.state=EdgeState::Fresh;
+        pred.assign(n,{}); pred_it.assign(n,0); dead.assign(n,0);
+        even_level.assign(n,INF); odd_level.assign(n,INF); color.assign(n,0);
+        ddfs_child.assign(n,{}); bridge_of.assign(n,{}); next_color=1;
+        dsu.init(n); while (!killed_queue.empty()) killed_queue.pop();
+    }
+public:
+    explicit MicaliVazirani(int n=0): n(n), g(n), mate(n,-1) {}
+    void add_edge(int u,int v) {
+        int ru=(int)g[v].size(), rv=(int)g[u].size();
+        g[u].push_back({v,ru,EdgeState::Fresh});
+        g[v].push_back({u,rv,EdgeState::Fresh});
+    }
+    vector<int> solve() {
+        fill(mate.begin(),mate.end(),-1);
+        while (true) { reset_phase_state(); if (!phase()) break; }
+        return mate;
     }
 };
 
-struct Casino {
-    int first = -1, second = -1;
-    int64 cancel_cost = 0, win_cost = 1;
-};
+struct CenterInfo { int r,c,a,b; };
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    int test_count = 1;
-    while (test_count--) {
-        int casino_count, opponent_count;
-        cin >> casino_count >> opponent_count;
-        vector<Casino> casinos(casino_count);
-
-        for (Casino &casino : casinos) {
-            vector<pair<int, int>> row(opponent_count);
-            for (int player = 0; player < opponent_count; ++player) {
-                cin >> row[player].first;
-                row[player].second = player;
-            }
-            sort(row.begin(), row.end());
-
-            for (int left = 0, right; left < opponent_count; left = right) {
-                right = left + 1;
-                while (right < opponent_count && row[right].first == row[left].first) ++right;
-                if (right == left + 1 && row[left].first > 0) {
-                    casino.second = casino.first;
-                    casino.first = row[left].second;
-                    casino.cancel_cost = row[left].first;
-                }
-            }
-
-            casino.win_cost = casino.cancel_cost + 1;
-            for (const auto &[value, player] : row) {
-                (void)player;
-                if (value == casino.win_cost) ++casino.win_cost;
-                else if (value > casino.win_cost) break;
-            }
-        }
-
-        // Only players that are first or second surviving candidates matter.
-        vector<int> compressed_id(opponent_count, -1);
-        int relevant_players = 0;
-        for (Casino &casino : casinos) {
-            for (int *player : {&casino.first, &casino.second}) {
-                if (*player != -1) {
-                    if (compressed_id[*player] == -1)
-                        compressed_id[*player] = relevant_players++;
-                    *player = compressed_id[*player];
-                }
-            }
-        }
-
-        auto solve = [&](int own_wins, vector<int64> *answer) -> int64 {
-            int source = 0;
-            int casino_base = 1;
-            int player_base = casino_base + casino_count;
-            int nobody = player_base + relevant_players;
-            int self = nobody + 1;
-            int hub = self + 1;
-            int sink = hub + 1;
-            MinCostFlow mcf(sink + 1);
-            vector<vector<pair<int, int64>>> choices(casino_count);
-
-            auto player_node = [&](int player) {
-                return player == -1 ? nobody : player_base + player;
-            };
-            for (int i = 0; i < casino_count; ++i) {
-                int node = casino_base + i;
-                mcf.add_edge(source, node, 1, 0);
-                auto add_choice = [&](int to, int64 dice) {
-                    int edge_id = mcf.add_edge(node, to, 1, dice);
-                    choices[i].push_back({edge_id, dice});
-                };
-                add_choice(player_node(casinos[i].first), 0);
-                if (casinos[i].first != -1)
-                    add_choice(player_node(casinos[i].second), casinos[i].cancel_cost);
-                add_choice(self, casinos[i].win_cost);
-            }
-            for (int player = 0; player < relevant_players; ++player)
-                mcf.add_edge(player_base + player, hub, own_wins, 0);
-            mcf.add_edge(nobody, hub, casino_count, 0);
-            mcf.add_edge(self, sink, own_wins, 0);
-            mcf.add_edge(hub, sink, casino_count - own_wins, 0);
-
-            auto [sent, cost] = mcf.flow(source, sink, casino_count);
-            if (sent != casino_count) return INF;
-            if (answer != nullptr) {
-                answer->assign(casino_count, 0);
-                for (int i = 0; i < casino_count; ++i) {
-                    int node = casino_base + i;
-                    for (auto [edge_id, dice] : choices[i])
-                        if (mcf.graph[node][edge_id].cap == 0) (*answer)[i] = dice;
-                }
-            }
-            return cost;
-        };
-
-        vector<int64> memo(casino_count + 1, -1);
-        auto value = [&](int wins) -> int64 {
-            if (memo[wins] == -1) memo[wins] = solve(wins, nullptr);
-            return memo[wins];
-        };
-
-        int low = 0, high = (casino_count + 1) / 2;
-        while (low < high) {
-            int middle = (low + high) / 2;
-            int64 current = value(middle);
-            if (current == INF || current > value(middle + 1)) low = middle + 1;
-            else high = middle;
-        }
-
-        vector<int64> answer;
-        solve(low, &answer);
-        for (int i = 0; i < casino_count; ++i)
-            cout << answer[i] << (i + 1 == casino_count ? '\n' : ' ');
+    ios::sync_with_stdio(false); cin.tie(nullptr);
+    int n,m; if (!(cin>>n>>m)) return 0;
+    vector<string> board(n); for (auto &s:board) cin>>s;
+    vector<vector<int>> dot_id(n,vector<int>(m,-1));
+    vector<pair<int,int>> vertex_cell; int V=0;
+    for (int i=0;i<n;++i) for (int j=0;j<m;++j)
+        if (board[i][j]=='.') { dot_id[i][j]=V++; vertex_cell.push_back({i,j}); }
+    vector<CenterInfo> centers;
+    for (int i=0;i<n;++i) for (int j=0;j<m;++j) if (board[i][j]!='.') {
+        int a=V++,b=V++; vertex_cell.push_back({i,j}); vertex_cell.push_back({i,j});
+        centers.push_back({i,j,a,b});
     }
+    MicaliVazirani matcher(V);
+    auto inside=[&](int x,int y){return 0<=x&&x<n&&0<=y&&y<m;};
+    const int dr[4]={-1,1,0,0}, dc[4]={0,0,-1,1};
+    for (auto const &cen:centers) {
+        int i=cen.r,j=cen.c; matcher.add_edge(cen.a,cen.b);
+        for (int d=0;d<4;++d) {
+            int x=i+dr[d],y=j+dc[d];
+            if (!inside(x,y)||board[x][y]!='.') continue;
+            int w=dot_id[x][y];
+            if (board[i][j]=='+') {
+                matcher.add_edge(cen.a,w); matcher.add_edge(cen.b,w);
+            } else {
+                if (d>=2) matcher.add_edge(cen.a,w); else matcher.add_edge(cen.b,w);
+            }
+        }
+    }
+    vector<int> mate=matcher.solve();
+    for (auto const &cen:centers) {
+        int a=cen.a,b=cen.b;
+        if (mate[a]==b) continue;
+        bool ea=mate[a]!=-1, eb=mate[b]!=-1;
+        if (ea&&eb) continue;
+        if (ea) { int w=mate[a]; mate[w]=mate[a]=-1; }
+        if (eb) { int w=mate[b]; mate[w]=mate[b]=-1; }
+        mate[a]=b; mate[b]=a;
+    }
+    struct Tromino { array<pair<int,int>,3> cell; };
+    vector<Tromino> pieces;
+    for (auto const &cen:centers) if (mate[cen.a]!=cen.b) {
+        int x=mate[cen.a],y=mate[cen.b];
+        if (x==-1||y==-1) continue;
+        pieces.push_back({array<pair<int,int>,3>{
+            pair<int,int>{cen.r,cen.c},vertex_cell[x],vertex_cell[y]}});
+    }
+    vector<string> ans=board;
+    for (auto const &p:pieces) {
+        bool used[26]={};
+        for (auto [r,c]:p.cell) for (int d=0;d<4;++d) {
+            int x=r+dr[d],y=c+dc[d];
+            if (inside(x,y)&&ans[x][y]>='a'&&ans[x][y]<='z')
+                used[ans[x][y]-'a']=true;
+        }
+        int col=0; while (col<26&&used[col]) ++col; assert(col<26);
+        char ch=char('a'+col); for (auto [r,c]:p.cell) ans[r][c]=ch;
+    }
+    for (auto const &s:ans) cout<<s<<'\n';
+    return 0;
 }

@@ -1,69 +1,51 @@
 ## Problem Description
 
-A simple undirected graph has $N$ vertices, each of degree exactly $N-3$. Its adjacency matrix is supplied as binary strings.
+You are given a permutation $p$ of $1,\ldots,n$. In each operation, independently choose $i$ uniformly from $1,\ldots,n$, sort the prefix $p_1,\ldots,p_i$ in ascending order, and separately sort the suffix $p_{i+1},\ldots,p_n$ in ascending order.
 
-Assign a positive integer color to every edge so that any two edges sharing a vertex have different colors. The edge chromatic number is the smallest possible maximum color in such an assignment.
-
-Find this minimum number $C$ and produce an edge coloring that attains it.
+Repeat until the entire permutation is increasing. Find the expected number of operations, represented modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $N$, followed by $N$ binary strings $S_1,\ldots,S_N$, each of length $N$. Character $j$ of $S_i$ is `1` precisely when edge $\{i,j\}$ exists.
+The first line contains $T$, the number of test cases. Each case has a line containing $n$, followed by a line containing the permutation $p_1,\ldots,p_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $C$, followed by an $N\times N$ integer matrix $c$.
-
-- If edge $\{i,j\}$ exists, $c_{i,j}=c_{j,i}$ is its assigned positive color, at most $C$.
-- If the edge does not exist, print $c_{i,j}=-1$.
-- Every diagonal entry must be $-1$.
-
-Any optimal valid coloring is accepted.
+For each test case, print the expected operation count modulo $998244353$ on a separate line.
 
 ## Examples
 
 Input:
 
 ```text
-5
-01001
-10100
-01010
-00101
-10010
+1
+2
+2 1
 ```
 
 Output:
 
 ```text
-3
--1 2 -1 -1 1
-2 -1 3 -1 -1
--1 3 -1 1 -1
--1 -1 1 -1 3
-1 -1 -1 3 -1
+2
 ```
 
 ## Explanation / Notes
 
-The example graph is a cycle of length 5. Its edges cannot alternate between only two colors around the odd cycle. The displayed coloring uses three colors and is optimal.
+For the shown permutation, choosing $i=1$ changes nothing, while choosing $i=2$ sorts the whole permutation. Each choice has probability $1/2$, so the expected number of operations is 2.
 
-Colors belong to edges, not to vertices. Nonedges must be represented by $-1$, rather than by color zero.
+When $i=n$, the suffix is empty and the operation sorts the whole permutation. Sorting the prefix and suffix separately does not otherwise sort across their boundary.
+
+If the initial permutation is already increasing, no operation is needed. Division in a rational expectation modulo a prime uses a modular multiplicative inverse.
 
 ## Constraints
 
-- There is one input instance.
-- $4\le N\le3000$.
-- Each adjacency row has exactly $N$ characters, each `0` or `1`.
-- The graph is simple and undirected: the matrix is symmetric and its diagonal is zero.
-- Every vertex has degree exactly $N-3$.
-- Consequently, the number of edges is exactly $N(N-3)/2$.
-- All actual edge colors must be positive integers, with distinct colors on edges incident to a common vertex.
-- The reported $C$ must be minimal; a proper coloring using more than the optimal number is insufficient.
-- Time limit: 2.5 seconds.
-- Memory limit: 256 MB.
-- There are no subtasks.
+- $1\le T\le100$.
+- $1\le n\le2000$ in each test case.
+- $1\le p_j\le n$ and every number in $1,\ldots,n$ appears exactly once.
+- Across all test cases in one input, $\sum n\le2000$.
+- The random split is chosen uniformly from the **$n$ indices $1,\ldots,n$**; index zero is not an option.
+- Answer modulus: $998244353$.
+- Time limit: **0.5 seconds**. Memory limit: **256 MB**.

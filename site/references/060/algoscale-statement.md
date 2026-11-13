@@ -1,56 +1,51 @@
 ## Problem Description
 
-There are $n$ positions numbered $1$ through $n$. Position $i$ has an interval $[a_i,b_i]$, and from $i$ you may move to any position in that interval.
+A rectangular sheet has integer height $h$ and width $w$, subdivided into unit cells. A cut is made along an entire horizontal or vertical grid line and cuts every existing piece intersected by that line.
 
-Choose a starting position $u$, make any finite number of allowed moves, and finish at $u$. Taking zero moves is allowed. Let $S$ be the set of positions visited at least once, including the starting position.
+A horizontal cut may use an integer coordinate from $1$ to $h-1$, and a vertical cut may use one from $1$ to $w-1$. Thus $c_h$ distinct horizontal cuts and $c_w$ distinct vertical cuts produce $(c_h+1)(c_w+1)$ rectangles.
 
-Count the distinct sets $S$ that can be obtained in this way, modulo $998244353$. Different walks or starting positions that produce the same set contribute only once.
+Find the minimum total number of cuts needed so that every resulting rectangle has area at most $s$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n$. The next $n$ lines contain $a_i,b_i$ for positions $i=1,\ldots,n$.
+The first line contains $t$, the number of test cases. Each of the next $t$ lines contains $h,w,s$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of distinct achievable visited-position sets modulo $998244353$.
+Print one integer per test case: the minimum number of cuts.
 
 ## Examples
 
 Input:
 
 ```text
-5
-1 2
-2 5
-3 4
-2 5
-4 5
+1
+2 2 1
 ```
 
 Output:
 
 ```text
-12
+2
 ```
 
 ## Explanation / Notes
 
-The required walk is closed: reaching some other position without returning to the chosen start is insufficient. A zero-move walk gives the singleton set containing its start. No empty visited set is possible.
+One horizontal cut and one vertical cut divide the $2\times 2$ sheet into four unit squares, so two cuts suffice. One cut would leave rectangles of area 2, which exceeds the permitted area 1.
 
-The interval condition describes directed moves; a move from $i$ to $j$ does not by itself guarantee that $j$ can move directly back to $i$.
+A cut is counted once even when its line passes through several pieces created earlier. Cuts use global horizontal or vertical grid lines, rather than independent cuts on individual rectangles.
 
 ## Constraints
 
-- $1\le n\le400$.
-- For every $i$, $1\le a_i\le i\le b_i\le n$.
+- $1\le t\le1000$.
+- $1\le h,w,s\le10^{18}$ in every test case.
 - All input values are integers.
-- Interval endpoints are inclusive.
-- Every position belongs to its own permitted destination interval.
-- Walk length has no stated finite upper bound; the object being counted is the visited set, not the walk.
-- Modulus: $998244353$.
-- There is one instance per input.
-- Time limit: **7 seconds**. Memory limit: **512 MB**.
+- Horizontal coordinates must be integers in $[1,h-1]$; when $h=1$, there is no horizontal cut position.
+- Vertical coordinates must be integers in $[1,w-1]$; when $w=1$, there is no vertical cut position.
+- Every final rectangle must individually have area at most $s$.
+- Zero cuts are allowed.
+- Time limit: **3 seconds**. Memory limit: **256 MB**.

@@ -1,89 +1,23 @@
 #include <bits/stdc++.h>
 using namespace std;
-
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    int T;
-    if (!(cin >> T)) return 0;
-    while (T--) {
-        string s;
-        int K;
-        cin >> s >> K;
-        int n = (int)s.size();
-        if (n < 3) {
-            cout << 0 << '\n';
-            continue;
-        }
-
-        // A SINGLE is the maximal d^a c d^b interval (a,b<=2,a+b>=2)
-        // present before any operation.  All useful EXTEND intervals are
-        // obtained by trimming overlapping SINGLE intervals.
-        vector<pair<int, int>> segs;
-        for (int i = 0; i + 3 <= n; ++i) {
-            char a = s[i], b = s[i + 1], c = s[i + 2], mode = 0;
-            if (a == b) mode = a;
-            else if (a == c) mode = a;
-            else if (b == c) mode = b;
-            else continue;
-            int j = i + 3;
-            while (j < n && s[j] == mode) ++j;
-            if (segs.empty() || j > segs.back().second)
-                segs.push_back({i, j});
-        }
-        int M = (int)segs.size();
-        vector<int> mask(n + 1, 0); // lengths 3,4,5 ending at r
-        auto add = [&](int l, int r) {
-            int len = r - l;
-            if (3 <= len && len <= 5 && 0 <= l && r <= n)
-                mask[r] |= 1 << (len - 3);
-        };
-        for (auto [l, r] : segs) add(l, r);
-
-        vector<int> index_of_start(n, -1);
-        for (int i = 0; i < M; ++i) index_of_start[segs[i].first] = i;
-        for (int i = 0; i < M; ++i) {
-            int a1 = segs[i].first, a2 = segs[i].second;
-            for (int b1 = a1 + 1; b1 < a2; ++b1) {
-                int j = index_of_start[b1];
-                if (j < 0) continue;
-                add(a1, b1);
-                add(a2, segs[j].second);
-            }
-        }
-        for (int i = 0; i < M; ++i) {
-            int al = segs[i].first, ar = segs[i].second;
-            int jlo = max(0, i - 5), khi = min(M - 1, i + 5);
-            for (int j = jlo; j <= i; ++j) {
-                int br = segs[j].second;
-                if (br <= al) continue;
-                for (int k = i; k <= khi; ++k) {
-                    int cl = segs[k].first;
-                    if (cl >= ar) continue;
-                    if (cl - br < 3) continue;
-                    add(br, cl);
-                }
-            }
-        }
-
-        long long answer = LLONG_MAX;
-        for (int lambda = 0; lambda <= 5; ++lambda) {
-            vector<long long> dp(n + 1, 0);
-            for (int i = 1; i <= n; ++i) {
-                long long best = dp[i - 1];
-                int m = mask[i];
-                while (m) {
-                    int bit = __builtin_ctz((unsigned)m);
-                    m &= m - 1;
-                    int len = bit + 3;
-                    best = max(best, dp[i - len] + len - lambda);
-                }
-                dp[i] = best;
-            }
-            answer = min(answer, dp[n] + 1LL * lambda * K);
-        }
-        cout << answer << '\n';
-    }
-    return 0;
+const long long MOD=998244353;
+long long pw(long long a,long long e){long long r=1;for(;e;e>>=1,a=a*a%MOD)if(e&1)r=r*a%MOD;return r;}
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);
+ int T; if(!(cin>>T)) return 0;
+ vector<pair<int,vector<int>>> inp;
+ for(int tc=0;tc<T;++tc){int n,m;cin>>n>>m;vector<int>a(n);for(int&x:a)cin>>x;inp.push_back({m,a});}
+ int M=0;for(auto &z:inp)M=max(M,z.first*2);
+ vector<long long> fac(M+1),ifac(M+1),pow2(M+1);fac[0]=pow2[0]=1;for(int i=1;i<=M;++i){fac[i]=fac[i-1]*i%MOD;pow2[i]=pow2[i-1]*2%MOD;}ifac[M]=pw(fac[M],MOD-2);for(int i=M;i;--i)ifac[i-1]=ifac[i]*i%MOD;
+ auto C=[&](int n,int k)->long long{if(k<0||k>n)return 0;return fac[n]*ifac[k]%MOD*ifac[n-k]%MOD;};
+ for(auto &cs:inp){int m=cs.first,N=2*m;auto &a=cs.second;vector<long long>b(N+1),w(N+1);b[N]=1;long long ans=0;
+   for(int r=N;r>=2;--r){long long p0=fac[r]*fac[N-r]%MOD*pow2[r]%MOD*fac[m]%MOD;
+     p0=p0*ifac[r]%MOD*ifac[0]%MOD*ifac[m-r]%MOD*ifac[N]%MOD;
+     if(m-r<0)p0=0;
+     w[r]=b[r]*pw((1-p0+MOD)%MOD,MOD-2)%MOD;
+     long long common=fac[r]*fac[N-r]%MOD*fac[m]%MOD*ifac[N]%MOD;
+     for(int x=max(1,r-m);x<=r/2;++x){long long q=common*pow2[r-2*x]%MOD*ifac[r-2*x]%MOD*ifac[x]%MOD*ifac[m-r+x]%MOD; b[r-x]=(b[r-x]+w[r]*q)%MOD;}
+   }
+   for(int r=2;r<=N;++r){long long hr=0;for(int x:a)if(x>=r)hr=(hr+fac[x]*fac[N-r]%MOD*ifac[x-r]%MOD*ifac[N]%MOD)%MOD;ans=(ans+w[r]*(1-hr+MOD))%MOD;}
+   cout<<ans%MOD<<'\n';
+ }
 }

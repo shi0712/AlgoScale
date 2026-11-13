@@ -1,65 +1,55 @@
 ## Problem Description
 
-Given two labeled, unrooted trees $S,T$ on the same $n$ vertices, transform $S$ into $T$ using at most $400$ operations.
+An $L\times L$ grid has one hospital at each corner: $(1,1)$, $(1,L)$, $(L,1)$, and $(L,L)$. Each hospital has one ambulance. At time zero, $N$ patients request transport; patient $k$ is at $(X_k,Y_k)$.
 
-An operation selects four distinct vertices $x,y,z,w$ that form the consecutive path $x-y-z-w$ in the **current** tree. Remove its three edges, then add three edges whose endpoints all belong to $\{x,y,z,w\}$. After the replacement, the whole graph must still be a simple tree. A replacement edge may be identical to one of the three removed edges. No self-loops or parallel edges are allowed, and edges not removed by this operation remain unchanged.
+An ambulance may start at time zero or later and make any number of trips. Each trip begins at its own hospital, visits a patient, and returns that patient to the same hospital. It can carry at most one patient and cannot drop a patient elsewhere. Moving between orthogonally adjacent cells costs one unit of time; picking up and dropping off a patient takes no time. Different ambulances may share cells simultaneously.
 
-Produce a valid sequence within the operation budget, or report that none exists. You do not need to minimize the number of operations, and zero operations are allowed.
+Determine whether every patient can reach a hospital by time $T$.
 
 ## Input Format
 
 Read from standard input.
 
-There is one test case. Read $n$, then $n-1$ pairs describing the edges of $S$, followed by another $n-1$ pairs describing the edges of $T$.
+The first line contains $L$, $N$, and $T$. The next $N$ lines contain the patient coordinates $X_k,Y_k$.
 
 ## Output Format
 
 Write to standard output.
 
-If no permitted transformation exists within the budget, print `NO`.
-
-Otherwise print `YES` on the first line and the operation count $m$ on the second line. For every operation, print two lines:
-
-1. $x\ y\ z\ w$, describing the path to remove from the current tree;
-2. $a_1\ b_1\ a_2\ b_2\ a_3\ b_3$, describing the three replacement edges.
-
-The final edge set must equal that of $T$. Any valid sequence with $0\le m\le400$ is accepted.
+Print `Yes` if all patients can be delivered by time $T$, and `No` otherwise.
 
 ## Examples
 
 Input:
 
 ```text
-4
-1 2
+6 4 8
 1 3
-1 4
-1 2
-2 3
+2 2
 3 4
+5 5
 ```
 
 Output:
 
 ```text
-NO
+Yes
 ```
 
 ## Explanation / Notes
 
-Tree equality uses vertex labels: the same unordered endpoint pairs must be edges in both trees. An isomorphic shape with different labels is insufficient.
-
-In the example, the initial star has no path on four distinct vertices, so no operation is possible. It differs from the target path, so the answer is `NO`.
+Assign patients 1 and 2 to $(1, 1)$, patient 3 to $(1, 6)$, and patient 4 to $(6, 6)$. The ambulance at $(1, 1)$ can collect patient 2 at time 2 and return at time 4, then collect patient 1 at time 6 and return at time 8. All four deliveries meet the deadline.
 
 ## Constraints
 
-- $4\le n\le100$.
-- Both input graphs are guaranteed to be trees with vertex labels in $[1,n]$.
-- Every printed vertex label must lie in $[1,n]$.
-- Each operation uses four pairwise distinct vertices forming a three-edge path at that exact stage.
-- Every new edge endpoint must be one of those four vertices.
-- The graph must remain a tree after **every** complete operation, not only at the end.
-- The final graph must have exactly the target's labeled edge set.
-- The number of operations must satisfy $0\le m\le400$.
-- Time limit: 0.5 seconds.
+All input values are integers. There is one scenario per input.
+
+- $3\le L\le10000$.
+- $1\le N\le1600$.
+- $1\le T\le18000$.
+- $1\le X_k,Y_k\le L$ for every patient.
+- No patient is initially at a hospital corner.
+- Patient locations are **not required to be distinct**.
+- All requests are present at time zero; every delivery, including the return to a hospital, must finish at or before $T$.
+- Time limit: 7 seconds.
 - Memory limit: 256 MB.

@@ -1,238 +1,179 @@
+// Dark Queue / 暗匣中的指令
+// O(m + n log^2 n) time, O(m+n) working space. No answer tables.
+// Constraints: 2 <= n <= 100000, 1 <= m <= 200000.
+// Adapted from the algorithm finalized in the accompanying conversation.
 #include <bits/stdc++.h>
 using namespace std;
 
 using int64 = long long;
-// VALUE_LIMIT is overridden only by the reduced-domain verification harness.
-// The UOJ standard program is compiled without this override: M = 10^9.
-#ifndef VALUE_LIMIT
-#define VALUE_LIMIT 1000000000LL
-#endif
-const int64 M = VALUE_LIMIT;
-const int64 INF = (1LL << 60);
+constexpr int MOD = 998244353;
+constexpr int ROOT = 3;
 
-struct SegmentTree {
+int mod_pow(int a, int e) {
+    int r = 1;
+    while (e > 0) {
+        if (e & 1) r = int((int64)r * a % MOD);
+        a = int((int64)a * a % MOD);
+        e >>= 1;
+    }
+    return r;
+}
+
+void ntt(vector<int>& a, bool inverse) {
+    int n = (int)a.size();
+    for (int i = 1, j = 0; i < n; ++i) {
+        int bit = n >> 1;
+        while (j & bit) { j ^= bit; bit >>= 1; }
+        j ^= bit;
+        if (i < j) swap(a[i], a[j]);
+    }
+    for (int len = 2; len <= n; len <<= 1) {
+        int step = mod_pow(ROOT, (MOD - 1) / len);
+        if (inverse) step = mod_pow(step, MOD - 2);
+        for (int l = 0; l < n; l += len) {
+            int64 w = 1;
+            for (int j = 0; j < len / 2; ++j) {
+                int u = a[l + j];
+                int v = int(w * a[l + j + len / 2] % MOD);
+                int x = u + v;
+                if (x >= MOD) x -= MOD;
+                int y = u - v;
+                if (y < 0) y += MOD;
+                a[l + j] = x;
+                a[l + j + len / 2] = y;
+                w = w * step % MOD;
+            }
+        }
+    }
+    if (inverse) {
+        int inv_n = mod_pow(n, MOD - 2);
+        for (int& x : a) x = int((int64)x * inv_n % MOD);
+    }
+}
+
+vector<int> convolution(vector<int> a, vector<int> b) {
+    int need = (int)a.size() + (int)b.size() - 1;
+    if (min(a.size(), b.size()) <= 32) {
+        vector<int> c(need, 0);
+        for (int i = 0; i < (int)a.size(); ++i)
+            for (int j = 0; j < (int)b.size(); ++j)
+                c[i + j] = int((c[i + j] + (int64)a[i] * b[j]) % MOD);
+        return c;
+    }
+    int len = 1;
+    while (len < need) len <<= 1;
+    a.resize(len);
+    b.resize(len);
+    ntt(a, false);
+    ntt(b, false);
+    for (int i = 0; i < len; ++i)
+        a[i] = int((int64)a[i] * b[i] % MOD);
+    ntt(a, true);
+    a.resize(need);
+    return a;
+}
+
+struct Solver {
     int n;
-    vector<int64> mn, lazy;
+    vector<int> inv, fac, ifac;
+    vector<int> q, F;
 
-    explicit SegmentTree(const vector<int64>& a)
-        : n((int)a.size()), mn(4 * n), lazy(4 * n, 0) {
-        build(1, 0, n - 1, a);
+    explicit Solver(int n_) : n(n_), inv(2*n + 1), fac(2*n + 1),
+                              ifac(2*n + 1), q(n, 0), F(n) {
+        inv[1] = 1;
+        for (int i = 2; i <= 2*n; ++i)
+            inv[i] = int(MOD - (int64)(MOD / i) * inv[MOD % i] % MOD);
+        fac[0] = ifac[0] = 1;
+        for (int i = 1; i <= 2*n; ++i) {
+            fac[i] = int((int64)fac[i - 1] * i % MOD);
+            ifac[i] = int((int64)ifac[i - 1] * inv[i] % MOD);
+        }
     }
 
-    void build(int p, int l, int r, const vector<int64>& a) {
+    // 已知次数不超过 s-1 的多项式在 0,...,s-1 的取值。
+    // 用一次卷积补出 s,...,count-1 的取值。
+    vector<int> extend_right(vector<int> f, int count) {
+        int s = (int)f.size();
+        if (s == count) return f;
+        vector<int> a(s), b(count, 0);
+        for (int i = 0; i < s; ++i) {
+            a[i] = int((int64)f[i] * ifac[i] % MOD * ifac[s - 1 - i] % MOD);
+            if ((s - 1 - i) & 1)
+                a[i] = (a[i] == 0 ? 0 : MOD - a[i]);
+        }
+        for (int i = 1; i < count; ++i) b[i] = inv[i];
+        vector<int> c = convolution(move(a), move(b));
+        f.resize(count);
+        for (int i = s; i < count; ++i)
+            f[i] = int((int64)c[i] * fac[i] % MOD * ifac[i - s] % MOD);
+        return f;
+    }
+
+    // 返回区间乘积多项式在 l,...,r+1 的取值。
+    // 同时向 F[t] 中乘入当前区间内所有下标不小于 t 的因子。
+    vector<int> divide(int l, int r) {
         if (l == r) {
-            mn[p] = a[l];
-            return;
+            int x = 1 - q[l];
+            if (x < 0) x += MOD;
+            F[l] = x;
+            return {x, 1};
         }
         int mid = (l + r) / 2;
-        build(p * 2, l, mid, a);
-        build(p * 2 + 1, mid + 1, r, a);
-        pull(p);
+        vector<int> left = divide(l, mid);
+        vector<int> right = divide(mid + 1, r);
+        int count = r - l + 2;
+
+        left = extend_right(move(left), count);
+        // 反转样本，把向左扩展转化为向右扩展。
+        reverse(right.begin(), right.end());
+        right = extend_right(move(right), count);
+        reverse(right.begin(), right.end());
+
+        for (int t = l; t <= mid; ++t)
+            F[t] = int((int64)F[t] * right[t - l] % MOD);
+        for (int i = 0; i < count; ++i)
+            left[i] = int((int64)left[i] * right[i] % MOD);
+        return left;
     }
 
-    void pull(int p) {
-        mn[p] = min(mn[p * 2], mn[p * 2 + 1]);
-    }
-
-    void apply(int p, int64 delta) {
-        mn[p] += delta;
-        lazy[p] += delta;
-    }
-
-    void push(int p) {
-        if (lazy[p] != 0) {
-            apply(p * 2, lazy[p]);
-            apply(p * 2 + 1, lazy[p]);
-            lazy[p] = 0;
+    int solve(const vector<int>& a) {
+        int m = (int)a.size();
+        vector<int64> b(m + 1, 0), next_value(2*n + 1, 0);
+        for (int i = m - 1; i >= 0; --i) {
+            b[i] = b[i + 1] + 1;
+            if (next_value[a[i]] != 0)
+                b[i] = max(b[i], next_value[a[i]] + n + 1);
+            next_value[a[i]] = b[i];
         }
-    }
-
-    // 给前 len 个位置加上 delta。
-    void addPrefix(int len, int64 delta) {
-        if (len > 0) addPrefix(1, 0, n - 1, len - 1, delta);
-    }
-
-    void addPrefix(int p, int l, int r, int last, int64 delta) {
-        if (r <= last) {
-            apply(p, delta);
-            return;
+        int64 base = b[0];
+        // 有贡献的任务构成一个前缀，且其中的牌互不相同。
+        for (int i = 0; i < m && base - b[i] < n; ++i) {
+            int c = int(base - b[i]);
+            int u = n - 1 - c;
+            q[u] = inv[2*n - i];
         }
-        push(p);
-        int mid = (l + r) / 2;
-        addPrefix(p * 2, l, mid, last, delta);
-        if (last > mid) {
-            addPrefix(p * 2 + 1, mid + 1, r, last, delta);
+        divide(0, n - 1);
+        int answer = int((base + n) % MOD);
+        for (int x : F) {
+            answer -= x;
+            if (answer < 0) answer += MOD;
         }
-        pull(p);
-    }
-
-    // 已选中的固定重量物品，不再需要检查它能否被跳过。
-    void erase(int pos) {
-        erase(1, 0, n - 1, pos);
-    }
-
-    void erase(int p, int l, int r, int pos) {
-        if (l == r) {
-            mn[p] = INF;
-            lazy[p] = 0;
-            return;
-        }
-        push(p);
-        int mid = (l + r) / 2;
-        if (pos <= mid) erase(p * 2, l, mid, pos);
-        else erase(p * 2 + 1, mid + 1, r, pos);
-        pull(p);
-    }
-
-    int64 minimum() const {
-        return mn[1];
+        return answer;
     }
 };
-
-bool solveCase(int n, int64 W, vector<int64>& w, vector<int64>& r) {
-    // Alice 选中重量为 M 的物品时，唯一可能是：
-    // W = M，所有重量均为 M，且选中的只有 1 号物品。
-    if (W == M) {
-        bool allCanBeM = true;
-        int64 firstValue = (r[0] == 0 ? M : r[0]);
-        bool firstCanLead = true;
-        for (int i = 0; i < n; ++i) {
-            if (w[i] != 0 && w[i] != M) allCanBeM = false;
-            if (r[i] > firstValue) firstCanLead = false;
-        }
-        if (allCanBeM && firstCanLead) {
-            for (int i = 0; i < n; ++i) {
-                if (w[i] == 0) w[i] = M;
-                if (r[i] == 0) r[i] = (i == 0 ? M : 1);
-            }
-            return true;
-        }
-    }
-
-    vector<int> fixedItems, unknownItems;
-    for (int i = 0; i < n; ++i) {
-        if (w[i] != 0) fixedItems.push_back(i);
-        else unknownItems.push_back(i);
-    }
-    sort(fixedItems.begin(), fixedItems.end(), [&](int a, int b) {
-        if (w[a] != w[b]) return w[a] < w[b];
-        return a < b;
-    });
-    sort(unknownItems.begin(), unknownItems.end(), [&](int a, int b) {
-        if (r[a] != r[b]) return r[a] > r[b];
-        return a < b;
-    });
-
-    // 优先级为 (-价值, 原下标)，越小越靠前。
-    // 未知价值：未选中时设为 1，选中时设为 M。
-    vector<pair<int64, int>> keys;
-    for (int i : fixedItems) {
-        keys.emplace_back(-(r[i] == 0 ? 1 : r[i]), i);
-    }
-    // 虚拟检查点：Bob 顺序中第一个未知重量物品。
-    if (!unknownItems.empty()) {
-        int u = unknownItems[0];
-        keys.emplace_back(-r[u], u);
-    }
-    sort(keys.begin(), keys.end());
-
-    vector<int> pos(n, -1);
-    vector<int64> initial(keys.size());
-    for (int t = 0; t < (int)keys.size(); ++t) {
-        int i = keys[t].second;
-        pos[i] = t;
-        initial[t] = (w[i] == 0 ? M : w[i]);
-    }
-    SegmentTree seg(initial);
-
-    int best = 0;
-    int64 sum = 0, bestSum = 0;
-    int m = (int)fixedItems.size();
-
-    for (int k = 0; k < m; ++k) {
-        int i = fixedItems[k];
-        if (w[i] == M || sum + w[i] > W) break;
-        sum += w[i];
-
-        seg.erase(pos[i]);
-        int64 selectedValue = (r[i] == 0 ? M : r[i]);
-        pair<int64, int> selectedKey = {-selectedValue, i};
-        int len = (int)(lower_bound(keys.begin(), keys.end(), selectedKey)
-                        - keys.begin());
-        // 排在它前面的检查点，其“后方已选总重”增加 w[i]。
-        seg.addPrefix(len, -w[i]);
-
-        if (seg.minimum() > 0) {
-            best = k + 1;
-            bestSum = sum;
-        }
-    }
-
-    vector<char> chosen(n, false);
-    for (int k = 0; k < best; ++k) chosen[fixedItems[k]] = true;
-
-    // 按 Bob 的顺序，贪心分配未知重量物品的重量预算。
-    int64 budget = W - bestSum;
-    for (int i : unknownItems) {
-        int64 cap = M - 1;
-        if (best < m) {
-            int j = fixedItems[best];  // 第一个未选中的固定重量物品。
-            cap = min(cap, w[j] - (i > j ? 1LL : 0LL));
-        }
-        int64 take = min(budget, cap);
-        if (take > 0) {
-            w[i] = take;
-            budget -= take;
-            chosen[i] = true;
-        } else {
-            w[i] = M;
-        }
-    }
-    for (int i = 0; i < n; ++i) {
-        if (r[i] == 0) r[i] = (chosen[i] ? M : 1);
-    }
-
-    // Bob 若恰好选中 chosen，Alice 也一定恰好选中 chosen。
-    vector<int> order(n);
-    iota(order.begin(), order.end(), 0);
-    sort(order.begin(), order.end(), [&](int a, int b) {
-        if (r[a] != r[b]) return r[a] > r[b];
-        return a < b;
-    });
-    int64 remaining = W;
-    for (int i : order) {
-        bool take = (w[i] <= remaining);
-        if (take != (bool)chosen[i]) return false;
-        if (take) remaining -= w[i];
-    }
-    return true;
-}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
     int T;
-    cin >> T;
+    if (!(cin >> T)) return 0;
     while (T--) {
-        int n;
-        int64 W;
-        cin >> n >> W;
-        vector<int64> w(n), r(n);
-        for (auto& x : w) cin >> x;
-        for (auto& x : r) cin >> x;
-
-        if (!solveCase(n, W, w, r)) {
-            cout << "No\n";
-            continue;
-        }
-        cout << "Yes\n";
-        for (int i = 0; i < n; ++i) {
-            cout << w[i] << (i + 1 == n ? '\n' : ' ');
-        }
-        for (int i = 0; i < n; ++i) {
-            cout << r[i] << (i + 1 == n ? '\n' : ' ');
-        }
+        int n, m;
+        cin >> n >> m;
+        vector<int> a(m);
+        for (int& x : a) cin >> x;
+        Solver solver(n);
+        cout << solver.solve(a) << '\n';
     }
     return 0;
 }

@@ -1,22 +1,25 @@
 ## Problem Description
 
-For each value $i\in[1,n]$, there are $a_i$ copies. Let $m=\sum_i a_i$. Arrange this multiset into a sequence $b$ of length $m$.
+There are $n$ players at coordinates $1,2,\ldots,n$ on a line. Each faces left or right and initially has normal size.
 
-To sort it, start with two empty FIFO queues. Process $b$ from left to right and append each entry to one of the queues. Only after every entry has been inserted, repeatedly remove the front entry from either nonempty queue and append it to the output sequence.
+Choose a permutation $p$ of the players as their action order. When player $x$ gets a turn:
 
-A sequence $b$ is valid if some choices of queues and removals produce a nondecreasing output. Count the distinct valid value sequences modulo $998244353$. Sequences differ if their values differ at any position; identical copies are not separately labeled. Count sequences only, not the choices of insertions and removals. Either queue may remain empty throughout.
+- If already shrunk, the player does nothing.
+- Otherwise, the player fires in their facing direction. The nearest other player in that direction who has not been shrunk is hit and immediately shrinks. If there is no such player, the shot hits nobody.
+
+For every $k=1,\ldots,n$, count the permutations that leave exactly $k$ players unshrunk after all turns. Output these counts modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by $a_1,\ldots,a_n$.
+Read $n$, followed by a string $s$ of length $n$. Character `L` means the corresponding player faces toward decreasing coordinates; `R` means increasing coordinates.
 
 ## Output Format
 
 Write to standard output.
 
-Print the number of valid sequences modulo $998244353$, as an integer in $[0,998244352]$.
+Print $n$ integers on one line. The $k$-th integer is the number of action permutations leaving exactly $k$ unshrunk players, modulo $998244353$.
 
 ## Examples
 
@@ -25,26 +28,25 @@ Print the number of valid sequences modulo $998244353$, as an integer in $[0,998
 Input:
 
 ```text
-4
-1 1 1 1
+2
+RL
 ```
 
 Output:
 
 ```text
-14
+2 0
 ```
 
 ## Explanation / Notes
 
-Each queue supports insertion only at the back and removal only at the front. No removal is allowed until all entries have been inserted.
+Shrunk players are skipped when a shot searches for its target. A player may be hit before their own scheduled turn, in which case that turn is skipped. Each original player appears once in the action permutation.
 
 ## Constraints
 
 - One test case.
-- $1\le n\le10^6$.
-- $0\le a_i\le n$ for every value $i$.
-- $1\le m=\sum_{i=1}^n a_i\le10^6$.
-- A value may be absent because its multiplicity can be zero.
+- $2\le n\le100000$.
+- $|s|=n$ and every character belongs to $\{\texttt{L},\texttt{R}\}$.
+- All $n!$ possible action permutations are counted.
 - Modulus: $998244353$.
-- Time limit: 5 seconds; memory limit: 256 MB.
+- Time limit: 7 seconds; memory limit: 256 MB.

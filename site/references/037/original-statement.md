@@ -1,54 +1,70 @@
 ## Problem Description
 
-A park is the region enclosed by a simple polygon. A receiver is placed at each polygon vertex. All receivers use the same radius $r$, and each covers the disk of radius $r$ centered at its vertex.
+A grid has $10^{18}$ rows and two columns. Each cell is black or white. Select a subset of black cells, using at most one cell from each row.
 
-Find the smallest $r$ for which the union of these disks covers the entire park. Coverage includes points inside the polygon, not just its boundary.
+Within each column, divide the selected cells into maximal runs of consecutive rows. A run of length $x$ contributes
+
+$$100^{100^x}.$$
+
+The total score is the sum of these contributions over both columns. Find a selection of maximum total score. Because the score itself is extremely large, report the lengths of its selected runs in the compressed form specified below.
+
+The input also uses a compressed representation: each column is described by its maximal intervals of black cells; every other cell is white.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by $n$ lines of integer coordinates $x,y$. These are the polygon's vertices in counter-clockwise order; the final vertex is connected back to the first.
+The first line contains the test-case count $t$. For each case:
+
+1. Read $n,m$, the counts of black intervals in columns 1 and 2.
+2. Read $n$ pairs $l_{1,i},r_{1,i}$ describing inclusive black intervals in column 1.
+3. Read $m$ pairs $l_{2,j},r_{2,j}$ describing inclusive black intervals in column 2.
+
+Intervals in a column are ordered by row and have at least one white row between consecutive intervals.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum common radius. The allowed absolute or relative error is at most $10^{-6}$.
+For each case, print two lines:
+
+1. The total number $c\ge1$ of maximal selected runs across both columns.
+2. Their lengths $x_1,\ldots,x_c$, sorted in non-increasing order.
+
+The lengths must describe a selection attaining the maximum total score. Do not print the enormous numeric score itself.
 
 ## Examples
 
 Input:
 
 ```text
-5
-0 0
-170 0
-140 30
-60 30
-0 70
+1
+1 1
+1 4
+1 4
 ```
 
 Output:
 
 ```text
-50
+1
+4
 ```
 
 ## Explanation / Notes
 
-Receivers cover circular regions without a line-of-sight restriction. It does not matter if parts of their disks extend outside the park.
+Both columns are black on rows 1 through 4. Selecting all four rows from one column gives a single run of length 4 and attains the maximum score.
 
-For the example, radius 35 leaves some park points uncovered, while radius 50 covers the whole polygon and is optimal.
+Consecutive selected cells form a run only when they belong to the same column. The two columns may have overlapping black intervals, but the chosen cells still obey the one-per-row rule.
 
 ## Constraints
 
-- There is one input instance.
-- $3\le n\le2000$.
-- All coordinates are integers and satisfy $|x|,|y|\le10^4$.
-- Vertices are supplied counter-clockwise.
-- All polygon vertices are distinct.
-- Edges do not intersect or touch, except that consecutive edges meet at their shared endpoint; the polygon is simple.
-- Convexity is not guaranteed.
-- Error tolerance: at most $10^{-6}$, absolute or relative.
-- Time limit: 10 seconds.
+- $1\le t\le3000$.
+- $1\le n,m\le3000$ for each case.
+- $\sum n\le3000$ and, separately, $\sum m\le3000$ across all cases.
+- Every interval endpoint is an integer satisfying $1\le l_{1,i}\le r_{1,i}\le10^{18}$ or $1\le l_{2,j}\le r_{2,j}\le10^{18}$.
+- Consecutive intervals within each column satisfy the **strict** separation conditions $r_{1,i}+1<l_{1,i+1}$ and $r_{2,j}+1<l_{2,j+1}$.
+- There is no restriction preventing an interval in column 1 from overlapping one in column 2.
+- Output lengths obey $x_1\ge x_2\ge\cdots\ge x_c\ge1$ and represent maximal selected runs.
+- Time limit: 4,000 ms.
+- Memory limit: 512,000 KB.

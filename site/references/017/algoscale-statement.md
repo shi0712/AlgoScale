@@ -1,22 +1,31 @@
 ## Problem Description
 
-Given nonnegative integers $a_1,\ldots,a_n$, define $B(l,r)$ as the set of all XOR values obtainable by choosing a subset of the entries in $a_l,\ldots,a_r$. The empty subset is allowed and contributes 0:
+A card has one of $n$ suits and a rank in $[1,m]$. Each suit is either a trump or a regular suit; there may be several trump suits or none. Multiple physical cards may have the same suit and rank. Both players know both hands.
 
-$$B(l,r)=\left\{\bigoplus_{i=l}^{r}c_i a_i:\ c_i\in\{0,1\}\right\}.$$
+A card $(s_1,r_1)$ beats $(s_2,r_2)$ exactly when either $s_1=s_2$ and $r_1>r_2$, or $s_1$ is a trump suit and $s_2$ is not.
 
-Count the distinct sets $B(l,r)$ over all nonempty contiguous intervals $1\le l\le r\le n$. In linear-algebra terminology, these are the distinct subspaces spanned by interval vectors in $\mathbb F_2^{32}$.
+The game proceeds as follows:
+
+1. The attacker chooses any card in their hand as the initial attack.
+2. The defender must play an unused card that beats the attacker's most recent card. If no such card exists, the defender loses.
+3. The attacker must play an unused card whose rank equals the rank of some card previously played by either player. If no such card exists, the attacker loses.
+4. Repeat from step 2.
+
+Count the initial attacks from which the attacker can force a win when both players make optimal later choices. Different physical copies count as different starting attacks, even when suit and rank coincide.
 
 ## Input Format
 
 Read from standard input.
 
-Read the test count $T$. Each case contains $n$ on one line and $a_1,\ldots,a_n$ on the next line.
+Read $n,m$. Next read $n$ flags $t_i$, where 1 marks a trump suit and 0 a regular suit.
+
+Read an $n\times m$ matrix of attacker counts, followed by an $n\times m$ matrix of defender counts. Entry $(i,j)$ is the number of cards with suit $i$ and rank $j$ in that hand.
 
 ## Output Format
 
 Write to standard output.
 
-For each test case, print one integer: the number of distinct sets $B(l,r)$.
+Print the number of winning initial attacks as an integer.
 
 ## Examples
 
@@ -25,29 +34,31 @@ For each test case, print one integer: the number of distinct sets $B(l,r)$.
 Input:
 
 ```text
-1
-3
-1 2 3
+1 2
+0
+4294967296 0
+0 2147483647
 ```
 
 Output:
 
 ```text
-4
+4294967296
 ```
 
 ## Explanation / Notes
 
-In the example, the four sets are $\{0,1\}$, $\{0,2\}$, $\{0,3\}$, and $\{0,1,2,3\}$.
+An already played card cannot be reused. Ranks from all earlier attacks and defenses remain available for checking the attacker's rank restriction.
 
-The result counts different XOR-closure sets, not different intervals. XOR is the bitwise operation; for example, $4\oplus6=2$.
+Different trump suits do not automatically beat each other: the ordinary higher-rank rule requires the same suit.
 
 ## Constraints
 
-- $1\le T\le10^6$.
-- $1\le n\le10^6$ per case.
-- $\sum n\le10^6$ over all test cases in the same input file.
-- $0\le a_i<2^{32}$, so the largest allowed value is $4294967295$.
-- Intervals are nonempty, but the subset used to form an XOR may be empty.
-- Print the exact count; no output modulus is specified. The answer is at most $n(n+1)/2$ and fits in a signed 64-bit integer.
-- Time limit: 5 seconds; memory limit: 768 MB.
+- One test case.
+- $1\le n\le100$ and $1\le m\le18$.
+- Every $t_i$ is either 0 or 1.
+- Every entry in each hand matrix is an integer in $[0,10^{12}]$.
+- Each player's total number of cards is positive.
+- Duplicate cards are allowed and count separately in the answer.
+- No output modulus is specified; print the exact count. The answer may exceed the signed 32-bit integer range, but is at most $1.8\times10^{15}$.
+- Time limit: 0.5 seconds; memory limit: 256 MB.

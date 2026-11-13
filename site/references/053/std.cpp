@@ -1,135 +1,208 @@
 #include <algorithm>
-#include <array>
-#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <numeric>
 #include <vector>
-using namespace std;
 
-using DP = vector<uint16_t>;
-int N, B;
-vector<array<int, 4>> dista;
+using i64 = long long;
+using i128 = __int128_t;
 
-// f[t]: cost at the next hospital, with cost at this hospital <= t.
-void add_item(DP& f, int a, int b) {
-    const int INF = B + 1;
-    for (int t = B; t >= a; --t)
-        f[t] = uint16_t(min({INF, int(f[t]) + b, int(f[t - a])}));
-    for (int t = min(B, a - 1); t >= 0; --t)
-        f[t] = uint16_t(min(INF, int(f[t]) + b));
-}
+static constexpr i64 INF64 = (1LL << 62);
+static constexpr i128 INF128 = (i128(1) << 120);
 
-bool check_cycle(const array<DP, 4>& f, const array<int, 4>& cap) {
-    // The composition of the four budget maps is nondecreasing.
-    int t = cap[0];
-    while (t >= 0) {
-        int x = t;
-        for (int e = 0; e < 4 && x >= 0; ++e)
-            x = cap[(e + 1) % 4] - int(f[e][x]);
-        if (x < 0) return false;
-        if (x >= t) return true;
-        t = x;
-    }
-    return false;
-}
+struct State {
+    i128 value;
+    int groups;
+    State(i128 value_ = INF128, int groups_ = 0) : value(value_), groups(groups_) {}
+};
 
-bool solve() {
-    if (B == 0) return false;
-    long long lower_bound = 0;
-    for (const auto& d : dista) {
-        int z = *min_element(d.begin(), d.end());
-        if (z > B) return false;
-        lower_bound += z;
-    }
-    if (lower_bound > 4LL * B) return false;
-
-    vector<int> order_u(N), order_v(N), rank_u(N), rank_v(N);
-    iota(order_u.begin(), order_u.end(), 0);
-    iota(order_v.begin(), order_v.end(), 0);
-    auto cmp = [&](int h, int i, int j) {
-        if (dista[i][h] != dista[j][h])
-            return dista[i][h] < dista[j][h];
-        return i < j;
-    };
-    sort(order_u.begin(), order_u.end(),
-         [&](int i, int j) { return cmp(0, i, j); });
-    sort(order_v.begin(), order_v.end(),
-         [&](int i, int j) { return cmp(1, i, j); });
-    for (int i = 0; i < N; ++i) {
-        rank_u[order_u[i]] = i;
-        rank_v[order_v[i]] = i;
+class Solver {
+public:
+    Solver(std::vector<i64> times, int capacity)
+        : n_(static_cast<int>(times.size())), c_(capacity) {
+        std::sort(times.begin(), times.end());
+        a_.assign(n_ + 1, 0);
+        prefix_.assign(n_ + 1, 0);
+        for (int i = 1; i <= n_; ++i) {
+            a_[i] = times[i - 1];
+            prefix_[i] = prefix_[i - 1] + a_[i];
+        }
     }
 
-    const int K = max(1, int(sqrt(N)));
-    for (int left = 0; left < N; left += K) {
-        int right = min(N, left + K), len = right - left;
-        vector<DP> suffix_cd(len), suffix_da(len);
-        DP cd(B + 1, 0), da(B + 1, 0);
+    i64 solve() {
+        if (n_ <= c_) return a_[n_];
+        prepare();
 
-        // Only save suffix states at pivots belonging to this block.
-        for (int j = N - 1; j >= 0; --j) {
-            int p = order_v[j], r = rank_u[p];
-            if (left <= r && r < right) {
-                suffix_cd[r - left] = cd;
-                suffix_da[r - left] = da;
-            } else if (r < left) {
-                add_item(da, dista[p][3], dista[p][0]);
-            } else {
-                add_item(cd, dista[p][2], dista[p][3]);
+        int logarithm = 0;
+        for (i64 x = 2 * bound_ + 1; x; x >>= 1) ++logarithm;
+        if (i128(c_) * c_ * c_ * c_ * logarithm <= n_) {
+            return solve_small_capacity();
+        }
+        return solve_large_capacity();
+    }
+
+private:
+    int n_, c_, h_limit_;
+    std::vector<i64> a_, prefix_, refill_;
+    std::vector<i128> dp_value_;
+    std::vector<int> dp_groups_;
+    i64 bound_ = 0;
+
+    void prepare() {
+        h_limit_ = n_ / c_;
+        refill_.assign(h_limit_ + 1, INF64);
+        refill_[0] = 0;
+        for (int k = 2; k <= std::min(c_, h_limit_ + 1); ++k) {
+            i64 cost = a_[k] + prefix_[k];
+            for (int h = k - 1; h <= h_limit_; ++h) {
+                refill_[h] = std::min(refill_[h], refill_[h - k + 1] + cost);
+            }
+        }
+        bound_ = i64(n_) * (a_[n_] + prefix_[c_ - 1]) + 1;
+        dp_value_.resize(n_);
+        dp_groups_.resize(n_);
+    }
+
+    i64 solve_large_capacity() const {
+        int max_groups = (n_ - 1) / (c_ - 1);
+        std::vector<i64> dp(2 * h_limit_ + 1, INF64);
+        std::vector<i64> next(2 * h_limit_ + 1, INF64);
+        dp[h_limit_] = 0;
+        i64 answer = INF64;
+
+        for (int q = 0; q <= max_groups; ++q) {
+            std::fill(next.begin(), next.end(), INF64);
+            int low = std::max({-h_limit_, -q * (c_ - 2), q - max_groups});
+            int high = std::min({h_limit_, q, n_ - 1 - q * (c_ - 1)});
+            for (int h = low; h <= high; ++h) {
+                i64 current = dp[h + h_limit_];
+                if (current == INF64) continue;
+                int placed = q * (c_ - 1) + h;
+                if (placed >= n_ - c_ && h >= 0) {
+                    answer = std::min(answer, current + a_[n_ - placed] + refill_[h]);
+                }
+                if (placed > n_ - c_ || q == max_groups) continue;
+
+                int left = std::max({0, placed + c_ - (n_ - 1), h + 1 - h_limit_});
+                int right = std::min({c_ - 1, h + 1 + h_limit_, h + max_groups - q});
+                for (int returning = left; returning <= right; ++returning) {
+                    int next_h = h + 1 - returning;
+                    next[next_h + h_limit_] = std::min(
+                        next[next_h + h_limit_], current + a_[n_ - placed] + prefix_[returning]);
+                }
+            }
+            dp.swap(next);
+        }
+        return answer;
+    }
+
+    State penalized(int target, i64 reward) {
+        dp_value_[0] = 0;
+        dp_groups_[0] = 0;
+        for (int y = 1; y <= target; ++y) {
+            i128 best = INF128;
+            int count = -1;
+            int left = std::max(0, y - c_);
+            int right = std::min(y - 1, n_ - c_);
+            for (int x = left; x <= right; ++x) {
+                i128 candidate = dp_value_[x] + a_[n_ - x] + prefix_[c_ - y + x] - reward;
+                int candidate_count = dp_groups_[x] + 1;
+                if (candidate < best || (candidate == best && candidate_count > count)) {
+                    best = candidate;
+                    count = candidate_count;
+                }
+            }
+            dp_value_[y] = best;
+            dp_groups_[y] = count;
+        }
+        return State(dp_value_[target], dp_groups_[target]);
+    }
+
+    i64 exact_cost(int target, int groups) {
+        i64 left = -bound_, right = bound_;
+        while (left < right) {
+            i64 middle = left + (right - left) / 2;
+            if (penalized(target, middle).groups >= groups) right = middle;
+            else left = middle + 1;
+        }
+        State result = penalized(target, left);
+        return static_cast<i64>(result.value + i128(left) * groups);
+    }
+
+    i64 solve_small_capacity() {
+        std::vector<i64> item_cost(c_);
+        for (int weight = 1; weight < c_; ++weight) {
+            item_cost[weight] = a_[weight + 1] + prefix_[weight + 1];
+        }
+        int best_weight = 1;
+        for (int weight = 2; weight < c_; ++weight) {
+            if (i128(item_cost[weight]) * best_weight < i128(item_cost[best_weight]) * weight) {
+                best_weight = weight;
             }
         }
 
-        DP ab(B + 1, 0), bc(B + 1, 0);
-        for (int j = 0; j < N; ++j) {
-            int p = order_v[j], r = rank_u[p];
-            if (r < left) {
-                add_item(ab, dista[p][0], dista[p][1]);
-            } else if (r >= right) {
-                add_item(bc, dista[p][1], dista[p][2]);
-            } else {
-                array<DP, 4> f = {
-                    ab, bc, suffix_cd[r - left], suffix_da[r - left]
-                };
+        i64 best_cost = item_cost[best_weight];
+        int periodic_start = (best_weight - 1) * (c_ - 1);
+        int residue_count = best_weight / std::gcd(best_weight, c_ - 1);
+        int exact_limit = periodic_start + (c_ - 1) * residue_count;
+        i64 answer = INF64;
 
-                // Outside-block points are already included. Add the rest.
-                for (int k = left; k < right; ++k) {
-                    int q = order_u[k];
-                    if (q == p) continue;
-                    int e;
-                    if (rank_u[q] < r)
-                        e = rank_v[q] < j ? 0 : 3;
-                    else
-                        e = rank_v[q] < j ? 1 : 2;
-                    add_item(f[e], dista[q][e], dista[q][(e + 1) % 4]);
+        if (periodic_start <= h_limit_) {
+            std::vector<std::vector<State>> dp(c_ + 1, std::vector<State>(residue_count));
+            dp[0][0] = State(0, 0);
+            for (int x = 0; x < n_; ++x) {
+                auto &row = dp[x % (c_ + 1)];
+                if (x >= n_ - c_) {
+                    for (int residue = 0; residue < residue_count; ++residue) {
+                        const State &state = row[residue];
+                        if (state.value == INF128) continue;
+                        int h = x - state.groups * (c_ - 1);
+                        if (h < periodic_start || h > h_limit_) continue;
+                        i128 cost = (state.value + i128(best_cost) * (c_ - 1) * state.groups) / best_weight;
+                        answer = std::min(answer, static_cast<i64>(cost) + refill_[h] + a_[n_ - x]);
+                    }
                 }
-
-                // The pivot itself can be assigned to any of the hospitals.
-                for (int h = 0; h < 4; ++h) {
-                    if (dista[p][h] > B) continue;
-                    array<int, 4> cap = {B, B, B, B};
-                    cap[h] -= dista[p][h];
-                    if (check_cycle(f, cap)) return true;
+                if (x <= n_ - c_) {
+                    int limit = std::min(c_, n_ - 1 - x);
+                    for (int placed = 1; placed <= limit; ++placed) {
+                        auto &destination = dp[(x + placed) % (c_ + 1)];
+                        i128 edge = i128(best_weight) * (a_[n_ - x] + prefix_[c_ - placed])
+                                  - i128(best_cost) * (c_ - 1);
+                        for (int residue = 0; residue < residue_count; ++residue) {
+                            if (row[residue].value == INF128) continue;
+                            int next_residue = residue + 1 == residue_count ? 0 : residue + 1;
+                            i128 value = row[residue].value + edge;
+                            int groups = row[residue].groups + 1;
+                            if (value < destination[next_residue].value ||
+                                (value == destination[next_residue].value &&
+                                 groups < destination[next_residue].groups)) {
+                                destination[next_residue] = State(value, groups);
+                            }
+                        }
+                    }
                 }
+                std::fill(row.begin(), row.end(), State());
             }
         }
+
+        for (int placed = n_ - c_; placed < n_; ++placed) {
+            int limit = std::min({h_limit_, exact_limit - 1, placed});
+            for (int h = placed % (c_ - 1); h <= limit; h += c_ - 1) {
+                int groups = (placed - h) / (c_ - 1);
+                if (groups < (placed + c_ - 1) / c_ || groups > std::min(placed, n_ - c_ + 1)) continue;
+                answer = std::min(answer, exact_cost(placed, groups) + refill_[h] + a_[n_ - placed]);
+            }
+        }
+        return answer;
     }
-    return false;
-}
+};
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-    int L, T;
-    cin >> L >> N >> T;
-    B = T / 2;
-    const int D = L - 1;
-    dista.resize(N);
-    for (auto& d : dista) {
-        int x, y;
-        cin >> x >> y;
-        --x; --y;
-        d = {x + y, x + D - y, 2 * D - x - y, D - x + y};
-    }
-    cout << (solve() ? "Yes\n" : "No\n");
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+    int n, c;
+    if (!(std::cin >> n >> c)) return 0;
+    std::vector<i64> times(n);
+    for (i64 &time : times) std::cin >> time;
+    std::cout << Solver(std::move(times), c).solve() << '\n';
 }

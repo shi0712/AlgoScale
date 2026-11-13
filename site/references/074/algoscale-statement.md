@@ -1,79 +1,80 @@
 ## Problem Description
 
-You are given a directed graph. Find the infimum variance among all walks from vertex $1$ to vertex $n$.
+This is an interactive problem.
 
-A walk from vertex $1$ to vertex $n$ is a sequence of edges $p=(e_1,e_2,\ldots,e_l)$ such that:
+A tourist attraction is modeled as a cycle of $n$ points numbered clockwise from $1$ to $n$. Two radio transmitters are hidden at distinct points on the cycle. Their positions are fixed before each interaction case begins.
 
-- the starting vertex of $e_1$ is vertex $1$;
-- the ending vertex of $e_l$ is vertex $n$;
-- for every consecutive pair, the ending vertex of $e_i$ is the starting vertex of $e_{i+1}$.
+You have a receiver that can be used at any point $x$. In response, it reports the sum of the shortest cycle distances from $x$ to the two transmitters, where distance is measured by the number of traversed edges.
 
-Edges in a walk do not need to be distinct.
-
-The variance of a walk is
-
-$$
-D(p)=\frac{1}{l}\sum_{i=1}^{l}\left(w_{e_i}-\overline{w}\right)^2,
-$$
-
-where
-
-$$
-\overline{w}=\frac{1}{l}\sum_{i=1}^{l}w_{e_i}
-$$
-
-is the average edge weight of the walk.
+Determine the two transmitter positions using at most $30$ receiver queries per case.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains two integers $n$ and $m$, the number of vertices and directed edges.
+First read the integer $T$, the number of test cases.
 
-Each of the next $m$ lines contains three integers $x_i$, $y_i$, and $w_i$, describing a directed edge from $x_i$ to $y_i$ with weight $w_i$. Parallel edges are allowed and are treated as distinct edges.
+At the beginning of each test case, read the odd integer $n$, the number of points in the cycle.
+
+After every valid receiver query, read one integer `dist`: the sum of the shortest distances from the queried point to the two transmitters.
 
 ## Output Format
 
 Write to standard output.
 
-Print one real number: the infimum variance among all walks from vertex $1$ to vertex $n$. If no such walk exists, print `-1`.
+To use the receiver at point $x$, print:
 
-If the required infimum is $a$ and your reported value is $b$, the answer is accepted when
+```text
+? x
+```
 
-$$
-|a-b|\le10^{-9}\max\{1,|a|,|b|\}.
-$$
+End the line and flush the output before reading the response. Repeating a query counts again. If reading from the interactor fails, terminate immediately.
+
+To report the transmitter positions, print:
+
+```text
+! x y
+```
+
+The order of $x$ and $y$ does not matter; they must be distinct vertices in $[1,n]$ and equal the hidden pair. End the answer with a newline and flush it. After a correct answer there is no acknowledgement token: read the next case's $n$ directly, or exit normally after the last case. Reporting an answer does not count as a receiver query.
+
+Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, and `sys.stdout.flush()` in Python.
 
 ## Examples
 
-Input:
+The table shows one possible complete interaction in chronological order. A blank cell means that the other side sends the next message.
 
-```text
-4 4
-1 2 3
-1 3 4
-2 4 5
-3 4 7
-```
-
-Output:
-
-```text
-1.000000000000000
-```
+| Judge sends | Program sends |
+| --- | --- |
+| `2` | |
+| `3` | |
+| | `? 1` |
+| `1` | |
+| | `? 2` |
+| `1` | |
+| | `? 3` |
+| `2` | |
+| | `! 1 2` |
+| `5` | |
+| | `? 5` |
+| `4` | |
+| | `? 1` |
+| `3` | |
+| | `! 2 3` |
 
 ## Explanation / Notes
 
-The walk $1\to2\to4$ uses edge weights $3$ and $5$. Its average weight is $4$, and its variance is $1$.
+In the first test case, the transmitters are at points $1$ and $2$ on a three-point cycle. The reported values for queries at points $1$, $2$, and $3$ are therefore $1$, $1$, and $2$, respectively.
 
-Because edges may be repeated, the set of attainable walk variances need not contain its greatest lower bound; therefore the problem asks for the infimum rather than necessarily a minimum.
+The transcript is only an example. Judge responses depend on the hidden transmitter positions and are not ordinary batch input that can be read in advance.
 
 ## Constraints
 
-- $2\le n\le100$.
-- $1\le m\le1000$.
-- $1\le x_i,y_i\le n$.
-- $x_i\ne y_i$.
-- $0\le w_i\le20$.
-- Answers are checked using the tolerance formula in the output specification.
-- Time limit: 1 second. Memory limit: 256 MB.
+- $1\le T\le10^3$.
+- $3\le n\le10^9$ in each test case.
+- $n$ is odd.
+- The two transmitters occupy distinct points of the cycle.
+- Every receiver query satisfies $1\le x\le n$.
+- At most $30$ receiver queries may be issued in each test case.
+- Reporting an answer does not consume the query budget.
+- Time limit: **6 seconds**. Memory limit: **256 MB**.

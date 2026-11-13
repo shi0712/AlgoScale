@@ -1,48 +1,55 @@
 ## Problem Description
 
-Initially, $n$ walkers and one torch are on the same bank of a river. A bridge can carry at most $c$ walkers at once. Every crossing, in either direction, requires the torch, so someone must carry it back whenever another outward crossing still needs it.
+Choose an $n$-element subset of $\{1,\ldots,m\}$ uniformly at random. Apply these steps:
 
-Walker $i$ takes $t_i$ time to cross. A group crosses together at its slowest member's speed. Find the minimum total time until all walkers have reached the other bank.
+1. Sort the selected numbers as $a_1<\cdots<a_n$.
+2. Form $d_1=a_1$ and $d_i=a_i-a_{i-1}$ for $i\ge2$.
+3. Sort the $n$ differences in nondecreasing order, obtaining $b_1,\ldots,b_n$.
+4. Form the final sequence $c_i=\sum_{j=1}^{i}b_j$.
+
+Compute the expected value of every final entry $c_i$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n$ and $c$. The next line contains $t_1,\ldots,t_n$.
+One line contains the integers $n$ and $m$.
 
 ## Output Format
 
 Write to standard output.
 
-Print the minimum total crossing time.
+Print $n$ lines. Line $i$ contains the expected value of $c_i$ as a real number. Each answer may have absolute or relative error at most $10^{-6}$.
 
 ## Examples
 
 Input:
 
 ```text
-4 2
-1 2 10 5
+3 5
 ```
 
 Output:
 
 ```text
-17
+1
+2.3
+4.5
 ```
 
 ## Explanation / Notes
 
-The walkers with times 1 and 2 cross in 2 time units; the time-1 walker returns; the time-5 and time-10 walkers cross; the time-2 walker returns; then the two fastest cross again. The total is $2+1+10+2+2=17$.
+There are ten equally likely three-element subsets of $\{1, 2, 3, 4, 5\}$. Averaging the final sequence over these choices gives $1$, $2.3$, and $4.5$.
+
+The difference sequence contains exactly $n$ terms: it includes the initial gap from zero to $a_1$ but does **not** append a gap from $a_n$ to $m$.
 
 ## Constraints
 
-- $2\le n\le10^4$.
-- $2\le c\le10^4$.
-- $1\le t_i\le10^9$ for all $i$.
-- All input values are integers.
-- The capacity may exceed $n$.
-- The crossing times need not be sorted or distinct.
-- There is exactly one torch, and every crossing must include it.
-- There is one test instance per input.
-- Time limit: **4 seconds**.
+- $1\le n\le50$.
+- $n\le m\le10000$.
+- $n,m$ are integers.
+- The initially selected integers are distinct and belong to $[1,m]$.
+- Every valid $n$-element subset has the same selection probability.
+- Output tolerance: absolute or relative error at most $10^{-6}$ for each of the $n$ expectations.
+- There is one instance per input.
+- Time limit: **1 second**.

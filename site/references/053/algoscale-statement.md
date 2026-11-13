@@ -1,55 +1,66 @@
 ## Problem Description
 
-An $L\times L$ grid has one hospital at each corner: $(1,1)$, $(1,L)$, $(L,1)$, and $(L,L)$. Each hospital has one ambulance. At time zero, $N$ patients request transport; patient $k$ is at $(X_k,Y_k)$.
+Initially, $n$ walkers and one torch are on the same bank of a river. A bridge can carry at most $c$ walkers at once. Every crossing, in either direction, requires the torch, so someone must carry it back whenever another outward crossing still needs it.
 
-An ambulance may start at time zero or later and make any number of trips. Each trip begins at its own hospital, visits a patient, and returns that patient to the same hospital. It can carry at most one patient and cannot drop a patient elsewhere. Moving between orthogonally adjacent cells costs one unit of time; picking up and dropping off a patient takes no time. Different ambulances may share cells simultaneously.
-
-Determine whether every patient can reach a hospital by time $T$.
+Walker $i$ takes $t_i$ time to cross. Each crossing takes between one and $c$ walkers currently on the same bank as the torch to the other bank, taking the torch with them. A group departs and arrives together, and its crossing time equals the largest $t_i$ among its members. Find the minimum total time until all walkers have reached the other bank.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $L$, $N$, and $T$. The next $N$ lines contain the patient coordinates $X_k,Y_k$.
+The first line contains $n$ and $c$. The next line contains $t_1,\ldots,t_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print `Yes` if all patients can be delivered by time $T$, and `No` otherwise.
+Print the minimum total crossing time.
 
 ## Examples
+
+### Example 1
 
 Input:
 
 ```text
-6 4 8
-1 3
-2 2
-3 4
-5 5
+4 2
+1 2 10 5
 ```
 
 Output:
 
 ```text
-Yes
+17
+```
+
+### Example 2
+
+Input:
+
+```text
+4 4
+1 2 10 5
+```
+
+Output:
+
+```text
+10
 ```
 
 ## Explanation / Notes
 
-Assign patients 1 and 2 to $(1, 1)$, patient 3 to $(1, 6)$, and patient 4 to $(6, 6)$. The ambulance at $(1, 1)$ can collect patient 2 at time 2 and return at time 4, then collect patient 1 at time 6 and return at time 8. All four deliveries meet the deadline.
+The walkers with times 1 and 2 cross in 2 time units; the time-1 walker returns; the time-5 and time-10 walkers cross; the time-2 walker returns; then the two fastest cross again. The total is $2+1+10+2+2=17$.
+
+In the second example, all four walkers cross together in 10 time units.
 
 ## Constraints
 
-All input values are integers. There is one scenario per input.
-
-- $3\le L\le10000$.
-- $1\le N\le1600$.
-- $1\le T\le18000$.
-- $1\le X_k,Y_k\le L$ for every patient.
-- No patient is initially at a hospital corner.
-- Patient locations are **not required to be distinct**.
-- All requests are present at time zero; every delivery, including the return to a hospital, must finish at or before $T$.
-- Time limit: 7 seconds.
-- Memory limit: 256 MB.
+- $2\le n\le50000$.
+- $2\le c\le n$.
+- $1\le t_i\le10^9$ for all $i$.
+- All input values are integers.
+- The crossing times need not be sorted or distinct.
+- There is exactly one torch, and every crossing must include it.
+- There is one test instance per input.
+- Time limit: **2 seconds**. Memory limit: **256 MB**.

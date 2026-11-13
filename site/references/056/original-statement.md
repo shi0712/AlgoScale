@@ -1,56 +1,55 @@
 ## Problem Description
 
-There are $n$ casinos and $m+1$ players. You are player $m+1$. The other players have already placed their dice: $a_{i,j}$ is player $j$'s dice count at casino $i$. Choose a nonnegative integer $b_i$ giving your dice count at each casino.
+An $n\times m$ board contains `*`, `+`, and `.` cells. Place as many pairwise disjoint trominoes as possible. Each tromino consists of a center cell and two distinct cells sharing edges with that center.
 
-A casino is resolved independently:
+- An L-shaped tromino uses two perpendicular neighbors; its center must contain `*` or `+`.
+- An I-shaped tromino uses two opposite neighbors; its center must contain `+`.
+- Both non-center cells must contain `.`.
 
-1. Every dice count shared by at least two players is cancelled: all dice belonging to those players at this casino are removed.
-2. Among the remaining dice, the player with the largest positive count wins. If no dice remain, nobody wins.
-
-Let $w_j$ be the number of casinos won by player $j$. Your placement must satisfy $w_{m+1}\ge w_j$ for every other player, so a tie for the most casino wins is sufficient. Minimize $\sum_{i=1}^{n}b_i$ and output an optimal placement.
+No cell may belong to more than one tromino. Output a board showing a placement with the maximum possible number of trominoes.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $T$.
-
-For each test case, read $n,m$, followed by $n$ rows of $m$ integers. Entry $a_{i,j}$ describes the existing dice of player $j$ at casino $i$.
+The first line contains $n,m$. Each of the next $n$ lines contains $m$ board characters.
 
 ## Output Format
 
 Write to standard output.
 
-For each test case, print $n$ integers $b_1,\ldots,b_n$ describing a minimum-total placement. Each output count must be between $0$ and $10^9$. An optimal placement within this range always exists. Any optimal placement is accepted.
+Print $n$ lines of $m$ characters. Replace the three cells of each chosen tromino by the same lowercase English letter. Edge-adjacent cells belonging to different trominoes must receive different letters. A cell not covered by a tromino must retain its original character.
+
+Any optimal placement and valid lettering are accepted. Do not print the number of trominoes separately.
 
 ## Examples
 
 Input:
 
 ```text
-1
-1 4
-20 0 20 0
+2 2
+*.
+..
 ```
 
 Output:
 
 ```text
-0
+aa
+a.
 ```
 
 ## Explanation / Notes
 
-The two existing counts of 20 cancel one another. Every remaining count is zero, so nobody wins the casino. Placing zero dice leaves every player with zero wins and meets the requirement with the minimum possible total.
+The letters identify trominoes in the output; they are not part of the original board. Different trominoes may reuse a letter when no cells from the two trominoes share an edge. A `*` center permits only an L, while a `+` center permits either shape.
 
 ## Constraints
 
-- $1\le T\le100$.
-- $1\le n,m\le50$ in each test case.
-- $0\le a_{i,j}\le10^8$; all input values are integers.
-- At most **three test cases** have $n>20$ **or** $m>20$.
-- Each chosen value must satisfy $0\le b_i\le10^9$.
-- A feasible optimal answer exists within the permitted output range.
-- Zero dice do not constitute a winning positive count.
-- A tie in the number of casino wins is allowed; ties in dice counts within one casino cause cancellation instead.
-- Time limit: **3 seconds**. Memory limit: **1024 MB**.
+- $2\le n,m\le100$.
+- Every input row has exactly $m$ characters, each one `*`, `+`, or `.`.
+- Each tromino occupies exactly three distinct grid cells.
+- The two non-center cells must have been `.` in the input.
+- Trominoes may not overlap; edge contact between different trominoes is allowed subject to different output letters.
+- Output labels use only lowercase English letters `a`–`z`.
+- There is one board per input.
+- Time limit: **2 seconds**. Memory limit: **256 MiB**.

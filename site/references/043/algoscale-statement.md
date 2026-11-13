@@ -1,52 +1,69 @@
 ## Problem Description
 
-A balanced bracket sequence consists of opening and closing parentheses, has equally many of each, and has no prefix with more closing than opening parentheses.
+A simple undirected graph has $N$ vertices, each of degree exactly $N-3$. Its adjacency matrix is supplied as binary strings.
 
-In a balanced sequence $s$, a matching pair is a pair of positions $(i,j)$ such that $i<j$, $s_i$ is `(`, $s_j$ is `)`, and the substring strictly between them is balanced, including when that substring is empty.
+Assign a positive integer color to every edge so that any two edges sharing a vertex have different colors. The edge chromatic number is the smallest possible maximum color in such an assignment.
 
-Consider ordered pairs $(s,t)$ of balanced sequences, each of length $2n$. A matching pair is **common** if the same positions $(i,j)$ form a matching pair in both sequences. For every $k=0,1,\ldots,n$, count the ordered pairs with exactly $k$ common matching pairs, modulo $M$.
-
-Two ordered pairs differ if either of their component strings differs.
+Find this minimum number $C$ and produce an edge coloring that attains it.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $t$. Each test case is one line containing $n$ and the prime modulus $M$.
+Read $N$, followed by $N$ binary strings $S_1,\ldots,S_N$, each of length $N$. Character $j$ of $S_i$ is `1` precisely when edge $\{i,j\}$ exists.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print one line containing $n+1$ integers. The integer in position $k+1$ is the required count for exactly $k$ common matching pairs, reduced modulo $M$.
+Print $C$, followed by an $N\times N$ integer matrix $c$.
+
+- If edge $\{i,j\}$ exists, $c_{i,j}=c_{j,i}$ is its assigned positive color, at most $C$.
+- If the edge does not exist, print $c_{i,j}=-1$.
+- Every diagonal entry must be $-1$.
+
+Any optimal valid coloring is accepted.
 
 ## Examples
 
 Input:
 
 ```text
-1
-1 998244353
+5
+01001
+10100
+01010
+00101
+10010
 ```
 
 Output:
 
 ```text
-0 1
+3
+-1 2 -1 -1 1
+2 -1 3 -1 -1
+-1 3 -1 1 -1
+-1 -1 1 -1 3
+1 -1 -1 3 -1
 ```
 
 ## Explanation / Notes
 
-For $n=1$, the only balanced bracket sequence is `()`. The only ordered pair therefore has exactly one common matching pair. There are zero pairs with no common matching pairs and one pair with one, giving `0 1`.
+The example graph is a cycle of length 5. Its edges cannot alternate between only two colors around the odd cycle. The displayed coloring uses three colors and is optimal.
+
+Colors belong to edges, not to vertices. Nonedges must be represented by $-1$, rather than by color zero.
 
 ## Constraints
 
-- $1\le t\le500$.
-- $1\le n\le10^5$ for each case.
-- $\sum n\le10^5$ over the complete input.
-- $10^8\le M\le10^9$, and $M$ is guaranteed to be prime.
-- Both sequences in each counted ordered pair have exactly $2n$ characters and are balanced.
-- The number of common matching pairs is between 0 and $n$, inclusive.
-- Each answer is reported modulo the modulus supplied for that case; different cases may use different moduli.
-- Time limit: 25 seconds.
+- There is one input instance.
+- $4\le N\le3000$.
+- Each adjacency row has exactly $N$ characters, each `0` or `1`.
+- The graph is simple and undirected: the matrix is symmetric and its diagonal is zero.
+- Every vertex has degree exactly $N-3$.
+- Consequently, the number of edges is exactly $N(N-3)/2$.
+- All actual edge colors must be positive integers, with distinct colors on edges incident to a common vertex.
+- The reported $C$ must be minimal; a proper coloring using more than the optimal number is insufficient.
+- Time limit: 2.5 seconds.
 - Memory limit: 256 MB.
+- There are no subtasks.

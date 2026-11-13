@@ -1,49 +1,49 @@
 ## Problem Description
 
-There are $N$ topping types, numbered $0$ through $N-1$, with $a_i$ pieces of type $i$. A cake's tastiness is the largest number of pieces of a single topping type on that cake.
+An elevator starts at floor `start` at time zero in a building with floors $0,\ldots,n-1$. Each second, it can move one floor upward, move one floor downward, or wait.
 
-For each of $Q$ independent requested counts $K_j$, determine whether all available topping pieces can be distributed among exactly $K_j$ nonempty cakes so that every cake has the same tastiness. Cakes may have different total numbers of pieces and different sets of topping types. No piece may be left over.
+There are $m$ requests. Request $i$ specifies arrival time $a_i$ and floor $f_i$. It completes instantly whenever the elevator occupies $f_i$ at time $t\ge a_i$.
+
+Minimize the time when every request has completed.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $N,Q$. The second contains $a_0,\ldots,a_{N-1}$. Each of the next $Q$ lines contains one requested cake count $K_j$.
+The first line contains three integers $n$, $\texttt{start}$, and $m$: the number of floors, the initial floor, and the number of requests.
+
+Each of the next $m$ lines contains two integers $a_i$ and $f_i$, describing the arrival time and floor of one request.
 
 ## Output Format
 
 Write to standard output.
 
-For every query, print `YES` if such a distribution exists, and `NO` otherwise.
+Print one integer: the minimum time by which all requests can be completed.
 
 ## Examples
 
 Input:
 
 ```text
-1 1
-4
-2
+9 0 2
+0 8
+6 5
 ```
 
 Output:
 
 ```text
-YES
+9
 ```
 
 ## Explanation / Notes
 
-Give each of the two cakes two pieces of the only topping type. Both cakes then have tastiness 2, and all four pieces are used.
-
-Each query starts with the original inventory; it does not consume pieces for subsequent queries.
+Move from floor 0 to floor 5, arriving at time 5. Wait until time 6 to complete the request at floor 5, then continue to floor 8 and finish at time 9. This is the minimum possible completion time.
 
 ## Constraints
 
-- $1\le N,Q\le100000$.
-- $1\le a_i\le100000$ for all topping types.
-- $1\le K_j\le10^{18}$ for all queries.
-- All values are integers.
-- Every cake must receive at least one topping piece.
-- All topping pieces must be used exactly once within a scenario.
-- The tastiness must be equal across cakes, but it may differ between scenarios.
+- $1\le n\le10^9$.
+- $1\le m\le500$.
+- $0\le a_i\le10^9$.
+- $0\le\texttt{start},f_i\le n-1$.
+- Requests need not be ordered by arrival time, and request times and floors may repeat.

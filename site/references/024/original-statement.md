@@ -1,22 +1,22 @@
 ## Problem Description
 
-Player X has $n$ ordinary pieces with strengths $a_1,\ldots,a_n$ and $k$ bombs. Player Y has $m$ ordinary pieces with strengths $b_1,\ldots,b_m$. Each player uniformly shuffles their entire collection into an order.
+For each value $i\in[1,n]$, there are $a_i$ copies. Let $m=\sum_i a_i$. Arrange this multiset into a sequence $b$ of length $m$.
 
-Both players deploy the first remaining piece. For two ordinary pieces, the weaker one is removed; if their strengths are equal, both are removed. A surviving piece stays deployed while the opposing player deploys their next piece. Whenever X's bomb meets any Y piece, both are removed.
+To sort it, start with two empty FIFO queues. Process $b$ from left to right and append each entry to one of the queues. Only after every entry has been inserted, repeatedly remove the front entry from either nonempty queue and append it to the output sequence.
 
-A player wins when the other player has no pieces remaining but they still have at least one. If both run out simultaneously, the outcome is a draw. Compute the probabilities of an X win, a Y win, and a draw, modulo $998244353$.
+A sequence $b$ is valid if some choices of queues and removals produce a nondecreasing output. Count the distinct valid value sequences modulo $998244353$. Sequences differ if their values differ at any position; identical copies are not separately labeled.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n,m,k$, then the $n$ values $a_i$, then the $m$ values $b_j$.
+Read $n$, followed by $a_1,\ldots,a_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print three integers on three separate lines: the probability of X winning, the probability of Y winning, and the probability of a draw, in that order, modulo $998244353$. A rational probability is represented by multiplying its numerator by the modular inverse of its denominator.
+Print the number of valid sequences modulo $998244353$.
 
 ## Examples
 
@@ -25,30 +25,26 @@ Print three integers on three separate lines: the probability of X winning, the 
 Input:
 
 ```text
-5 5 1
-11 4 2 11 9
-20 1 6 20 1
+4
+1 1 1 1
 ```
 
 Output:
 
 ```text
-0
-1
-0
+14
 ```
 
 ## Explanation / Notes
 
-Bombs belong only to X and are shuffled together with X's ordinary pieces before play. A bomb causes mutual removal regardless of the opposing strength. A winning ordinary piece is not removed merely because it has fought once.
+Each queue supports insertion only at the back and removal only at the front. No removal is allowed until all entries have been inserted.
 
 ## Constraints
 
 - One test case.
-- $1\le n,m\le1000$.
-- $0\le k\le20$.
-- $1\le a_i,b_j\le10^5$; repeated strengths are allowed.
-- X has $n+k$ pieces in total, and Y has $m$.
-- The shuffled order for each player's collection is uniform.
+- $1\le n\le500$.
+- $0\le a_i\le n$ for every value $i$.
+- $1\le\sum_{i=1}^n a_i\le500$.
+- A value may be absent because its multiplicity can be zero.
 - Modulus: $998244353$.
-- Time limit: 2 seconds; memory limit: 1024 MB.
+- Time limit: 1 second; memory limit: 256 MB.

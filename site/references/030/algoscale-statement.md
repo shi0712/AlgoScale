@@ -1,52 +1,64 @@
 ## Problem Description
 
-There are $n$ players at coordinates $1,2,\ldots,n$ on a line. Each faces left or right and initially has normal size.
+A pool contains $n$ cards in $m$ types. Type $i$ initially has $a_i$ cards, and the target collection requires $b_i$ cards of that type.
 
-Choose a permutation $p$ of the players as their action order. When player $x$ gets a turn:
+Each refresh draws one card uniformly from the cards currently remaining in the pool. If the target still needs that type, keep the card and remove it from the pool. Otherwise, immediately return it to the pool. Every draw counts as a refresh, including a draw whose card is returned. Continue until all target counts have been collected.
 
-- If already shrunk, the player does nothing.
-- Otherwise, the player fires in their facing direction. The nearest other player in that direction who has not been shrunk is hit and immediately shrinks. If there is no such player, the shot hits nobody.
-
-For every $k=1,\ldots,n$, count the permutations that leave exactly $k$ players unshrunk after all turns. Output these counts modulo $998244353$.
+Compute the expected number of refreshes. Represent this rational expectation modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by a string $s$ of length $n$. Character `L` means the corresponding player faces toward decreasing coordinates; `R` means increasing coordinates.
+Read three lines:
+
+1. $n,m$;
+2. $a_1,\ldots,a_m$;
+3. $b_1,\ldots,b_m$.
+
+Integers on the same line are separated by spaces or tabs. Trailing whitespace at the end of a line or the file is allowed; no additional non-whitespace content is allowed.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ integers on one line. The $k$-th integer is the number of action permutations leaving exactly $k$ unshrunk players, modulo $998244353$.
+Let the expectation in lowest terms be $p/q$. Print
+
+$$p\,q^{-1}\pmod{998244353}$$
+
+as an integer from 0 through $998244352$. It is guaranteed that the denominator is not divisible by the modulus.
 
 ## Examples
-
-### Example
 
 Input:
 
 ```text
-2
-RL
+2 2
+1 1
+1 1
 ```
 
 Output:
 
 ```text
-2 0
+2
 ```
 
 ## Explanation / Notes
 
-Shrunk players are skipped when a shot searches for its target. A player may be hit before their own scheduled turn, in which case that turn is skipped. Each original player appears once in the action permutation.
+A returned card remains available for later refreshes. A kept card is no longer eligible to be drawn. Sampling is uniform over individual remaining cards, so the probability of a type depends on its current multiplicity.
+
+In the example, both cards are required, so every draw keeps a card and exactly two refreshes are needed. If every $b_i$ is zero, the target is already complete and the expectation is zero.
 
 ## Constraints
 
-- One test case.
-- $2\le n\le100000$.
-- $|s|=n$ and every character belongs to $\{\texttt{L},\texttt{R}\}$.
-- All $n!$ possible action permutations are counted.
-- Modulus: $998244353$.
-- Time limit: 7 seconds; memory limit: 256 MB.
+- There is one input instance.
+- $1\le n\le2000$.
+- $1\le m\le\min(n,50)$.
+- $1\le a_i\le n$ and $\sum_{i=1}^{m}a_i=n$.
+- $0\le b_i\le a_i$ for every type.
+- All input counts are integers.
+- Empty target requirements are allowed, including $b_i=0$ for every type.
+- For the reduced expectation $p/q$, $q\not\equiv0\pmod{998244353}$.
+- Time limit: 0.5 seconds.
+- Memory limit: 256 MB.

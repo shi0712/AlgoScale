@@ -1,49 +1,54 @@
 ## Problem Description
 
-Start with $n$ variables $a_1,\ldots,a_n$, all equal to zero. Perform $k$ rounds. In each round, independently choose one of the $n$ variables uniformly at random and increase it by 1.
+A deck contains $2n$ cards. Its ranks are $1,\ldots,n$, each occurring exactly twice. Process the cards in their given order, placing each card on top of one of at most **260 stacks**.
 
-Let $X=\max(a_1,\ldots,a_n)$ after the final round. Compute
+After all cards have been placed, the stacks must allow complete removal of every card using this operation: choose two different nonempty stacks whose top cards have equal rank, and remove both top cards simultaneously.
 
-$$n^k\,\mathbb{E}[X]\pmod{998244353}.$$
+Output a stack assignment that makes complete removal possible. You need not output the removal sequence.
 
 ## Input Format
 
 Read from standard input.
 
-Read the two positive integers $n,k$.
+The first line contains $n$. The second line contains the $2n$ ranks $a_1,\ldots,a_{2n}$, in processing order.
 
 ## Output Format
 
 Write to standard output.
 
-Print the required integer modulo $998244353$.
+Print $2n$ integers $c_1,\ldots,c_{2n}$. Card $i$ is pushed onto stack $c_i$, where $1\le c_i\le260$.
+
+Any valid assignment is accepted. Unused stacks are allowed.
 
 ## Examples
 
 Input:
 
 ```text
-2 5
+3
+1 2 3 1 3 2
 ```
 
 Output:
 
 ```text
-110
+1 1 1 2 2 3
 ```
 
 ## Explanation / Notes
 
-There are $n^k$ equally likely ordered sequences of variable choices. Therefore $n^k\mathbb{E}[X]$ is the integer obtained by adding the final maximum over all those sequences; the output is that integer reduced modulo the modulus.
+The shown sample assignment produces stacks $[1,2,3]$, $[1,3]$, and $[2]$, listed from bottom to top. The other 257 stacks are empty. Remove rank 3 from stacks 1 and 2, rank 2 from stacks 1 and 3, and finally rank 1 from stacks 1 and 2.
 
-The factor $n^k$ is part of the requested answer. Do not output only the modular expectation.
+The deck is generated randomly as specified below. You do not need to minimize the number of stacks; using at most 260 is sufficient.
 
 ## Constraints
 
-- There is one input instance.
-- $1\le n\le10$.
-- $1\le k\le10^5$.
-- Both inputs are integers.
-- Output modulus: $998244353$.
-- Time limit: 3 seconds.
-- Memory limit: 512 MB.
+- $1\le n\le5\times10^5$.
+- There are exactly $2n$ input cards.
+- $1\le a_i\le n$, with integer ranks.
+- Each rank in $\{1,\ldots,n\}$ occurs exactly twice.
+- Each input deck is selected **uniformly at random** from all length-$2n$ sequences satisfying the multiplicity condition.
+- The test set consists of exactly 50 instances, including the sample. Each run receives one instance.
+- Every output stack index must satisfy $1\le c_i\le260$.
+- A removal must use two **different** stacks.
+- Time limit: **3 seconds**. Memory limit: **512 MB**.

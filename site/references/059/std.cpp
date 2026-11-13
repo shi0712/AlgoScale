@@ -1,208 +1,268 @@
-#include <algorithm>
-#include <cstdint>
-#include <iostream>
-#include <numeric>
-#include <vector>
+#include <bits/stdc++.h>
+using namespace std;
 
-using i64 = long long;
-using i128 = __int128_t;
+struct BigInt {
+    static const int B = 1000000000;
+    vector<int> a;
+    int s = 0;
 
-static constexpr i64 INF64 = (1LL << 62);
-static constexpr i128 INF128 = (i128(1) << 120);
+    BigInt(long long x = 0) { *this = x; }
 
-struct State {
-    i128 value;
-    int groups;
-    State(i128 value_ = INF128, int groups_ = 0) : value(value_), groups(groups_) {}
+    BigInt& operator=(long long x) {
+        a.clear();
+        s = 0;
+        if (!x) return *this;
+        if (x < 0) s = -1, x = -x;
+        else s = 1;
+        while (x) {
+            a.push_back(x % B);
+            x /= B;
+        }
+        return *this;
+    }
+
+    void trim() {
+        while (!a.empty() && a.back() == 0) a.pop_back();
+        if (a.empty()) s = 0;
+    }
+
+    static int cmp(const BigInt& x, const BigInt& y) {
+        if (x.a.size() != y.a.size())
+            return x.a.size() < y.a.size() ? -1 : 1;
+        for (int i = (int)x.a.size() - 1; i >= 0; --i)
+            if (x.a[i] != y.a[i])
+                return x.a[i] < y.a[i] ? -1 : 1;
+        return 0;
+    }
+
+    void addAbs(const BigInt& v) {
+        long long c = 0;
+        int n = max(a.size(), v.a.size());
+        a.resize(n);
+        for (int i = 0; i < n || c; ++i) {
+            if (i == (int)a.size()) a.push_back(0);
+            long long x = c + a[i];
+            if (i < (int)v.a.size()) x += v.a[i];
+            a[i] = x % B;
+            c = x / B;
+        }
+    }
+
+    void subAbs(const BigInt& v) {
+        long long c = 0;
+        for (int i = 0; i < (int)a.size(); ++i) {
+            long long x = (long long)a[i]
+                        - (i < (int)v.a.size() ? v.a[i] : 0) - c;
+            if (x < 0) x += B, c = 1;
+            else c = 0;
+            a[i] = x;
+        }
+        trim();
+    }
+
+    BigInt& operator+=(const BigInt& v) {
+        if (!v.s) return *this;
+        if (!s) return *this = v;
+
+        if (s == v.s) {
+            addAbs(v);
+        } else {
+            int c = cmp(*this, v);
+            if (!c) return *this = 0;
+            if (c > 0) {
+                subAbs(v);
+            } else {
+                BigInt t = v;
+                t.subAbs(*this);
+                *this = t;
+            }
+        }
+        return *this;
+    }
+
+    friend BigInt operator+(BigInt x, const BigInt& y) {
+        x += y;
+        return x;
+    }
+
+    BigInt& operator-=(const BigInt& v) {
+        BigInt t = v;
+        t.s = -t.s;
+        return *this += t;
+    }
+
+    void mul(long long v) {
+        if (!s || !v) {
+            *this = 0;
+            return;
+        }
+        if (v < 0) s = -s, v = -v;
+
+        __int128 c = 0;
+        for (int& x : a) {
+            __int128 y = (__int128)x * v + c;
+            x = y % B;
+            c = y / B;
+        }
+        while (c) {
+            a.push_back(c % B);
+            c /= B;
+        }
+    }
+
+    void div(long long v) {
+        __int128 r = 0;
+        for (int i = (int)a.size() - 1; i >= 0; --i) {
+            __int128 x = r * B + a[i];
+            a[i] = x / v;
+            r = x % v;
+        }
+        trim();
+    }
+
+    friend BigInt operator*(const BigInt& x, const BigInt& y) {
+        if (!x.s || !y.s) return 0;
+
+        vector<__int128> t(x.a.size() + y.a.size());
+
+        for (int i = 0; i < (int)x.a.size(); ++i)
+            for (int j = 0; j < (int)y.a.size(); ++j)
+                t[i + j] += (__int128)x.a[i] * y.a[j];
+
+        BigInt r;
+        r.s = x.s * y.s;
+        r.a.resize(t.size());
+
+        for (int i = 0; i < (int)t.size(); ++i) {
+            if (i + 1 < (int)t.size())
+                t[i + 1] += t[i] / B;
+            r.a[i] = t[i] % B;
+        }
+
+        r.trim();
+        return r;
+    }
+
+    long double value() const {
+        long double x = 0;
+        for (int i = (int)a.size() - 1; i >= 0; --i)
+            x = x * B + a[i];
+        return s < 0 ? -x : x;
+    }
 };
 
-class Solver {
-public:
-    Solver(std::vector<i64> times, int capacity)
-        : n_(static_cast<int>(times.size())), c_(capacity) {
-        std::sort(times.begin(), times.end());
-        a_.assign(n_ + 1, 0);
-        prefix_.assign(n_ + 1, 0);
-        for (int i = 1; i <= n_; ++i) {
-            a_[i] = times[i - 1];
-            prefix_[i] = prefix_[i - 1] + a_[i];
-        }
+BigInt Cbig(long long n, int k) {
+    if (n < k) return 0;
+
+    BigInt r = 1;
+    for (int i = 1; i <= k; ++i) {
+        r.mul(n - k + i);
+        r.div(i);
     }
-
-    i64 solve() {
-        if (n_ <= c_) return a_[n_];
-        prepare();
-
-        int logarithm = 0;
-        for (i64 x = 2 * bound_ + 1; x; x >>= 1) ++logarithm;
-        if (i128(c_) * c_ * c_ * c_ * logarithm <= n_) {
-            return solve_small_capacity();
-        }
-        return solve_large_capacity();
-    }
-
-private:
-    int n_, c_, h_limit_;
-    std::vector<i64> a_, prefix_, refill_;
-    std::vector<i128> dp_value_;
-    std::vector<int> dp_groups_;
-    i64 bound_ = 0;
-
-    void prepare() {
-        h_limit_ = n_ / c_;
-        refill_.assign(h_limit_ + 1, INF64);
-        refill_[0] = 0;
-        for (int k = 2; k <= std::min(c_, h_limit_ + 1); ++k) {
-            i64 cost = a_[k] + prefix_[k];
-            for (int h = k - 1; h <= h_limit_; ++h) {
-                refill_[h] = std::min(refill_[h], refill_[h - k + 1] + cost);
-            }
-        }
-        bound_ = i64(n_) * (a_[n_] + prefix_[c_ - 1]) + 1;
-        dp_value_.resize(n_);
-        dp_groups_.resize(n_);
-    }
-
-    i64 solve_large_capacity() const {
-        int max_groups = (n_ - 1) / (c_ - 1);
-        std::vector<i64> dp(2 * h_limit_ + 1, INF64);
-        std::vector<i64> next(2 * h_limit_ + 1, INF64);
-        dp[h_limit_] = 0;
-        i64 answer = INF64;
-
-        for (int q = 0; q <= max_groups; ++q) {
-            std::fill(next.begin(), next.end(), INF64);
-            int low = std::max({-h_limit_, -q * (c_ - 2), q - max_groups});
-            int high = std::min({h_limit_, q, n_ - 1 - q * (c_ - 1)});
-            for (int h = low; h <= high; ++h) {
-                i64 current = dp[h + h_limit_];
-                if (current == INF64) continue;
-                int placed = q * (c_ - 1) + h;
-                if (placed >= n_ - c_ && h >= 0) {
-                    answer = std::min(answer, current + a_[n_ - placed] + refill_[h]);
-                }
-                if (placed > n_ - c_ || q == max_groups) continue;
-
-                int left = std::max({0, placed + c_ - (n_ - 1), h + 1 - h_limit_});
-                int right = std::min({c_ - 1, h + 1 + h_limit_, h + max_groups - q});
-                for (int returning = left; returning <= right; ++returning) {
-                    int next_h = h + 1 - returning;
-                    next[next_h + h_limit_] = std::min(
-                        next[next_h + h_limit_], current + a_[n_ - placed] + prefix_[returning]);
-                }
-            }
-            dp.swap(next);
-        }
-        return answer;
-    }
-
-    State penalized(int target, i64 reward) {
-        dp_value_[0] = 0;
-        dp_groups_[0] = 0;
-        for (int y = 1; y <= target; ++y) {
-            i128 best = INF128;
-            int count = -1;
-            int left = std::max(0, y - c_);
-            int right = std::min(y - 1, n_ - c_);
-            for (int x = left; x <= right; ++x) {
-                i128 candidate = dp_value_[x] + a_[n_ - x] + prefix_[c_ - y + x] - reward;
-                int candidate_count = dp_groups_[x] + 1;
-                if (candidate < best || (candidate == best && candidate_count > count)) {
-                    best = candidate;
-                    count = candidate_count;
-                }
-            }
-            dp_value_[y] = best;
-            dp_groups_[y] = count;
-        }
-        return State(dp_value_[target], dp_groups_[target]);
-    }
-
-    i64 exact_cost(int target, int groups) {
-        i64 left = -bound_, right = bound_;
-        while (left < right) {
-            i64 middle = left + (right - left) / 2;
-            if (penalized(target, middle).groups >= groups) right = middle;
-            else left = middle + 1;
-        }
-        State result = penalized(target, left);
-        return static_cast<i64>(result.value + i128(left) * groups);
-    }
-
-    i64 solve_small_capacity() {
-        std::vector<i64> item_cost(c_);
-        for (int weight = 1; weight < c_; ++weight) {
-            item_cost[weight] = a_[weight + 1] + prefix_[weight + 1];
-        }
-        int best_weight = 1;
-        for (int weight = 2; weight < c_; ++weight) {
-            if (i128(item_cost[weight]) * best_weight < i128(item_cost[best_weight]) * weight) {
-                best_weight = weight;
-            }
-        }
-
-        i64 best_cost = item_cost[best_weight];
-        int periodic_start = (best_weight - 1) * (c_ - 1);
-        int residue_count = best_weight / std::gcd(best_weight, c_ - 1);
-        int exact_limit = periodic_start + (c_ - 1) * residue_count;
-        i64 answer = INF64;
-
-        if (periodic_start <= h_limit_) {
-            std::vector<std::vector<State>> dp(c_ + 1, std::vector<State>(residue_count));
-            dp[0][0] = State(0, 0);
-            for (int x = 0; x < n_; ++x) {
-                auto &row = dp[x % (c_ + 1)];
-                if (x >= n_ - c_) {
-                    for (int residue = 0; residue < residue_count; ++residue) {
-                        const State &state = row[residue];
-                        if (state.value == INF128) continue;
-                        int h = x - state.groups * (c_ - 1);
-                        if (h < periodic_start || h > h_limit_) continue;
-                        i128 cost = (state.value + i128(best_cost) * (c_ - 1) * state.groups) / best_weight;
-                        answer = std::min(answer, static_cast<i64>(cost) + refill_[h] + a_[n_ - x]);
-                    }
-                }
-                if (x <= n_ - c_) {
-                    int limit = std::min(c_, n_ - 1 - x);
-                    for (int placed = 1; placed <= limit; ++placed) {
-                        auto &destination = dp[(x + placed) % (c_ + 1)];
-                        i128 edge = i128(best_weight) * (a_[n_ - x] + prefix_[c_ - placed])
-                                  - i128(best_cost) * (c_ - 1);
-                        for (int residue = 0; residue < residue_count; ++residue) {
-                            if (row[residue].value == INF128) continue;
-                            int next_residue = residue + 1 == residue_count ? 0 : residue + 1;
-                            i128 value = row[residue].value + edge;
-                            int groups = row[residue].groups + 1;
-                            if (value < destination[next_residue].value ||
-                                (value == destination[next_residue].value &&
-                                 groups < destination[next_residue].groups)) {
-                                destination[next_residue] = State(value, groups);
-                            }
-                        }
-                    }
-                }
-                std::fill(row.begin(), row.end(), State());
-            }
-        }
-
-        for (int placed = n_ - c_; placed < n_; ++placed) {
-            int limit = std::min({h_limit_, exact_limit - 1, placed});
-            for (int h = placed % (c_ - 1); h <= limit; h += c_ - 1) {
-                int groups = (placed - h) / (c_ - 1);
-                if (groups < (placed + c_ - 1) / c_ || groups > std::min(placed, n_ - c_ + 1)) continue;
-                answer = std::min(answer, exact_cost(placed, groups) + refill_[h] + a_[n_ - placed]);
-            }
-        }
-        return answer;
-    }
-};
+    return r;
+}
 
 int main() {
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-    int n, c;
-    if (!(std::cin >> n >> c)) return 0;
-    std::vector<i64> times(n);
-    for (i64 &time : times) std::cin >> time;
-    std::cout << Solver(std::move(times), c).solve() << '\n';
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    cin >> n >> m;
+
+    // n <= 50，所以这些组合数可以直接放进 long long。
+    vector<vector<BigInt>> C(n + 1, vector<BigInt>(n + 1));
+    C[0][0] = 1;
+
+    for (int i = 1; i <= n; ++i) {
+        C[i][0] = C[i][i] = 1;
+        for (int j = 1; j < i; ++j)
+            C[i][j] = C[i - 1][j - 1] + C[i - 1][j];
+    }
+
+    int d = n + 1;
+
+    // 插值只会用到 C(x,n)，x < n(n+2)。
+    int lim = n * (n + 2);
+    vector<BigInt> choose(lim + 1);
+
+    choose[n] = 1;
+
+    for (int x = n + 1; x <= lim; ++x) {
+        choose[x] = choose[x - 1];
+        choose[x].mul(x);
+        choose[x].div(x - n);
+    }
+
+    // F[s] = C(n,s) * sum_q C(m-sq,n)。
+    vector<BigInt> F(n + 1);
+
+    for (int s = 1; s <= n; ++s) {
+        int Q = m / s;
+        int r = m % s;
+
+        // P(j) = sum_{t=0}^j C(r+st,n)。
+        vector<BigInt> p(d + 1);
+        BigInt cur = 0;
+
+        for (int j = 0; j <= d; ++j) {
+            cur += choose[r + s * j];
+            p[j] = cur;
+        }
+
+        BigInt S = 0;
+
+        if (Q <= d) {
+            S = p[Q];
+        } else {
+            // |L_0| = C(Q-1,d)。
+            BigInt L = Cbig(Q - 1, d);
+
+            for (int j = 0; j <= d; ++j) {
+                BigInt term = p[j] * L;
+
+                // 符号为 (-1)^(d-j)。
+                if ((d - j) & 1) S -= term;
+                else S += term;
+
+                if (j < d) {
+                    // |L_{j+1}| =
+                    // |L_j| * (Q-j)/(j+1) * (d-j)/(Q-j-1)。
+                    L.mul(Q - j);
+                    L.div(j + 1);
+
+                    L.mul(d - j);
+                    L.div(Q - j - 1);
+                }
+            }
+        }
+
+        F[s] = S;
+        F[s] = F[s] * C[n][s];
+    }
+
+    BigInt den = Cbig(m, n);
+    long double D = den.value();
+
+    cout << fixed << setprecision(12);
+
+    for (int k = 1; k <= n; ++k) {
+        int a = n - k;
+        BigInt num = 0;
+
+        if (a == 0) {
+            num = F[1];
+        } else {
+            for (int s = a + 1; s <= n; ++s) {
+                BigInt term = F[s];
+                term = term * C[s - 2][a - 1];
+
+                if ((s - a - 1) & 1) num -= term;
+                else num += term;
+            }
+        }
+
+        cout << num.value() / D << '\n';
+    }
+
+    return 0;
 }

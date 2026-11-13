@@ -1,55 +1,58 @@
 ## Problem Description
 
-Choose an $n$-element subset of $\{1,\ldots,m\}$ uniformly at random. Apply these steps:
+There are $n$ students, numbered from $1$ to $n$. Their initial **affection** values are $a_1,a_2,\ldots,a_n$.
 
-1. Sort the selected numbers as $a_1<\cdots<a_n$.
-2. Form $d_1=a_1$ and $d_i=a_i-a_{i-1}$ for $i\ge2$.
-3. Sort the $n$ differences in nondecreasing order, obtaining $b_1,\ldots,b_n$.
-4. Form the final sequence $c_i=\sum_{j=1}^{i}b_j$.
+Sensei performs exactly one operation per day:
 
-Compute the expected value of every final entry $c_i$.
+- Choose two integers $l$ and $r$ with $1\le l\le r\le n$, then increase $a_i$ by $1$ for every $i$ in the interval $[l,r]$.
+
+Find the minimum number of days required so that at most $m$ distinct integers remain in the sequence $a_1,a_2,\ldots,a_n$.
 
 ## Input Format
 
 Read from standard input.
 
-One line contains the integers $n$ and $m$.
+The first line contains an integer $T$, the number of test cases.
+
+For each test case:
+
+- The first line contains two integers $n$ and $m$.
+- The second line contains $n$ integers $a_1,a_2,\ldots,a_n$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $n$ lines. Line $i$ contains the expected value of $c_i$ as a real number. Each answer may have absolute or relative error at most $10^{-6}$.
+For each test case, print one non-negative integer: the minimum number of days required.
 
 ## Examples
 
 Input:
 
 ```text
-3 5
+4
+3 1
+3 1 3
+5 1
+5 1 6 1 8
+5 2
+5 1 6 1 8
+5 2
+1 3 2 3 1
 ```
 
 Output:
 
 ```text
+2
+12
+3
 1
-2.3
-4.5
 ```
-
-## Explanation / Notes
-
-There are ten equally likely three-element subsets of $\{1, 2, 3, 4, 5\}$. Averaging the final sequence over these choices gives $1$, $2.3$, and $4.5$.
-
-The difference sequence contains exactly $n$ terms: it includes the initial gap from zero to $a_1$ but does **not** append a gap from $a_n$ to $m$.
 
 ## Constraints
 
-- $1\le n\le50$.
-- $n\le m\le10000$.
-- $n,m$ are integers.
-- The initially selected integers are distinct and belong to $[1,m]$.
-- Every valid $n$-element subset has the same selection probability.
-- Output tolerance: absolute or relative error at most $10^{-6}$ for each of the $n$ expectations.
-- There is one instance per input.
-- Time limit: **1 second**.
+- $1\le T\le10$.
+- $1\le n\le400$.
+- $1\le m\le2$.
+- $0\le a_i\le100$.

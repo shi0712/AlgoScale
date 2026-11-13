@@ -18,7 +18,7 @@ PLATFORM_NAMES = {
     "Codeforces": "Codeforces",
 }
 
-INTERACTIVE_PROBLEM_IDS = {29, 76, 77, 78, 79, 80, 81, 82}
+INTERACTIVE_PROBLEM_IDS = {26, 68, 69, 70, 71, 72, 73, 74}
 
 
 def parse_args() -> argparse.Namespace:

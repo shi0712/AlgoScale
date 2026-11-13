@@ -1,60 +1,99 @@
 ## Problem Description
 
-There are $n$ students, numbered from $1$ to $n$. Their initial **affection** values are $a_1,a_2,\ldots,a_n$.
+This is an interactive problem.
 
-Sensei performs exactly one operation per day:
+You are given a map made of unit squares. Every square is either open or occupied by a wall. Initially, you are placed in an unknown open square and face an unknown cardinal direction.
 
-- Choose two integers $l$ and $r$ with $1\le l\le r\le n$, then increase $a_i$ by $1$ for every $i$ in the interval $[l,r]$.
+At every step, you observe the distance to the next wall in the direction you currently face. This distance is the number of open squares strictly between your current square and that wall. Squares outside the map are considered walls.
 
-Find the minimum number of days required so that at most $m$ distinct integers remain in the sequence $a_1,a_2,\ldots,a_n$.
+You may turn left, turn right, or move one square forward. Your goal is to determine your exact current position. You may report that this is impossible only when the condition for `no` in the output specification below is satisfied.
+
+Open squares are indistinguishable from one another, as are wall squares. You only need to determine the current square, not the direction you face.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains an integer $T$, the number of test cases.
+First read two integers $r$ and $c$, the number of rows and columns in the map.
 
-For each test case:
+Then read $r$ strings of length $c$. A dot (`.`) denotes an open square, and a number sign (`#`) denotes a wall.
 
-- The first line contains two integers $n$ and $m$.
-- The second line contains $n$ integers $a_1,a_2,\ldots,a_n$.
+At the beginning of every interaction round, read one integer $d$: the distance to the nearest wall in the direction you currently face.
 
 ## Output Format
 
 Write to standard output.
 
-For each test case, print one non-negative integer: the minimum number of days required.
+After reading the observation for a round, print exactly one of the following commands:
+
+- `left` - turn $90$ degrees to the left;
+- `right` - turn $90$ degrees to the right;
+- `step` - move one square forward;
+- `yes i j` - report that your current position is row $i$, column $j$;
+- `no` - report that it is impossible to determine your position reliably.
+
+Never use `step` when the square directly ahead is a wall. End every command with a newline and flush the output immediately. After printing `yes i j` or `no`, the interaction ends and the program must terminate. Otherwise, begin the next round by reading another observation. If the communication channel closes, terminate immediately without printing anything else.
+
+A declaration `yes i j` is valid only if every state consistent with the complete interaction history has current square $(i,j)$; guessing the hidden state is not sufficient. A declaration `no` is valid only when, for every state still consistent with the complete history, no continuation strategy can eventually identify the current square reliably.
 
 ## Examples
 
-Input:
+### Sample Interaction 1
 
-```text
-4
-3 1
-3 1 3
-5 1
-5 1 6 1 8
-5 2
-5 1 6 1 8
-5 2
-1 3 2 3 1
-```
+| Judge sends | Program sends |
+| --- | --- |
+| `3 3` | |
+| `##.` | |
+| `#..` | |
+| `...` | |
+| `1` | |
+| | `right` |
+| `1` | |
+| | `step` |
+| `0` | |
+| | `left` |
+| `0` | |
+| | `right` |
+| `0` | |
+| | `right` |
+| `1` | |
+| | `yes 2 2` |
 
-Output:
+### Sample Interaction 2
 
-```text
-2
-12
-3
-1
-```
+| Judge sends | Program sends |
+| --- | --- |
+| `3 5` | |
+| `##.##` | |
+| `###.#` | |
+| `.#.##` | |
+| `0` | |
+| | `left` |
+| `0` | |
+| | `no` |
+
+### Sample Interaction 3
+
+| Judge sends | Program sends |
+| --- | --- |
+| `2 1` | |
+| `#` | |
+| `.` | |
+| `0` | |
+| | `yes 2 1` |
+
+## Explanation / Notes
+
+Each table is one complete interaction in chronological order. A blank cell means that the other side sends the next message. The observations are not ordinary batch input and cannot be read in advance.
 
 ## Constraints
 
-- $1\le T\le10$.
-- $1\le n\le2000$.
-- $1\le m\le2$.
-- $0\le a_i\le2000$.
-- If $V=\max_i a_i-\min_i a_i$, then $0\le V\le2000$.
-- Time limit: 1 second. Memory limit: 256 MB.
+- $1\le r,c\le100$.
+- Every map cell is either `.` or `#`.
+- At least one map cell is open.
+- The initial state is an open square paired with one of the four cardinal directions.
+- Every observation satisfies $0\le d\le99$.
+- Every reported coordinate satisfies $1\le i\le r$ and $1\le j\le c$.
+- At most $50000$ interaction rounds may be used, including the final round containing `yes i j` or `no`.
+- The program must never step into a wall.
+- Time limit: **1 second**. Memory limit: **256 MB**.

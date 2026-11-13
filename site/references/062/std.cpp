@@ -1,260 +1,620 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-// Micali--Vazirani maximum-cardinality matching for a general graph.
-class MicaliVazirani {
-    static constexpr int INF = 1'000'000'000;
-    enum class EdgeState : unsigned char { Fresh, Prop, Bridge };
-    struct Arc { int to, rev; EdgeState state; };
-    struct PetalDSU {
-        vector<int> p, sz, bud, direct_parent;
-        void init(int n) {
-            p.resize(n); iota(p.begin(), p.end(), 0);
-            sz.assign(n, 1); bud.resize(n); iota(bud.begin(), bud.end(), 0);
-            direct_parent.assign(n, -1);
-        }
-        int find(int x) { return p[x] == x ? x : p[x] = find(p[x]); }
-        int top(int x) { return bud[find(x)]; }
-        void merge_into(int x, int y) {
-            direct_parent[x] = y;
-            int a = find(x), b = find(y);
-            if (a == b) return;
-            int wanted = bud[b];
-            if (sz[a] < sz[b]) { p[a] = b; sz[b] += sz[a]; bud[b] = wanted; }
-            else { p[b] = a; sz[a] += sz[b]; bud[a] = wanted; }
-        }
-    } dsu;
-    int n;
-    vector<vector<Arc>> g;
-    vector<int> mate, pred_it, dead, even_level, odd_level, color;
-    vector<vector<int>> pred;
-    vector<vector<pair<int,int>>> ddfs_child;
-    struct BridgeInfo { int a=-1,b=-1,ba=-1,bb=-1; };
-    vector<BridgeInfo> bridge_of;
-    int next_color = 1;
-    queue<int> killed_queue;
-    int min_level(int v) const { return min(even_level[v], odd_level[v]); }
-    int tenacity(int u, int v) const {
-        if (mate[u] == v) {
-            if (odd_level[u] >= INF || odd_level[v] >= INF) return INF;
-            long long z = 1LL * odd_level[u] + odd_level[v] + 1;
-            return z >= INF ? INF : (int)z;
-        }
-        if (even_level[u] >= INF || even_level[v] >= INF) return INF;
-        long long z = 1LL * even_level[u] + even_level[v] + 1;
-        return z >= INF ? INF : (int)z;
+struct DSU {
+    vector<int> p, sz;
+
+    DSU(int n = 0) { init(n); }
+
+    void init(int n) {
+        p.resize(n);
+        iota(p.begin(), p.end(), 0);
+        sz.assign(n, 1);
     }
-    int descend_one(vector<int>& A, int ca, vector<int>& B, int cb,
-                    vector<int>& support) {
-        int u = A.back();
-        while (pred_it[u] < (int)pred[u].size()) {
-            int raw = pred[u][pred_it[u]++];
-            int v = dsu.top(raw);
-            if (dead[raw]) continue;
-            if (color[v] == 0) {
-                A.push_back(v); support.push_back(v);
-                ddfs_child[u].push_back({raw, v}); color[v] = ca;
-                return -1;
-            }
-            if (!B.empty() && v == B.back()) ddfs_child[u].push_back({raw, v});
+
+    int find(int x) {
+        while (p[x] != x) {
+            p[x] = p[p[x]];
+            x = p[x];
         }
-        A.pop_back();
-        if (A.empty()) {
-            if (B.size() == 1) { int z = B.back(); color[z] = 0; return z; }
-            A.push_back(B.back()); color[A.back()] = ca; B.pop_back();
-        }
-        return -1;
+        return x;
     }
-    pair<int,int> double_dfs(int a, int b, vector<int>& support) {
-        vector<int> A{dsu.top(a)}, B{dsu.top(b)};
-        if (A[0] == B[0]) return {A[0], B[0]};
-        support = {A[0], B[0]};
-        int ca = ++next_color, cb = ++next_color;
-        color[A[0]] = ca; color[B[0]] = cb;
-        while (true) {
-            if (min_level(A.back()) == 0 && min_level(B.back()) == 0)
-                return {A.back(), B.back()};
-            int bottleneck;
-            if (min_level(A.back()) >= min_level(B.back()))
-                bottleneck = descend_one(A, ca, B, cb, support);
-            else bottleneck = descend_one(B, cb, A, ca, support);
-            if (bottleneck != -1) return {bottleneck, bottleneck};
-        }
-    }
-    void kill(int v) { if (!dead[v]) { dead[v] = 1; killed_queue.push(v); } }
-    void take_unmatched_edge(int u, int v) {
-        if (dead[u] || dead[v] || mate[u] == v) return;
-        kill(u); kill(v); mate[u] = v; mate[v] = u;
-    }
-    void augment_segment(int u, int target, bool force_bridge = false) {
-        if (u == target) return;
-        if (!force_bridge && min_level(u) == even_level[u]) {
-            int x = pred[u][0], k = 0;
-            while (dsu.top(pred[x][k]) != dsu.top(x)) ++k;
-            u = pred[x][k]; take_unmatched_edge(x, u);
-            augment_segment(u, target, false); return;
-        }
-        BridgeInfo bi = bridge_of[u];
-        int e0 = bi.a, e1 = bi.b, b0 = bi.ba, b1 = bi.bb;
-        if (((color[b0] ^ 1) == color[u]) || color[b1] == color[u]) {
-            swap(b0, b1); swap(e0, e1);
-        }
-        take_unmatched_edge(e0, e1);
-        bool ok1 = open_petal(e0, b0, u); assert(ok1);
-        int up = dsu.direct_parent[u];
-        bool ok2 = open_petal(e1, b1, up); assert(ok2);
-        augment_segment(up, target, false);
-    }
-    bool open_petal(int cur, int base_cur, int wanted) {
-        if (base_cur == wanted) { augment_segment(cur, base_cur, false); return true; }
-        for (auto [raw, b] : ddfs_child[base_cur]) {
-            if ((b == wanted || color[b] == color[base_cur]) &&
-                open_petal(raw, b, wanted)) {
-                augment_segment(cur, base_cur, false);
-                take_unmatched_edge(base_cur, raw); return true;
-            }
-        }
-        return false;
-    }
-    bool phase() {
-        vector<vector<int>> layer(n);
-        vector<vector<pair<int,int>>> bridge_by_tenacity(2*n + 3);
-        vector<int> lost_pred(n, 0);
-        auto assign_level = [&](int v, int lv) {
-            if (lv & 1) odd_level[v] = lv; else even_level[v] = lv;
-            if (lv < n) layer[lv].push_back(v);
-        };
-        for (int v=0; v<n; ++v) if (mate[v] == -1) assign_level(v, 0);
-        bool augmented = false;
-        for (int lv=0; lv<n && !augmented; ++lv) {
-            for (int u : layer[lv]) for (auto &e : g[u]) {
-                bool parity_ok = ((odd_level[u] == lv) == (mate[u] == e.to));
-                if (e.state != EdgeState::Fresh || !parity_ok) continue;
-                int v = e.to;
-                if (min_level(v) >= lv+1) {
-                    e.state = EdgeState::Prop; g[v][e.rev].state = EdgeState::Prop;
-                    if (min_level(v) > lv+1) assign_level(v, lv+1);
-                    pred[v].push_back(u);
-                } else {
-                    e.state = EdgeState::Bridge; g[v][e.rev].state = EdgeState::Bridge;
-                    int t = tenacity(u,v);
-                    if (t < INF && t < (int)bridge_by_tenacity.size())
-                        bridge_by_tenacity[t].push_back({u,v});
-                }
-            }
-            int tneed = 2*lv+1;
-            if (tneed >= (int)bridge_by_tenacity.size()) continue;
-            for (auto [a,b] : bridge_by_tenacity[tneed]) {
-                if (dead[dsu.top(a)] || dead[dsu.top(b)]) continue;
-                vector<int> support; auto [x,y] = double_dfs(a,b,support);
-                BridgeInfo info{a,b,dsu.top(a),dsu.top(b)};
-                for (int v : support) {
-                    if (v == y) continue;
-                    bridge_of[v] = info; dsu.merge_into(v,y);
-                    assign_level(v, tneed-min_level(v));
-                    if (even_level[v] > odd_level[v])
-                        for (auto const &e : g[v])
-                            if (e.state == EdgeState::Bridge && mate[v] != e.to) {
-                                int tt = tenacity(v,e.to);
-                                if (tt < INF && tt < (int)bridge_by_tenacity.size())
-                                    bridge_by_tenacity[tt].push_back({v,e.to});
-                            }
-                }
-                if (x != y) {
-                    augment_segment(x,y,true); augmented = true;
-                    while (!killed_queue.empty()) {
-                        int v=killed_queue.front(); killed_queue.pop();
-                        for (auto const &e : g[v])
-                            if (e.state == EdgeState::Prop &&
-                                min_level(e.to) > min_level(v) && !dead[e.to])
-                                if (++lost_pred[e.to] == (int)pred[e.to].size()) kill(e.to);
-                    }
-                }
-            }
-        }
-        return augmented;
-    }
-    void reset_phase_state() {
-        for (auto &adj:g) for (auto &e:adj) e.state=EdgeState::Fresh;
-        pred.assign(n,{}); pred_it.assign(n,0); dead.assign(n,0);
-        even_level.assign(n,INF); odd_level.assign(n,INF); color.assign(n,0);
-        ddfs_child.assign(n,{}); bridge_of.assign(n,{}); next_color=1;
-        dsu.init(n); while (!killed_queue.empty()) killed_queue.pop();
-    }
-public:
-    explicit MicaliVazirani(int n=0): n(n), g(n), mate(n,-1) {}
-    void add_edge(int u,int v) {
-        int ru=(int)g[v].size(), rv=(int)g[u].size();
-        g[u].push_back({v,ru,EdgeState::Fresh});
-        g[v].push_back({u,rv,EdgeState::Fresh});
-    }
-    vector<int> solve() {
-        fill(mate.begin(),mate.end(),-1);
-        while (true) { reset_phase_state(); if (!phase()) break; }
-        return mate;
+
+    bool unite(int a, int b) {
+        a = find(a);
+        b = find(b);
+        if (a == b) return false;
+        if (sz[a] < sz[b]) swap(a, b);
+        p[b] = a;
+        sz[a] += sz[b];
+        return true;
     }
 };
 
-struct CenterInfo { int r,c,a,b; };
+struct Edge {
+    int a, b, c, d;
+};
 
-int main() {
-    ios::sync_with_stdio(false); cin.tie(nullptr);
-    int n,m; if (!(cin>>n>>m)) return 0;
-    vector<string> board(n); for (auto &s:board) cin>>s;
-    vector<vector<int>> dot_id(n,vector<int>(m,-1));
-    vector<pair<int,int>> vertex_cell; int V=0;
-    for (int i=0;i<n;++i) for (int j=0;j<m;++j)
-        if (board[i][j]=='.') { dot_id[i][j]=V++; vertex_cell.push_back({i,j}); }
-    vector<CenterInfo> centers;
-    for (int i=0;i<n;++i) for (int j=0;j<m;++j) if (board[i][j]!='.') {
-        int a=V++,b=V++; vertex_cell.push_back({i,j}); vertex_cell.push_back({i,j});
-        centers.push_back({i,j,a,b});
+struct TreeInfo {
+    int n, m, LOG, timer = 0;
+    vector<vector<pair<int, int>>> adj;
+    vector<int> par, dep, pe, tin, tout, child;
+    vector<vector<int>> up;
+
+    TreeInfo() {}
+
+    TreeInfo(
+        int n_,
+        int m_,
+        const vector<Edge>& E,
+        const vector<int>& T,
+        bool useB
+    ) : n(n_), m(m_) {
+        LOG = 1;
+        while ((1 << LOG) <= n) ++LOG;
+
+        adj.assign(n, {});
+        for (int id : T) {
+            int u = useB ? E[id].c : E[id].a;
+            int v = useB ? E[id].d : E[id].b;
+            adj[u].push_back({v, id});
+            adj[v].push_back({u, id});
+        }
+
+        par.assign(n, -1);
+        dep.assign(n, 0);
+        pe.assign(n, -1);
+        tin.assign(n, 0);
+        tout.assign(n, 0);
+        child.assign(m, -1);
+
+        dfs0(0, 0, -1);
+
+        up.assign(LOG, vector<int>(n));
+        for (int v = 0; v < n; ++v) up[0][v] = par[v];
+
+        for (int j = 1; j < LOG; ++j)
+            for (int v = 0; v < n; ++v)
+                up[j][v] = up[j - 1][up[j - 1][v]];
     }
-    MicaliVazirani matcher(V);
-    auto inside=[&](int x,int y){return 0<=x&&x<n&&0<=y&&y<m;};
-    const int dr[4]={-1,1,0,0}, dc[4]={0,0,-1,1};
-    for (auto const &cen:centers) {
-        int i=cen.r,j=cen.c; matcher.add_edge(cen.a,cen.b);
-        for (int d=0;d<4;++d) {
-            int x=i+dr[d],y=j+dc[d];
-            if (!inside(x,y)||board[x][y]!='.') continue;
-            int w=dot_id[x][y];
-            if (board[i][j]=='+') {
-                matcher.add_edge(cen.a,w); matcher.add_edge(cen.b,w);
-            } else {
-                if (d>=2) matcher.add_edge(cen.a,w); else matcher.add_edge(cen.b,w);
+
+    void dfs0(int u, int p, int eid) {
+        par[u] = p;
+        pe[u] = eid;
+        tin[u] = timer++;
+
+        if (eid != -1) child[eid] = u;
+
+        for (auto [v, id] : adj[u]) {
+            if (v == p) continue;
+            dep[v] = dep[u] + 1;
+            dfs0(v, u, id);
+        }
+
+        tout[u] = timer - 1;
+    }
+
+    int lca(int a, int b) const {
+        if (dep[a] < dep[b]) swap(a, b);
+
+        int d = dep[a] - dep[b];
+        for (int j = 0; j < LOG; ++j)
+            if ((d >> j) & 1)
+                a = up[j][a];
+
+        if (a == b) return a;
+
+        for (int j = LOG - 1; j >= 0; --j) {
+            if (up[j][a] != up[j][b]) {
+                a = up[j][a];
+                b = up[j][b];
+            }
+        }
+
+        return par[a];
+    }
+};
+
+struct Fenwick {
+    int n;
+    vector<int> bit;
+
+    Fenwick(int n_ = 0) : n(n_), bit(n + 2, 0) {}
+
+    void add(int x, int v) {
+        for (++x; x <= n + 1; x += x & -x)
+            bit[x] += v;
+    }
+
+    void rangeAdd(int l, int r, int v) {
+        add(l, v);
+        if (r + 1 < n) add(r + 1, -v);
+    }
+
+    int point(int x) const {
+        int s = 0;
+        for (++x; x > 0; x -= x & -x)
+            s += bit[x];
+        return s;
+    }
+};
+
+/*
+ * Vertex-biconnected edge blocks of graph A.
+ * Every bridge forms a one-edge block.
+ */
+struct BCC {
+    int n, m, timer = 0;
+    const vector<Edge>& E;
+
+    vector<vector<pair<int, int>>> adj;
+    vector<int> tin, low, stk;
+    vector<int> comp, compSize;
+
+    BCC(int n_, const vector<Edge>& E_)
+        : n(n_), m((int)E_.size()), E(E_) {
+
+        adj.assign(n, {});
+        for (int i = 0; i < m; ++i) {
+            adj[E[i].a].push_back({E[i].b, i});
+            adj[E[i].b].push_back({E[i].a, i});
+        }
+
+        tin.assign(n, 0);
+        low.assign(n, 0);
+        comp.assign(m, -1);
+        stk.reserve(m);
+
+        for (int i = 0; i < n; ++i)
+            if (!tin[i])
+                dfs(i, -1);
+    }
+
+    void dfs(int u, int parentEdge) {
+        tin[u] = low[u] = ++timer;
+
+        for (auto [v, id] : adj[u]) {
+            if (id == parentEdge) continue;
+
+            if (!tin[v]) {
+                stk.push_back(id);
+
+                dfs(v, id);
+                low[u] = min(low[u], low[v]);
+
+                if (low[v] >= tin[u]) {
+                    int cid = (int)compSize.size();
+                    int cnt = 0;
+
+                    while (true) {
+                        int e = stk.back();
+                        stk.pop_back();
+
+                        comp[e] = cid;
+                        ++cnt;
+
+                        if (e == id) break;
+                    }
+
+                    compSize.push_back(cnt);
+                }
+            } else if (tin[v] < tin[u]) {
+                stk.push_back(id);
+                low[u] = min(low[u], tin[v]);
             }
         }
     }
-    vector<int> mate=matcher.solve();
-    for (auto const &cen:centers) {
-        int a=cen.a,b=cen.b;
-        if (mate[a]==b) continue;
-        bool ea=mate[a]!=-1, eb=mate[b]!=-1;
-        if (ea&&eb) continue;
-        if (ea) { int w=mate[a]; mate[w]=mate[a]=-1; }
-        if (eb) { int w=mate[b]; mate[w]=mate[b]=-1; }
-        mate[a]=b; mate[b]=a;
+};
+
+struct SCC {
+    const vector<vector<int>>& g;
+
+    int timer = 0, sccCnt = 0;
+    vector<int> dfn, low, stk, bel;
+    vector<char> inStack;
+
+    SCC(const vector<vector<int>>& g_)
+        : g(g_) {
+        int n = g.size();
+        dfn.assign(n, 0);
+        low.assign(n, 0);
+        bel.assign(n, -1);
+        inStack.assign(n, 0);
+        stk.reserve(n);
     }
-    struct Tromino { array<pair<int,int>,3> cell; };
-    vector<Tromino> pieces;
-    for (auto const &cen:centers) if (mate[cen.a]!=cen.b) {
-        int x=mate[cen.a],y=mate[cen.b];
-        if (x==-1||y==-1) continue;
-        pieces.push_back({array<pair<int,int>,3>{
-            pair<int,int>{cen.r,cen.c},vertex_cell[x],vertex_cell[y]}});
-    }
-    vector<string> ans=board;
-    for (auto const &p:pieces) {
-        bool used[26]={};
-        for (auto [r,c]:p.cell) for (int d=0;d<4;++d) {
-            int x=r+dr[d],y=c+dc[d];
-            if (inside(x,y)&&ans[x][y]>='a'&&ans[x][y]<='z')
-                used[ans[x][y]-'a']=true;
+
+    void dfs(int u) {
+        dfn[u] = low[u] = ++timer;
+        stk.push_back(u);
+        inStack[u] = 1;
+
+        for (int v : g[u]) {
+            if (!dfn[v]) {
+                dfs(v);
+                low[u] = min(low[u], low[v]);
+            } else if (inStack[v]) {
+                low[u] = min(low[u], dfn[v]);
+            }
         }
-        int col=0; while (col<26&&used[col]) ++col; assert(col<26);
-        char ch=char('a'+col); for (auto [r,c]:p.cell) ans[r][c]=ch;
+
+        if (low[u] == dfn[u]) {
+            while (true) {
+                int v = stk.back();
+                stk.pop_back();
+
+                inStack[v] = 0;
+                bel[v] = sccCnt;
+
+                if (v == u) break;
+            }
+            ++sccCnt;
+        }
     }
-    for (auto const &s:ans) cout<<s<<'\n';
-    return 0;
+
+    vector<int> run() {
+        for (int i = 0; i < (int)g.size(); ++i)
+            if (!dfn[i])
+                dfs(i);
+
+        return bel;
+    }
+};
+
+struct CrossQuery {
+    int y, eid, coef;
+};
+
+struct ColorQuery {
+    int color, eid, coef;
+};
+
+bool solveCase(int n, int m, const vector<Edge>& E) {
+    /*
+     * 1. Choose a spanning tree T of A.
+     */
+    DSU dsuA(n);
+    vector<int> treeEdges;
+    vector<char> isTree(m, 0);
+
+    for (int i = 0; i < m; ++i) {
+        if (dsuA.unite(E[i].a, E[i].b)) {
+            treeEdges.push_back(i);
+            isTree[i] = 1;
+        }
+    }
+
+    /*
+     * If the same set is not a spanning tree of B, immediate YES.
+     */
+    DSU dsuB(n);
+    bool commonTree = true;
+
+    for (int id : treeEdges) {
+        if (!dsuB.unite(E[id].c, E[id].d)) {
+            commonTree = false;
+            break;
+        }
+    }
+
+    if (commonTree) {
+        int r = dsuB.find(0);
+        for (int v = 1; v < n; ++v) {
+            if (dsuB.find(v) != r) {
+                commonTree = false;
+                break;
+            }
+        }
+    }
+
+    if (!commonTree)
+        return true;
+
+    TreeInfo A(n, m, E, treeEdges, false);
+    TreeInfo B(n, m, E, treeEdges, true);
+
+    vector<int> chords;
+    for (int i = 0; i < m; ++i)
+        if (!isTree[i])
+            chords.push_back(i);
+
+    if (chords.empty())
+        return false;
+
+    /*
+     * 2. Check P_A(e) subset P_B(e).
+     *
+     * We batch all F(x,y)=|R_A(x) intersect R_B(y)|
+     * queries using a DFS on A and a Fenwick tree on B's Euler order.
+     */
+    vector<vector<CrossQuery>> crossQueries(n);
+    vector<long long> intersection(m, 0);
+    vector<int> lenA(m, 0);
+
+    for (int e : chords) {
+        int ua = E[e].a, va = E[e].b;
+        int ub = E[e].c, vb = E[e].d;
+
+        int la = A.lca(ua, va);
+        int lb = B.lca(ub, vb);
+
+        lenA[e] =
+            A.dep[ua] + A.dep[va] - 2 * A.dep[la];
+
+        int xs[3] = {ua, va, la};
+        int cx[3] = {1, 1, -2};
+
+        int ys[3] = {ub, vb, lb};
+        int cy[3] = {1, 1, -2};
+
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                crossQueries[xs[i]].push_back({
+                    ys[j],
+                    e,
+                    cx[i] * cy[j]
+                });
+            }
+        }
+    }
+
+    Fenwick fw(n);
+
+    function<void(int, int)> dfsCross =
+        [&](int u, int p) {
+
+        int eid = A.pe[u];
+
+        if (eid != -1) {
+            int childB = B.child[eid];
+            fw.rangeAdd(
+                B.tin[childB],
+                B.tout[childB],
+                +1
+            );
+        }
+
+        for (auto q : crossQueries[u]) {
+            intersection[q.eid] +=
+                1LL * q.coef * fw.point(B.tin[q.y]);
+        }
+
+        for (auto [v, id] : A.adj[u]) {
+            if (v != p)
+                dfsCross(v, u);
+        }
+
+        if (eid != -1) {
+            int childB = B.child[eid];
+            fw.rangeAdd(
+                B.tin[childB],
+                B.tout[childB],
+                -1
+            );
+        }
+    };
+
+    dfsCross(0, -1);
+
+    for (int e : chords) {
+        if (intersection[e] != lenA[e])
+            return true;
+    }
+
+    /*
+     * 3. Contract the undirected part of the official auxiliary graph.
+     *
+     * Its components are exactly the cyclic biconnected edge blocks of A.
+     */
+    BCC bcc(n, E);
+
+    int blockCnt = bcc.compSize.size();
+
+    vector<int> nodeOfBlock(blockCnt, -1);
+
+    int cyclicBlocks = 0;
+    for (int c = 0; c < blockCnt; ++c) {
+        if (bcc.compSize[c] > 1)
+            nodeOfBlock[c] = cyclicBlocks++;
+    }
+
+    /*
+     * 4. Build the compressed path-to-block directed graph.
+     */
+    vector<vector<int>> g(cyclicBlocks);
+
+    auto newNode = [&]() {
+        g.emplace_back();
+        return (int)g.size() - 1;
+    };
+
+    auto addEdge = [&](int u, int v) {
+        g[u].push_back(v);
+    };
+
+    /*
+     * down[v][j]:
+     * the 2^j parent edges starting at v in T_B.
+     */
+    vector<vector<int>> down(
+        n,
+        vector<int>(B.LOG, -1)
+    );
+
+    /*
+     * Leaves: one node per tree edge.
+     */
+    for (int v = 1; v < n; ++v) {
+        down[v][0] = newNode();
+
+        int eid = B.pe[v];
+        int c = bcc.comp[eid];
+
+        if (bcc.compSize[c] > 1) {
+            addEdge(
+                down[v][0],
+                nodeOfBlock[c]
+            );
+        }
+    }
+
+    /*
+     * Binary lifting interval DAG.
+     */
+    for (int j = 1; j < B.LOG; ++j) {
+        int need = 1 << j;
+
+        for (int v = 0; v < n; ++v) {
+            if (B.dep[v] < need)
+                continue;
+
+            down[v][j] = newNode();
+
+            int mid = B.up[j - 1][v];
+
+            addEdge(
+                down[v][j],
+                down[v][j - 1]
+            );
+
+            addEdge(
+                down[v][j],
+                down[mid][j - 1]
+            );
+        }
+    }
+
+    auto addUpPath = [&](int src, int x, int anc) {
+        int d = B.dep[x] - B.dep[anc];
+
+        for (int j = B.LOG - 1; j >= 0; --j) {
+            if ((d >> j) & 1) {
+                addEdge(src, down[x][j]);
+                x = B.up[j][x];
+            }
+        }
+    };
+
+    for (int e : chords) {
+        int c = bcc.comp[e];
+
+        // Every non-tree edge lies on a cycle.
+        int src = nodeOfBlock[c];
+
+        int u = E[e].c;
+        int v = E[e].d;
+        int l = B.lca(u, v);
+
+        addUpPath(src, u, l);
+        addUpPath(src, v, l);
+    }
+
+    /*
+     * 5. SCC of the compressed graph.
+     */
+    SCC solver(g);
+    vector<int> scc = solver.run();
+
+    /*
+     * 6. For each chord e, count tree edges on P_B(e)
+     * whose block belongs to the same SCC as C(e).
+     *
+     * We can answer all such path-color queries by one DFS.
+     */
+    vector<vector<ColorQuery>> colorQueries(n);
+    vector<long long> sameSccCount(m, 0);
+
+    for (int e : chords) {
+        int color =
+            scc[nodeOfBlock[bcc.comp[e]]];
+
+        int u = E[e].c;
+        int v = E[e].d;
+        int l = B.lca(u, v);
+
+        colorQueries[u].push_back({
+            color, e, +1
+        });
+
+        colorQueries[v].push_back({
+            color, e, +1
+        });
+
+        colorQueries[l].push_back({
+            color, e, -2
+        });
+    }
+
+    vector<int> active(solver.sccCnt, 0);
+
+    function<void(int, int)> dfsColor =
+        [&](int u, int p) {
+
+        int eid = B.pe[u];
+        int color = -1;
+
+        if (eid != -1) {
+            int c = bcc.comp[eid];
+
+            if (bcc.compSize[c] > 1) {
+                color =
+                    scc[nodeOfBlock[c]];
+                ++active[color];
+            }
+        }
+
+        for (auto q : colorQueries[u]) {
+            sameSccCount[q.eid] +=
+                1LL * q.coef * active[q.color];
+        }
+
+        for (auto [v, id] : B.adj[u]) {
+            if (v != p)
+                dfsColor(v, u);
+        }
+
+        if (color != -1)
+            --active[color];
+    };
+
+    dfsColor(0, -1);
+
+    /*
+     * Exactly |P_A(e)| of them are the harmless
+     * P_A(e) subset of P_B(e) edges.
+     *
+     * Any extra one is a genuine directed dependency
+     * lying inside one SCC.
+     */
+    for (int e : chords) {
+        if (sameSccCount[e] > lenA[e])
+            return true;
+    }
+
+    return false;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+
+    while (T--) {
+        int n, m;
+        cin >> n >> m;
+
+        vector<Edge> E(m);
+
+        for (auto& e : E) {
+            cin >> e.a >> e.b >> e.c >> e.d;
+            --e.a;
+            --e.b;
+            --e.c;
+            --e.d;
+        }
+
+        cout << (solveCase(n, m, E) ? "YES" : "NO")
+             << '\n';
+    }
 }

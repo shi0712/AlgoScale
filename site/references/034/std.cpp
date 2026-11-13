@@ -1,206 +1,201 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+using u64 = unsigned long long;
+using i64 = long long;
+
 static constexpr int MOD = 998244353;
+static constexpr int G = 3;
 
-struct Matrix {
-    int a = 0, b = 0, c = 0, d = 0;
-};
+int N;
+u64 K;
+vector<u64> A, B;
+vector<int> fac, ifac;
 
-Matrix multiply(const Matrix &x, const Matrix &y) {
-    return {
-        int((1LL * x.a * y.a + 1LL * x.b * y.c) % MOD),
-        int((1LL * x.a * y.b + 1LL * x.b * y.d) % MOD),
-        int((1LL * x.c * y.a + 1LL * x.d * y.c) % MOD),
-        int((1LL * x.c * y.b + 1LL * x.d * y.d) % MOD)
-    };
+int mod_pow(int a, int e) {
+    long long r = 1, x = a;
+    while (e) {
+        if (e & 1) r = r * x % MOD;
+        x = x * x % MOD;
+        e >>= 1;
+    }
+    return (int)r;
 }
 
-class DynamicDP {
-    struct Node {
-        int left = 0, right = 0, light = 0, parent = 0;
-        Matrix value;
-    };
+void ntt(vector<int>& a, bool invert) {
+    int n = (int)a.size();
+    static vector<int> rev;
+    static vector<int> roots{0, 1};
 
-    int n, total, expressionRoot;
-    const vector<vector<int>> &graph;
-    vector<Node> tree;
-    vector<int> parent, size, heavy;
-    vector<unsigned char> active;
-
-    void pull(int u) {
-        Node &t = tree[u];
-        if (u > n) {
-            // 合并两组轻子树的贡献，只使用矩阵的第一列。
-            const Matrix &x = tree[t.left].value;
-            const Matrix &y = tree[t.right].value;
-            t.value = {
-                int(1LL * x.a * y.a % MOD), 0,
-                int((1LL * x.c * y.a + 1LL * x.a * y.c) % MOD), 0
-            };
-            return;
-        }
-
-        // 轻子树合并结果为 (A, B)，空集合为 (1, 0)。
-        int A = tree[t.light].value.a;
-        int B = tree[t.light].value.c;
-        Matrix m;
-        if (active[u]) {
-            int s = A + B;
-            if (s >= MOD) s -= MOD;
-            m = {s, A, B, A};
-        } else {
-            m = {A, 0, A, 0};
-        }
-
-        // 按重链从上到下的顺序：左区间 * 当前点矩阵 * 右区间。
-        if (t.left)  m = multiply(tree[t.left].value, m);
-        if (t.right) m = multiply(m, tree[t.right].value);
-        t.value = m;
+    if ((int)rev.size() != n) {
+        int k = __builtin_ctz(n);
+        rev.assign(n, 0);
+        for (int i = 0; i < n; ++i)
+            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (k - 1));
     }
-
-    int joinRake(int x, int y) {
-        if (!x) return y;
-        if (!y) return x;
-        int u = ++total;
-        tree[u].left = x;
-        tree[u].right = y;
-        tree[x].parent = tree[y].parent = u;
-        pull(u);
-        return u;
-    }
-
-    // prefix 是正权值的前缀和，返回区间的带权中位数。
-    static int weightedMedian(const vector<int> &prefix, int l, int r) {
-        int target = prefix[l] + (prefix[r + 1] - prefix[l] + 1) / 2;
-        return int(lower_bound(prefix.begin() + l + 1,
-                               prefix.begin() + r + 2, target)
-                   - prefix.begin()) - 1;
-    }
-
-    int buildRake(const vector<int> &ids, const vector<int> &prefix,
-                  int l, int r) {
-        if (l > r) return 0;
-        if (l == r) return ids[l];
-        int m = weightedMedian(prefix, l, r);
-        int x = buildRake(ids, prefix, l, m - 1);
-        int y = ids[m];
-        int z = buildRake(ids, prefix, m + 1, r);
-        return joinRake(joinRake(x, y), z);
-    }
-
-    int buildCompress(const vector<int> &ids, const vector<int> &prefix,
-                      int l, int r) {
-        if (l > r) return 0;
-        int m = weightedMedian(prefix, l, r);
-        int u = ids[m];
-        int x = buildCompress(ids, prefix, l, m - 1);
-        int y = buildCompress(ids, prefix, m + 1, r);
-        tree[u].left = x;
-        tree[u].right = y;
-        if (x) tree[x].parent = u;
-        if (y) tree[y].parent = u;
-        pull(u);
-        return u;
-    }
-
-    int buildChain(int head) {
-        vector<int> ids;
-        vector<int> prefix(1, 0);
-        for (int u = head; u; u = heavy[u]) {
-            vector<int> lightIds;
-            vector<int> lightPrefix(1, 0);
-            for (int v : graph[u]) {
-                if (parent[v] == u && v != heavy[u]) {
-                    lightIds.push_back(buildChain(v));
-                    lightPrefix.push_back(lightPrefix.back() + size[v]);
-                }
+    if ((int)roots.size() < n) {
+        int k = __builtin_ctz((int)roots.size());
+        roots.resize(n);
+        while ((1 << k) < n) {
+            int e = mod_pow(G, (MOD - 1) >> (k + 1));
+            for (int i = 1 << (k - 1); i < (1 << k); ++i) {
+                roots[i << 1] = roots[i];
+                roots[i << 1 | 1] = (long long)roots[i] * e % MOD;
             }
-            int lightRoot = buildRake(lightIds, lightPrefix,
-                                      0, int(lightIds.size()) - 1);
-            tree[u].light = lightRoot;
-            if (lightRoot) tree[lightRoot].parent = u;
-
-            ids.push_back(u);
-            // 点权为当前点及其所有轻子树的大小之和。
-            prefix.push_back(prefix.back() + size[u] - size[heavy[u]]);
+            ++k;
         }
-        return buildCompress(ids, prefix, 0, int(ids.size()) - 1);
     }
+    for (int i = 0; i < n; ++i)
+        if (i < rev[i]) swap(a[i], a[rev[i]]);
 
-public:
-    DynamicDP(int n_, const vector<vector<int>> &g)
-        : n(n_), total(n_), graph(g), tree(2 * n_ + 5),
-          parent(n_ + 1), size(n_ + 1), heavy(n_ + 1), active(n_ + 1) {
-        // 空链取单位矩阵，其第一列也恰好是空轻子树集合 (1, 0)。
-        tree[0].value = {1, 0, 0, 1};
-
-        vector<int> order;
-        order.reserve(n);
-        order.push_back(1);
-        for (int i = 0; i < int(order.size()); ++i) {
-            int u = order[i];
-            for (int v : graph[u]) {
-                if (v == parent[u]) continue;
-                parent[v] = u;
-                order.push_back(v);
+    for (int len = 1; len < n; len <<= 1) {
+        for (int i = 0; i < n; i += len << 1) {
+            for (int j = 0; j < len; ++j) {
+                int u = a[i + j];
+                int v = (long long)a[i + j + len] * roots[len + j] % MOD;
+                int x = u + v;
+                if (x >= MOD) x -= MOD;
+                int y = u - v;
+                if (y < 0) y += MOD;
+                a[i + j] = x;
+                a[i + j + len] = y;
             }
         }
-        for (int i = n - 1; i >= 0; --i) {
-            int u = order[i];
-            size[u] = 1;
-            for (int v : graph[u]) {
-                if (parent[v] != u) continue;
-                size[u] += size[v];
-                if (size[v] > size[heavy[u]]) heavy[u] = v;
+    }
+
+    if (invert) {
+        reverse(a.begin() + 1, a.end());
+        int inv_n = mod_pow(n, MOD - 2);
+        for (int& x : a) x = (long long)x * inv_n % MOD;
+    }
+}
+
+vector<int> convolution(const vector<int>& a, const vector<int>& b) {
+    if (a.empty() || b.empty()) return {};
+    if (a.size() == 1) {
+        vector<int> c = b;
+        for (int& x : c) x = (long long)x * a[0] % MOD;
+        return c;
+    }
+    if (b.size() == 1) {
+        vector<int> c = a;
+        for (int& x : c) x = (long long)x * b[0] % MOD;
+        return c;
+    }
+    if ((long long)a.size() * b.size() <= 4096) {
+        vector<int> c(a.size() + b.size() - 1, 0);
+        for (int i = 0; i < (int)a.size(); ++i) {
+            for (int j = 0; j < (int)b.size(); ++j) {
+                c[i + j] = (c[i + j] + (long long)a[i] * b[j]) % MOD;
             }
         }
-        expressionRoot = buildChain(1);
+        return c;
     }
+    int need = (int)a.size() + (int)b.size() - 1;
+    int sz = 1;
+    while (sz < need) sz <<= 1;
+    vector<int> x(sz), y(sz);
+    copy(a.begin(), a.end(), x.begin());
+    copy(b.begin(), b.end(), y.begin());
+    ntt(x, false);
+    ntt(y, false);
+    for (int i = 0; i < sz; ++i) x[i] = (long long)x[i] * y[i] % MOD;
+    ntt(x, true);
+    x.resize(need);
+    return x;
+}
 
-    bool isActive(int u) const { return active[u] != 0; }
-
-    void activate(int u) {
-        active[u] = 1;
-        for (int x = u; x; x = tree[x].parent) pull(x);
+vector<int> full_board(int m, int n) {
+    int s = min(m, n);
+    vector<int> r(s + 1);
+    // C(m,t) C(n,t) t! = m! n! / ((m-t)!(n-t)!t!)
+    for (int t = 0; t <= s; ++t) {
+        r[t] = (long long)fac[m] * fac[n] % MOD
+             * ifac[m - t] % MOD * ifac[n - t] % MOD * ifac[t] % MOD;
     }
+    return r;
+}
 
-    int forestCount() const {
-        // 根所在重链的矩阵积乘 (1, 0)^T，第二维就是 f_1[root]。
-        return tree[expressionRoot].value.c;
+vector<int> complement_poly(const vector<int>& r, int m, int n) {
+    int s = min(m, n);
+    int d = min(s, (int)r.size() - 1);
+    if (d == 0 && r[0] == 1) return full_board(m, n);
+
+    vector<int> x(d + 1), y(s + 1);
+    for (int j = 0; j <= d; ++j) {
+        long long v = (long long)r[j] * fac[m - j] % MOD * fac[n - j] % MOD;
+        if (j & 1) v = v ? MOD - v : 0;
+        x[j] = (int)v;
     }
-};
+    for (int j = 0; j <= s; ++j) y[j] = ifac[j];
+    vector<int> z = convolution(x, y);
+    vector<int> ans(s + 1);
+    for (int t = 0; t <= s; ++t) {
+        ans[t] = (long long)z[t] * ifac[m - t] % MOD * ifac[n - t] % MOD;
+    }
+    return ans;
+}
+
+int split_pos(const vector<u64>& v, int l, int r, int bit) {
+    if (l == r) return l;
+    u64 high = (v[l] >> (bit + 1)) << (bit + 1);
+    u64 threshold = high | (1ULL << bit);
+    return (int)(lower_bound(v.begin() + l, v.begin() + r, threshold) - v.begin());
+}
+
+// Returns the rook polynomial of either E = {xor >= K} (want_edge=true)
+// or its complement (want_edge=false), restricted to A[al:ar), B[bl:br).
+vector<int> solve(int al, int ar, int bl, int br, int bit, bool want_edge) {
+    int m = ar - al, n = br - bl;
+    if (m == 0 || n == 0) return {1};
+    if (bit < 0) return want_edge ? full_board(m, n) : vector<int>{1};
+
+    // If the remaining threshold bits are all zero, xor_suffix >= 0 is always true.
+    u64 mask = (1ULL << (bit + 1)) - 1;
+    if ((K & mask) == 0) return want_edge ? full_board(m, n) : vector<int>{1};
+
+    int am = split_pos(A, al, ar, bit);
+    int bm = split_pos(B, bl, br, bit);
+    bool kb = (K >> bit) & 1ULL;
+
+    // The easy object is edges when kb=1, non-edges when kb=0.
+    bool easy_is_edge = kb;
+    vector<int> p, q;
+    if (kb) {
+        p = solve(al, am, bm, br, bit - 1, true);   // A0 x B1
+        q = solve(am, ar, bl, bm, bit - 1, true);   // A1 x B0
+    } else {
+        p = solve(al, am, bl, bm, bit - 1, false);  // A0 x B0
+        q = solve(am, ar, bm, br, bit - 1, false);  // A1 x B1
+    }
+    vector<int> easy = convolution(p, q);
+    if (want_edge == easy_is_edge) return easy;
+    return complement_poly(easy, m, n);
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n;
-    if (!(cin >> n)) return 0;
-    vector<vector<int>> graph(n + 1);
-    for (int i = 1; i < n; ++i) {
-        int u, v;
-        cin >> u >> v;
-        graph[u].push_back(v);
-        graph[v].push_back(u);
+    cin >> N >> K;
+    A.resize(N); B.resize(N);
+    for (u64& x : A) cin >> x;
+    for (u64& x : B) cin >> x;
+    sort(A.begin(), A.end());
+    sort(B.begin(), B.end());
+
+    fac.assign(N + 1, 1);
+    ifac.assign(N + 1, 1);
+    for (int i = 1; i <= N; ++i) fac[i] = (long long)fac[i - 1] * i % MOD;
+    ifac[N] = mod_pow(fac[N], MOD - 2);
+    for (int i = N; i >= 1; --i) ifac[i - 1] = (long long)ifac[i] * i % MOD;
+
+    vector<int> ans = solve(0, N, 0, N, 59, true);
+    for (int t = 1; t <= N; ++t) {
+        int v = t < (int)ans.size() ? ans[t] : 0;
+        if (t > 1) cout << ' ';
+        cout << v;
     }
-
-    vector<int> power2(n + 1, 1);
-    for (int i = 1; i <= n; ++i)
-        power2[i] = int(2LL * power2[i - 1] % MOD);
-
-    DynamicDP dp(n, graph);
-    int exponent = 0; // 未操作点诱导森林的连通块数减一。
-    for (int i = 1; i < n; ++i) {
-        int x;
-        cin >> x;
-        int unoperatedNeighbors = 0;
-        for (int v : graph[x])
-            if (!dp.isActive(v)) ++unoperatedNeighbors;
-
-        exponent += unoperatedNeighbors - 1;
-        dp.activate(x);
-        cout << 1LL * power2[exponent] * dp.forestCount() % MOD << '\n';
-    }
+    cout << '\n';
     return 0;
 }

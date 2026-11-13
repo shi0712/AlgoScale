@@ -2,89 +2,15 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+
 using namespace std;
 
-class OneDirectionSolver {
-    int n, length;
-    vector<int> first_order, second_pos, bucket, tails;
+namespace {
+constexpr int MOD = 998244353;
 
-    bool build(int limit) {
-        int b = 1;
-        tails.clear();
-        for (int value : first_order) {
-            int x = -second_pos[value];
-            int p = int(lower_bound(tails.begin(), tails.end(), x) - tails.begin());
-            if (p == limit - b) {
-                ++b;
-                if (b >= limit) return false;
-                tails.clear();
-                p = 0;
-            }
-            if (p == int(tails.size())) tails.push_back(x);
-            else tails[p] = x;
-            bucket[value] = b;
-        }
-        return true;
-    }
-
-public:
-    explicit OneDirectionSolver(const vector<int>& a)
-        : n(int(a.size()) / 2), length(int(a.size())),
-          second_pos(n + 1, -1), bucket(n + 1) {
-        vector<unsigned char> seen(n + 1, 0);
-        first_order.reserve(n);
-        for (int i = 0; i < length; ++i) {
-            int value = a[i];
-            if (!seen[value]) {
-                seen[value] = 1;
-                first_order.push_back(value);
-            } else {
-                second_pos[value] = i;
-            }
-        }
-    }
-
-    vector<int> solve(const vector<int>& a, int* stack_count) {
-        int low = 1, high = min(n + 1, 180);
-        while (!build(high)) high *= 2;
-        while (low + 1 < high) {
-            int middle = (low + high) / 2;
-            if (build(middle)) high = middle;
-            else low = middle;
-        }
-        build(high);
-
-        vector<int64_t> top;
-        vector<int> answer(length);
-        top.reserve(high);
-        for (int i = 0; i < length; ++i) {
-            int value = a[i];
-            int64_t key = int64_t(bucket[value]) * (length + 1LL) + second_pos[value];
-            int s = int(upper_bound(top.begin(), top.end(), key, greater<int64_t>()) - top.begin());
-            if (s == int(top.size())) top.push_back(key);
-            else top[s] = key;
-            answer[i] = s + 1;
-        }
-        *stack_count = int(top.size());
-        return answer;
-    }
-};
-
-static vector<int> construct(vector<int> a, int* used) {
-    int forward_count = 0, backward_count = 0;
-    OneDirectionSolver forward(a);
-    vector<int> answer = forward.solve(a, &forward_count);
-
-    reverse(a.begin(), a.end());
-    OneDirectionSolver backward(a);
-    vector<int> candidate = backward.solve(a, &backward_count);
-    if (backward_count < forward_count) {
-        reverse(candidate.begin(), candidate.end());
-        answer.swap(candidate);
-        forward_count = backward_count;
-    }
-    *used = forward_count;
-    return answer;
+inline void add_to(int& x, int64_t y) {
+    x = static_cast<int>((x + y) % MOD);
+}
 }
 
 int main() {
@@ -93,16 +19,64 @@ int main() {
 
     int n;
     if (!(cin >> n)) return 0;
-    vector<int> a(2 * n);
-    for (int& x : a) cin >> x;
-
-    int used = 0;
-    vector<int> answer = construct(a, &used);
-    if (used > 180) return 2; // The official generator rejects such a test.
-    for (int i = 0; i < 2 * n; ++i) {
-        if (i) cout << ' ';
-        cout << answer[i];
+    vector<int> left(n), right(n);
+    for (int i = 0; i < n; ++i) {
+        cin >> left[i] >> right[i];
+        --left[i];
+        --right[i];
     }
-    cout << '\n';
+
+    vector<vector<int>> weight(n, vector<int>(n));
+    vector<int> path(n);
+    for (int length = 1; length < n; ++length) {
+        for (int l = 0; l + length < n; ++l) {
+            const int r = l + length;
+            fill(path.begin() + l, path.begin() + r + 1, 0);
+            path[l] = 1;
+            for (int v = l + 1; v < r; ++v) {
+                if (left[v] <= l || right[v] >= r) continue;
+                int64_t sum = 0;
+                for (int u = l; u < v; ++u) {
+                    sum += static_cast<int64_t>(path[u]) * weight[u][v] % MOD;
+                    if (sum >= (INT64_C(1) << 62)) sum %= MOD;
+                }
+                path[v] = static_cast<int>(sum % MOD);
+            }
+            int64_t bad = 0;
+            for (int u = l + 1; u < r; ++u) {
+                bad += static_cast<int64_t>(path[u]) * weight[u][r] % MOD;
+                if (bad >= (INT64_C(1) << 62)) bad %= MOD;
+            }
+            weight[l][r] = static_cast<int>((1 - bad % MOD + MOD) % MOD);
+        }
+    }
+
+    const size_t plane = static_cast<size_t>(n) * n;
+    vector<int> dp(static_cast<size_t>(n) * plane);
+    auto at = [&](int i, int bound, int open) -> int& {
+        return dp[static_cast<size_t>(i) * plane + static_cast<size_t>(bound) * n + open];
+    };
+
+    int answer = 0;
+    for (int i = 0; i < n; ++i) {
+        add_to(at(i, right[i], i), 1);
+        for (int bound = i; bound < n; ++bound) {
+            for (int open = 0; open <= i; ++open) {
+                const int current = at(i, bound, open);
+                if (current == 0) continue;
+                if (open == i) {
+                    answer += current;
+                    if (answer >= MOD) answer -= MOD;
+                }
+                for (int next = i + 1; next <= bound; ++next) {
+                    const int next_bound = max(bound, right[next]);
+                    const int next_open = left[next] <= open ? next : open;
+                    add_to(at(next, next_bound, next_open),
+                           static_cast<int64_t>(current) * weight[i][next] % MOD);
+                }
+            }
+        }
+    }
+    cout << answer << '\n';
     return 0;
 }

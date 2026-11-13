@@ -1,61 +1,61 @@
 ## Problem Description
 
-A gallery is a simple polygon containing $m$ cameras. A point is monitored if at least one camera can be joined to it by a line segment lying inside the gallery.
+There are $n$ cards. Card $i$ has an integer value $v_i$ and a positive point number $t_i$.
 
-Compute the area of the union of all monitored regions. Regions seen by multiple cameras are counted only once.
+First choose at most $k$ distinct cards and double their point numbers, at most once each. Then choose two disjoint sets of cards $S,T$ whose point-number sums, after those doublings, are equal. Cards outside $S\cup T$ may be left unused.
+
+Maximize the total value
+
+$$\sum_{i\in S\cup T}v_i.$$
+
+Doubling changes a card's point number only, not its value.
 
 ## Input Format
 
 Read from standard input.
 
-Read $n$, followed by $n$ pairs of coordinates for the polygon vertices in clockwise order. Then read $m$, followed by $m$ pairs of camera coordinates.
+The first line contains $n,k$. Each of the next $n$ lines contains $v_i,t_i$, in that order.
 
 ## Output Format
 
 Write to standard output.
 
-Print the monitored area as a real number. For submitted value $a$ and reference value $b$, the acceptance condition is
-
-$$\frac{|a-b|}{\max(1,|b|)}\le10^{-6}.$$
+Print the maximum total value of the selected cards as one integer.
 
 ## Examples
 
 Input:
 
 ```text
-8
-0 0
-0 5
-5 5
-5 10
-10 10
-10 5
-50 5
-50 0
-1
-8 7
+4 1
+10 1
+-5 3
+5 1
+6 1
 ```
 
 Output:
 
 ```text
-79.166666667
+21
 ```
 
 ## Explanation / Notes
 
-The polygon may be non-convex, so a camera does not necessarily see every interior point. Visibility is determined by the whole connecting segment, not solely by the locations of its endpoints. Boundary conventions do not change the requested area.
+In the sample, double the point number of card 1. Then take $S=\{1\}$ and $T=\{3,4\}$. Both point sums are 2, and the combined value is $10+5+6=21$.
+
+It is not necessary to select all cards or to use all $k$ doublings. Both selected sets may be empty; therefore a zero-value choice is always available, even when some card values are negative.
 
 ## Constraints
 
 - There is one input instance.
-- $3\le n\le50$.
-- $1\le m\le50$.
-- Polygon-vertex and camera coordinates are integers satisfying $|x|,|y|\le100$.
-- The polygon is simple and its vertices are listed clockwise.
-- No three consecutive polygon vertices are collinear, including consecutive triples crossing the end of the vertex list.
-- Every camera lies strictly inside the polygon.
-- Camera positions need not be distinct.
-- Error tolerance follows the explicit inequality above, with $10^{-6}$ included.
-- Time limit: 10 seconds.
+- $1\le n\le100$.
+- $0\le k\le n$.
+- $-10^9\le v_i\le10^9$.
+- Initially $1\le t_i\le13$.
+- All inputs are integers.
+- At most $k$ distinct cards are doubled; no card may be doubled more than once.
+- A doubled point number equals $2t_i$, hence lies in $[2,26]$; an undoubled one remains unchanged.
+- $S\cap T=\varnothing$, and their final point-number sums must be equal. Their union need not contain every card.
+- Time limit: 1 second.
 - Memory limit: 512 MB.

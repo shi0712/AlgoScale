@@ -1,180 +1,154 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-using i64 = long long;
+static constexpr int MOD = 998244353;
+static constexpr int MAX_A = 6000;
+
+int mod_pow(int a, int e) {
+    int result = 1;
+    while (e > 0) {
+        if (e & 1) result = (long long)result * a % MOD;
+        a = (long long)a * a % MOD;
+        e >>= 1;
+    }
+    return result;
+}
+
+// 乘法 SOS：f[S] = 原数组中所有 f[T]（T 为 S 的子集）的乘积。
+void product_zeta(vector<int>& f, int bits) {
+    int size = (int)f.size();
+    for (int bit = 0; bit < bits; ++bit) {
+        int step = 1 << bit;
+        for (int base = 0; base < size; base += step * 2) {
+            for (int j = 0; j < step; ++j) {
+                f[base + step + j] =
+                    (long long)f[base + step + j] * f[base + j] % MOD;
+            }
+        }
+    }
+}
+
+// 原函数仅依赖低位；增加新的位时，复制原来的函数值。
+void extend(vector<int>& f, int size) {
+    int old_size = (int)f.size();
+    if (old_size >= size) return;
+    f.resize(size);
+    for (int s = old_size; s < size; ++s) {
+        f[s] = f[s & (old_size - 1)];
+    }
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n, P;
-    cin >> n >> P;
+    int n;
+    if (!(cin >> n)) return 0;
 
-    const int m = n - 1;
-    const int M = n * (n + 1) / 2;
-    const int d = M - 1;
-    const int lim = max(M, 2 * n + 2);
-
-    // 所有需要的小整数逆元。
-    vector<int> inv(lim + 1);
-    inv[1] = 1;
-    for (int i = 2; i <= lim; ++i) {
-        inv[i] = P - (i64)(P / i) * inv[P % i] % P;
+    vector<int> weight(MAX_A + 1, 1);
+    vector<bool> used(MAX_A + 1, false);
+    int m = 1;
+    for (int i = 0; i < n; ++i) {
+        int a;
+        cin >> a;
+        used[a] = true;
+        weight[a] = (long long)weight[a] * (a + 1) % MOD;
+        m = max(m, a);
     }
 
-    vector<int> L(n);
-    for (int k = 0; k <= m; ++k) {
-        L[k] = k * (k + 3) / 2;
-    }
-
-    // 同时返回 I(s,a) 和它的逆元。
-    // 直接分别累乘分子、分母，不需要快速幂。
-    auto integral = [&](int s, int a) -> pair<int, int> {
-        i64 v = 1, iv = 1;
-
-        for (int i = 1; i <= s; ++i) {
-            v = v * inv[a + i] % P;
-            iv = iv * (a + i) % P;
-
-            for (int j = i + 1; j <= s; ++j) {
-                int numerator = j - i;
-                int denominator = 2 * a + i + j;
-
-                v = v * numerator % P;
-                v = v * inv[denominator] % P;
-
-                iv = iv * denominator % P;
-                iv = iv * inv[numerator] % P;
-            }
+    // 线性筛求最小质因子。
+    vector<int> spf(m + 1, 0), primes;
+    for (int x = 2; x <= m; ++x) {
+        if (spf[x] == 0) {
+            spf[x] = x;
+            primes.push_back(x);
         }
-
-        return {(int)v, (int)iv};
-    };
-
-    // C[k]：G_k 的最低次项系数。
-    // seed[k]：构造第 k 个基时，唯一非零的自由量。
-    vector<int> C(n), invC(n), seed(n);
-
-    for (int k = 0; k <= m; ++k) {
-        auto [a, ia] = integral(k, 1);
-        auto [b, ib] = integral(m - k, k + 1);
-
-        C[k] = (i64)a * b % P;
-        invC[k] = (i64)ia * ib % P;
-
-        i64 v = C[k];
-
-        for (int r = k + 1; r <= m; ++r) {
-            v = v * (P + k - r) % P;
-            v = v * (k + r + 3) % P;
-            v = v * inv[r] % P;
-            v = v * inv[m + r + 4] % P;
-        }
-
-        seed[k] = (int)v;
-    }
-
-    vector<int> D(n), K(n);
-
-    for (int s = 0; s <= m; ++s) {
-        D[s] = (i64)s * (m - s + 4) % P * inv[2] % P;
-
-        K[s] = (i64)(m - s) * (2 * m + 4 - s)
-             % P * inv[2] % P;
-    }
-
-    // B[k][q]：第 k 个基多项式的 z^q 系数。
-    vector<vector<int>> B(n, vector<int>(M));
-
-    // 辅助下标 s 存在 s+1 行。
-    // 第 0 行和第 n+1 行作为全零哨兵。
-    //
-    // pre[s+1][k]：第 k 个基，上一层次数的辅助状态 s。
-    // cur[s+1][k]：第 k 个基，当前层次数的辅助状态 s。
-    vector<vector<int>> pre(n + 2, vector<int>(n));
-    vector<vector<int>> cur(n + 2, vector<int>(n));
-
-    for (int q = 0; q <= d; ++q) {
-        for (auto &row : cur) {
-            fill(row.begin(), row.end(), 0);
-        }
-
-        // 当前层依赖 s+1，因此 s 必须倒序。
-        for (int s = m; s >= 0; --s) {
-            int r = m - s;
-            int u = s + 1;
-
-            if (q == L[r]) {
-                // 特殊位置：自由量。
-                // 只有第 r 个基在这里取非零值。
-                cur[u][r] = seed[r];
-                continue;
-            }
-
-            int delta = q - L[r];
-            int id = delta > 0
-                   ? inv[delta]
-                   : P - inv[-delta];
-
-            int a = d + s - L[r] - q + 1;
-            if (a < 0) a += P;
-
-            for (int k = 0; k <= m; ++k) {
-                // P < 1e9，三个乘积之和不会溢出 long long。
-                i64 rhs = (i64)a * pre[u][k]
-                        + (i64)D[s] * pre[u - 1][k]
-                        + (i64)K[s] * cur[u + 1][k];
-
-                cur[u][k] = (rhs % P) * id % P;
-            }
-        }
-
-        // 只保存辅助状态 s=0，它就是所需基多项式。
-        for (int k = 0; k <= m; ++k) {
-            B[k][q] = cur[1][k];
-        }
-
-        pre.swap(cur);
-    }
-
-    // 倒序消元。
-    // 处理完 k 后，B[k] 就是真正的目标多项式 G_k。
-    for (int k = m; k >= 0; --k) {
-        for (int r = m; r > k; --r) {
-            int right = d - L[m - r];
-
-            // G_r 的最高次项系数为 C[m-r]。
-            int factor = (i64)B[k][right] * invC[m - r] % P;
-
-            if (factor == 0) continue;
-
-            // 已求出的 G_r 只在 [L[r], right] 内非零。
-            for (int q = L[r]; q <= right; ++q) {
-                int sub = (i64)factor * B[r][q] % P;
-
-                B[k][q] -= sub;
-                if (B[k][q] < 0) B[k][q] += P;
-            }
+        for (int p : primes) {
+            if (1LL * p * x > m) break;
+            spf[p * x] = p;
+            if (p == spf[x]) break;
         }
     }
 
-    vector<int> fact(M + 1, 1);
-
-    for (int i = 1; i <= M; ++i) {
-        fact[i] = (i64)fact[i - 1] * i % P;
+    // 前 K 个质数作为小质数，使两个不同的大质数之积大于 m。
+    // m = 6000 时，K = 21，小质数为 2 到 73。
+    int K = 0;
+    while (K + 1 < (int)primes.size() &&
+           1LL * primes[K] * primes[K + 1] <= m) {
+        ++K;
     }
 
-    // 单点 {k+1} 位于第 q+1 位。
-    for (int k = 0; k <= m; ++k) {
-        for (int q = 0; q <= d; ++q) {
-            int ans = (i64)B[k][q] * fact[q] % P
-                    * fact[d - q] % P;
+    vector<int> id(m + 1, -1);
+    for (int j = 0; j < K; ++j) id[primes[j]] = j;
 
-            if (q) cout << ' ';
-            cout << ans;
+    vector<int> mask(m + 1, 0), large(m + 1, 0);
+    for (int x = 2; x <= m; ++x) {
+        int p = spf[x], rest = x / p;
+        mask[x] = mask[rest];
+        large[x] = large[rest];
+        if (id[p] != -1) mask[x] |= 1 << id[p];
+        else large[x] = p;
+    }
+
+    // 0 组没有大质因子；p 组的大质因子为 p。
+    vector<vector<pair<int, int>>> groups(m + 1);
+    for (int x = 1; x <= m; ++x) {
+        if (used[x]) groups[large[x]].push_back({mask[x], weight[x]});
+    }
+
+    vector<int> acc(1, 1);
+    int denominator = 1;
+    int r = 0;
+
+    // 大质数从大到小处理，所依赖的小质数数量 r 单调不减。
+    for (int j = (int)primes.size() - 1; j >= K; --j) {
+        int p = primes[j];
+        if (groups[p].empty()) continue;
+
+        while (r < K && primes[r] <= m / p) ++r;
+        int size = 1 << r;
+        vector<int> f(size, 1);
+        for (auto [s, w] : groups[p]) {
+            f[s] = (long long)f[s] * w % MOD;
         }
-        cout << '\n';
+        product_zeta(f, r);
+
+        extend(acc, size);
+        for (int s = 0; s < size; ++s) {
+            int factor = (1LL * (p - 1) * f[s] + 1) % MOD;
+            acc[s] = (long long)acc[s] * factor % MOD;
+        }
+        denominator = (long long)denominator * p % MOD;
     }
 
+    int size = 1 << K;
+    extend(acc, size);
+
+    vector<int> f(size, 1);
+    for (auto [s, w] : groups[0]) {
+        f[s] = (long long)f[s] * w % MOD;
+    }
+    product_zeta(f, K);
+
+    for (int j = 0; j < K; ++j) {
+        denominator = (long long)denominator * primes[j] % MOD;
+    }
+
+    // subset_weight[S] = S 中所有小质数对应的 (p - 1) 的乘积。
+    vector<int> subset_weight(size, 1);
+    int answer = 0;
+    for (int s = 0; s < size; ++s) {
+        if (s != 0) {
+            int bit = __builtin_ctz((unsigned)s);
+            subset_weight[s] = (long long)subset_weight[s & (s - 1)]
+                               * (primes[bit] - 1) % MOD;
+        }
+        int term = (long long)acc[s] * f[s] % MOD;
+        term = (long long)term * subset_weight[s] % MOD;
+        answer += term;
+        if (answer >= MOD) answer -= MOD;
+    }
+
+    cout << (long long)answer * mod_pow(denominator, MOD - 2) % MOD << '\n';
     return 0;
 }

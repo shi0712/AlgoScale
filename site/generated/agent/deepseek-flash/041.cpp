@@ -1,264 +1,337 @@
-// 交通枢纽复建
+// 四点换枝  (four-point branch exchange)
+//
+// Operation: pick a path a-b-c-d, delete its 3 edges and add any spanning tree
+// of K4 on {a,b,c,d}.  In particular a single edge swap {x,y} -> {x2,y2} can be
+// performed whenever a suitable length-3 path through the four involved
+// vertices exists; swapEdge() below searches for such a path.
+//
+// Answer: NO iff S is a star (a star admits no operation at all) and S != T.
+// Otherwise the construction below always succeeds:
+//
+//   phase 1  flatten S into   hub + leaves   plus the chain   hub - r - f,
+//            where r is a leaf of T, f its T-neighbour, hub another leaf of T.
+//
+//   phase 2  root T at r (thus f is a child of r).  Walk a DFS of T starting at
+//            f.  Invariant: the already placed part equals T restricted to it,
+//            every unplaced vertex is a leaf attached to the hub, and the hub
+//            itself sits on the vertex currently visited.  At vertex p we place
+//            all free T-children of p (one op each), then descend into a child
+//            (one op) and recurse.  The walk is ordered to end on qq=par_T(hub)
+//            so that the hub finishes in its final position.  If qq has no
+//            child other than the hub, the walk ends on par_T(qq) leaving qq
+//            free and one last op puts both qq and the hub into place.
+//
+//   ops <= (n-1) + (n-3) + 2(n-2) + 2 <= 4n-5 <= 395  for n <= 100.
 #include <bits/stdc++.h>
 using namespace std;
-typedef long long ll;
-typedef unsigned long long u64;
-typedef unsigned int u32;
 
-static const int BUFSZ = 1 << 22;
-static char ibuf[BUFSZ];
-static int ipos = 0, ilen = 0;
-static inline int gc() {
-    if (ipos >= ilen) { ilen = (int)fread(ibuf, 1, BUFSZ, stdin); ipos = 0; if (ilen <= 0) return -1; }
-    return ibuf[ipos++];
+int n;
+bool Sin[105][105];      // the first tree, as read
+bool Tg[105][105];       // the target tree
+bool cur[105][105];      // current tree
+struct Op { int a,b,c,d,u1,v1,u2,v2,u3,v3; };
+vector<Op> ops;
+
+bool verify = (getenv("VERIFY")!=nullptr);   // extra internal consistency checks
+
+int hub=-1;
+vector<char> freeNow;
+vector<int> parT;
+vector<vector<int>> chT;
+int qq=-1, endV=-1;
+bool caseB=false;
+int nextOnPath[105];
+
+// ------------------------------------------------------------------ helpers
+static void applyOp(int a,int b,int c,int d,
+                    int u1,int v1,int u2,int v2,int u3,int v3){
+    if(verify){
+        int vs[4]={a,b,c,d};
+        assert(a>=1&&a<=n&&b>=1&&b<=n&&c>=1&&c<=n&&d>=1&&d<=n);
+        assert(a!=b&&a!=c&&a!=d&&b!=c&&b!=d&&c!=d);
+        assert(cur[a][b]&&cur[b][c]&&cur[c][d]);
+        int e[3][2]={{u1,v1},{u2,v2},{u3,v3}};
+        for(int i=0;i<3;i++){
+            assert(e[i][0]!=e[i][1]);
+            bool f1=false,f2=false;
+            for(int q=0;q<4;q++){ if(vs[q]==e[i][0]) f1=true; if(vs[q]==e[i][1]) f2=true; }
+            assert(f1&&f2);
+        }
+        for(int i=0;i<3;i++)for(int j=i+1;j<3;j++)
+            assert(!((e[i][0]==e[j][0]&&e[i][1]==e[j][1])||(e[i][0]==e[j][1]&&e[i][1]==e[j][0])));
+    }
+    cur[a][b]=cur[b][a]=false; cur[b][c]=cur[c][b]=false; cur[c][d]=cur[d][c]=false;
+    cur[u1][v1]=cur[v1][u1]=true; cur[u2][v2]=cur[v2][u2]=true; cur[u3][v3]=cur[v3][u3]=true;
+    if(verify){
+        vector<pair<int,int>> es;
+        for(int i=1;i<=n;i++)for(int j=i+1;j<=n;j++) if(cur[i][j]) es.push_back({i,j});
+        assert((int)es.size()==n-1);
+        vector<int> p(n+1); for(int i=1;i<=n;i++) p[i]=i;
+        function<int(int)> fnd=[&](int z){ while(p[z]!=z) z=p[z]=p[p[z]]; return z; };
+        for(auto&e:es){ int x=fnd(e.first), y=fnd(e.second); assert(x!=y); p[x]=y; }
+        int rt=fnd(1); for(int i=2;i<=n;i++) assert(fnd(i)==rt);
+    }
+    ops.push_back({a,b,c,d,u1,v1,u2,v2,u3,v3});
 }
-static inline bool readInt(ll& out) {
-    int c = gc();
-    while (c != -1 && (c < '0' || c > '9') && c != '-') c = gc();
-    if (c == -1) return false;
-    bool neg = false;
-    if (c == '-') { neg = true; c = gc(); }
-    ll v = 0;
-    while (c >= '0' && c <= '9') { v = v * 10 + (c - '0'); c = gc(); }
-    out = neg ? -v : v;
+
+// replace edge {x,y} by {x2,y2} with a single operation; false if impossible
+static bool swapEdge(int x,int y,int x2,int y2){
+    if(x>y) swap(x,y);
+    if(x2>y2) swap(x2,y2);
+    if(x==x2&&y==y2) return true;         // nothing to do
+    if(cur[x2][y2]) return false;         // target edge already present
+    vector<int> b{x,y,x2,y2};
+    sort(b.begin(),b.end()); b.erase(unique(b.begin(),b.end()),b.end());
+    vector<vector<int>> sets;
+    if((int)b.size()==4) sets.push_back(b);
+    else for(int w=1;w<=n;w++){
+        bool in=false; for(int z:b) if(z==w) in=true;
+        if(!in){ auto s=b; s.push_back(w); sets.push_back(s); }
+    }
+    for(auto s:sets){
+        vector<pair<int,int>> want;
+        for(int p=0;p<4;p++)for(int q=p+1;q<4;q++){
+            int a=s[p], c=s[q];
+            if(a>c) swap(a,c);
+            if(a==x&&c==y) continue;
+            if(cur[s[p]][s[q]]) want.push_back({a,c});
+        }
+        want.push_back({x2,y2});
+        sort(want.begin(),want.end());
+        want.erase(unique(want.begin(),want.end()),want.end());
+        if((int)want.size()!=3) continue;
+        sort(s.begin(),s.end());
+        do{                                  // find a length-3 path of the 4-set
+            int P1=s[0],P2=s[1],P3=s[2],P4=s[3];
+            if(!cur[P1][P2]||!cur[P2][P3]||!cur[P3][P4]) continue;
+            int par[4]={0,1,2,3};
+            function<int(int)> fnd=[&](int z){ while(par[z]!=z) z=par[z]=par[par[z]]; return z; };
+            bool ok=true;
+            for(int i=0;i<3&&ok;i++){
+                int u=-1,v=-1;
+                for(int j=0;j<4;j++){
+                    if(s[j]==want[i].first) u=j;
+                    if(s[j]==want[i].second) v=j;
+                }
+                if(u<0||v<0||u==v){ ok=false; break; }
+                int ru=fnd(u), rv=fnd(v);
+                if(ru==rv) ok=false;
+                par[ru]=rv;
+            }
+            if(!ok) continue;
+            int rt=fnd(0);
+            for(int i=1;i<4&&ok;i++) if(fnd(i)!=rt) ok=false;
+            if(!ok) continue;
+            applyOp(P1,P2,P3,P4,
+                    want[0].first,want[0].second,
+                    want[1].first,want[1].second,
+                    want[2].first,want[2].second);
+            return true;
+        } while(next_permutation(s.begin(),s.end()));
+    }
+    return false;
+}
+
+static int degCur(int v){ int d=0; for(int i=1;i<=n;i++) if(cur[v][i]) d++; return d; }
+static void rootAt(int root, vector<int>& par, vector<int>& dep){
+    par.assign(n+1,-1); dep.assign(n+1,0);
+    vector<char> vis(n+1,0); vis[root]=1; queue<int> q; q.push(root);
+    while(!q.empty()){
+        int u=q.front(); q.pop();
+        for(int v=1;v<=n;v++) if(cur[u][v]&&!vis[v]){ vis[v]=1; par[v]=u; dep[v]=dep[u]+1; q.push(v); }
+    }
+}
+
+// ---------------------------------------------------------------- phase 1
+// current tree ->  hub attached to every vertex except r,f  plus chain hub-r-f
+static bool phase1(int H,int r,int f){
+    vector<int> par,dep;
+    while(true){
+        rootAt(H,par,dep);
+        int D=0;
+        for(int v=1;v<=n;v++) if(v!=H && dep[v]>=2) D++;
+        if(D<=1) break;
+        if(degCur(H)==1){
+            int b=-1; for(int v=1;v<=n;v++) if(cur[H][v]){ b=v; break; }
+            if(b<0) return false;
+            int x=-1;
+            for(int v=1;v<=n;v++) if(cur[b][v]&&v!=H&&degCur(v)>=2){ x=v; break; }
+            if(x<0) return false;
+            int y=-1; for(int v=1;v<=n;v++) if(cur[x][v]&&v!=b){ y=v; break; }
+            if(y<0) return false;
+            applyOp(H,b,x,y, H,b, H,x, x,y);          // lift x to depth 1
+        } else {
+            int v=-1; for(int q=1;q<=n;q++) if(dep[q]==2){ v=q; break; }
+            if(v<0) return false;
+            int b=par[v];
+            if(b==H||dep[b]!=1) return false;
+            int d=-1; for(int q=1;q<=n;q++) if(cur[H][q]&&q!=b){ d=q; break; }
+            if(d<0) return false;
+            applyOp(v,b,H,d, H,v, H,b, H,d);          // promote v to depth 1
+        }
+    }
+    rootAt(H,par,dep);
+    int y=-1;
+    for(int v=1;v<=n;v++) if(v!=H && dep[v]>=2){ y=v; break; }
+    if(y<0) return false;
+    int x=par[y];
+    if(dep[x]!=1) return false;
+    if(x==r && y==f){
+        /* already hub - r - f */
+    } else if(r==x){
+        applyOp(y,r,H,f, r,f, r,H, H,y);
+    } else if(r==y && f==x){
+        int d=-1; for(int q=1;q<=n;q++) if(cur[H][q]&&q!=f){ d=q; break; }
+        if(d<0) return false;
+        applyOp(r,f,H,d, r,H, r,f, H,d);
+    } else if(r==y){
+        applyOp(r,x,H,f, r,f, r,H, H,x);
+    } else if(f==x){
+        applyOp(y,f,H,r, r,f, H,r, H,y);
+    } else if(f==y){
+        applyOp(f,x,H,r, f,r, r,H, H,x);
+    } else {
+        applyOp(y,x,H,r, r,y, r,H, H,x);          // -> chain hub - r - y
+        applyOp(y,r,H,f, r,f, r,H, H,y);          // -> hub - r - f
+    }
+    if(!cur[H][r]||!cur[r][f]) return false;
+    int hd=0; for(int v=1;v<=n;v++) if(cur[H][v]) hd++;
+    if(hd!=n-2) return false;
     return true;
 }
 
-struct DSU {
-    vector<int> p, sz;
-    void init(int n) { p.resize(n); iota(p.begin(), p.end(), 0); sz.assign(n, 1); }
-    int find(int x) { while (p[x] != x) { p[x] = p[p[x]]; x = p[x]; } return x; }
-    int uni(int a, int b) {
-        a = find(a); b = find(b);
-        if (a == b) return a;
-        if (sz[a] < sz[b]) swap(a, b);
-        p[b] = a; sz[a] += sz[b];
-        return a;
-    }
-};
-
-int main() {
-    ll n_, m_, k_;
-    if (!readInt(n_)) return 0;
-    readInt(m_); readInt(k_);
-    int n = (int)n_, m = (int)m_, k = (int)k_;
-
-    vector<u64> ce(m);
-    for (int i = 0; i < m; i++) {
-        ll u, v, w;
-        readInt(u); readInt(v); readInt(w);
-        u--; v--;
-        ce[i] = ((u64)w << 34) | ((u64)u << 17) | (u64)v;
-    }
-    vector<ll> c(k);
-    vector<u32> av((size_t)k * n);
-    for (int j = 0; j < k; j++) {
-        ll cj; readInt(cj); c[j] = cj;
-        for (int i = 0; i < n; i++) { ll x; readInt(x); av[(size_t)j * n + i] = (u32)x; }
-    }
-
-    if (n == 1) { printf("0\n"); return 0; }
-
-    // ---------- 1. MST of city graph ----------
-    sort(ce.begin(), ce.end());
-    DSU d1; d1.init(n);
-    vector<u64> t0; t0.reserve(n - 1);
-    ll W0 = 0;
-    for (int i = 0; i < m && (int)t0.size() < n - 1; i++) {
-        u64 e = ce[i];
-        int u = (int)((e >> 17) & 0x1FFFF), v = (int)(e & 0x1FFFF);
-        if (d1.find(u) != d1.find(v)) {
-            d1.uni(u, v);
-            t0.push_back(e);
-            W0 += (ll)(e >> 34);
+// ---------------------------------------------------------------- phase 2
+static bool refreshAnchor(){
+    int cnt=0;
+    for(int v=1;v<=n;v++) if(cur[hub][v]&&!freeNow[v]) cnt++;
+    return cnt==1;
+}
+static bool placeAt(int g,int c){             // free g becomes a child of c
+    if(!swapEdge(g,hub,g,c)) return false;
+    freeNow[g]=0;
+    return refreshAnchor();
+}
+static bool hopH(int a,int s){                 // the hub moves from a to s
+    if(!swapEdge(hub,a,hub,s)) return false;
+    return refreshAnchor();
+}
+static bool hasPlaceableChild(int c){
+    for(int d: chT[c]) if(d!=hub && !(caseB && d==qq)) return true;
+    return false;
+}
+static bool dfs(int p){
+    int pc = nextOnPath[p];
+    for(int c: chT[p]){
+        if(c==hub || (caseB && c==qq) || c==pc) continue;
+        if(!placeAt(c,p)) return false;
+        if(hasPlaceableChild(c)){
+            if(!hopH(p,c)) return false;
+            if(!dfs(c)) return false;
+            if(!hopH(c,p)) return false;
         }
     }
-    vector<u64>().swap(ce);
+    if(pc){
+        if(!placeAt(pc,p)) return false;
+        if(!hopH(p,pc)) return false;
+        if(!dfs(pc)) return false;
+    }
+    return true;
+}
 
-    if (k == 0) { printf("%lld\n", W0); return 0; }
+// ------------------------------------------------------------------- build
+// try to transform Sin into T using hub=H, r, f
+static bool build(int H,int r,int f){
+    memcpy(cur,Sin,sizeof(cur));
+    ops.clear();
+    hub=H;
+    memset(nextOnPath,0,sizeof(nextOnPath));
+    if(!phase1(H,r,f)) return false;
 
-    // ---------- 2. Kruskal reconstruction tree of T0 ----------
-    int numNodes = n + (int)t0.size();
-    vector<int> formN(numNodes, 0), mergeN(numNodes, INT_MAX);
-    vector<int> cl(numNodes, -1), cr(numNodes, -1);
-    vector<int> nodeOf(n);
-    for (int i = 0; i < n; i++) nodeOf[i] = i;
+    parT.assign(n+1,-1); chT.assign(n+1,{});
     {
-        DSU d2; d2.init(n);
-        int nxt = n;
-        for (auto& e : t0) {
-            int u = (int)((e >> 17) & 0x1FFFF), v = (int)(e & 0x1FFFF);
-            int w = (int)(e >> 34);
-            int ru = d2.find(u), rv = d2.find(v);
-            int x = nxt++;
-            formN[x] = w;
-            cl[x] = nodeOf[ru]; cr[x] = nodeOf[rv];
-            mergeN[nodeOf[ru]] = w; mergeN[nodeOf[rv]] = w;
-            int nr = d2.uni(ru, rv);
-            nodeOf[nr] = x;
+        vector<char> vis(n+1,0); vector<int> st{r}; vis[r]=1;
+        while(!st.empty()){
+            int u=st.back(); st.pop_back();
+            for(int v=1;v<=n;v++) if(Tg[u][v]&&!vis[v]){ vis[v]=1; parT[v]=u; chT[u].push_back(v); st.push_back(v); }
         }
-        mergeN[nodeOf[d2.find(0)]] = INT_MAX;
     }
-    vector<int>().swap(nodeOf);
+    qq=parT[H];
+    if(qq<0||qq==H||qq==r) return false;
 
-    int full = (1 << k) - 1;
+    freeNow.assign(n+1,0);
+    for(int v=1;v<=n;v++) if(v!=r&&v!=f&&v!=H) freeNow[v]=1;
 
-    // ---------- 3. Phi(S) preprocessing ----------
-    vector<u32> V((size_t)numNodes * k);
+    bool qqOtherChild=false;
+    for(int c: chT[qq]) if(c!=H) qqOtherChild=true;
+    if(qq==f){ caseB=false; endV=f; }
+    else if(qqOtherChild){ caseB=false; endV=qq; }
+    else { caseB=true; endV=parT[qq]; }
+    if(endV<0) return false;
+
+    for(int x=endV; x!=f && x>=0; x=parT[x]) nextOnPath[parT[x]]=x;
+
+    if(!hopH(r,f)) return false;
+    if(!dfs(f)) return false;
+    if(caseB){
+        if(!swapEdge(hub,endV,qq,endV)) return false;
+        freeNow[qq]=0;
+        if(!refreshAnchor()) return false;
+    }
+    for(int i=1;i<=n;i++)for(int j=1;j<=n;j++) if(cur[i][j]!=Tg[i][j]) return false;
+    return true;
+}
+
+int main(){
+    if(scanf("%d",&n)!=1) return 0;
+    for(int i=0;i<n-1;i++){ int u,v; if(scanf("%d %d",&u,&v)!=2) return 0; Sin[u][v]=Sin[v][u]=true; }
+    for(int i=0;i<n-1;i++){ int u,v; if(scanf("%d %d",&u,&v)!=2) return 0; Tg[u][v]=Tg[v][u]=true; }
+
     {
-        for (int i = 0; i < n; i++) {
-            u32* dst = &V[(size_t)i * k];
-            for (int j = 0; j < k; j++) dst[j] = av[(size_t)j * n + i];
-        }
-        for (int x = n; x < numNodes; x++) {
-            const u32* Vl = &V[(size_t)cl[x] * k];
-            const u32* Vr = &V[(size_t)cr[x] * k];
-            u32* Vx = &V[(size_t)x * k];
-            for (int j = 0; j < k; j++) Vx[j] = min(Vl[j], Vr[j]);
-        }
+        bool same=true;
+        for(int i=1;i<=n&&same;i++)for(int j=1;j<=n;j++) if(Sin[i][j]!=Tg[i][j]){ same=false; break; }
+        if(same){ printf("YES\n0\n"); return 0; }
+    }
+    for(int v=1;v<=n;v++){
+        int d=0; for(int i=1;i<=n;i++) if(Sin[v][i]) d++;
+        if(d==n-1){ printf("NO\n"); return 0; }     // star: no operation exists
     }
 
-    vector<ll> T((size_t)(full + 1) * k, 0);
-    {
-        u32 vals[16]; int idx[16];
-        for (int x = 0; x < numNodes; x++) {
-            ll f = formN[x], mg = mergeN[x];
-            const u32* Vx = &V[(size_t)x * k];
-            for (int j = 0; j < k; j++) { vals[j] = Vx[j]; idx[j] = j; }
-            for (int a = 1; a < k; a++) {
-                u32 vv = vals[a]; int ii = idx[a];
-                int b = a - 1;
-                while (b >= 0 && vals[b] > vv) { vals[b + 1] = vals[b]; idx[b + 1] = idx[b]; b--; }
-                vals[b + 1] = vv; idx[b + 1] = ii;
-            }
-            int mask = 0;
-            for (int t = 0; t < k; t++) {
-                ll v = vals[t]; int j = idx[t];
-                ll mm = (mg < v) ? mg : v;
-                if (mm > f) T[(size_t)mask * k + j] += mm - f;
-                mask |= (1 << j);
-            }
-        }
-    }
-    vector<u32>().swap(V);
-    vector<int>().swap(formN); vector<int>().swap(mergeN);
-    vector<int>().swap(cl); vector<int>().swap(cr);
+    vector<int> tdeg(n+1,0);
+    for(int i=1;i<=n;i++)for(int j=i+1;j<=n;j++) if(Tg[i][j]){ tdeg[i]++; tdeg[j]++; }
+    vector<int> leaves;
+    for(int v=1;v<=n;v++) if(tdeg[v]==1) leaves.push_back(v);
 
-    // subset zeta transform over the mask index: T[S][j] = sum_{E subset S} T0[E][j]
-    for (int b = 0; b < k; b++) {
-        for (int mask = 0; mask <= full; mask++) {
-            if ((mask >> b) & 1) {
-                ll* A = &T[(size_t)mask * k];
-                ll* B = &T[(size_t)(mask ^ (1 << b)) * k];
-                for (int j = 0; j < k; j++) A[j] += B[j];
-            }
+    struct Cand { int score,r,f,H; };
+    vector<Cand> cand;
+    for(int r: leaves){
+        int f=-1; for(int v=1;v<=n;v++) if(Tg[r][v]){ f=v; break; }
+        if(f<0) continue;
+        for(int H: leaves){
+            if(H==r||H==f) continue;
+            int d=0; for(int i=1;i<=n;i++) if(Sin[H][i]) d++;
+            cand.push_back({d,r,f,H});
         }
     }
+    sort(cand.begin(),cand.end(),[](const Cand&a,const Cand&b){ return a.score>b.score; });
 
-    // ---------- 4. delta(j,j') sweep ----------
-    vector<int> delta((size_t)k * k, INT_MAX);
-    {
-        // Event ids: [0,nC) are the MST city edges, the rest are star edges (j,i) with
-        // j = (id-nC)/n, i = (id-nC)%n.  Sort key = (weight << 21) | id.
-        int nC = (int)t0.size();
-        size_t nStar = (size_t)n * k;
-        vector<u64> ev((size_t)nC + nStar);
-        vector<u64> cityUV(nC);
-        for (int idx = 0; idx < nC; idx++) {
-            u64 e = t0[idx];
-            cityUV[idx] = (e & ((1ULL << 34) - 1)) | (1ULL << 34);  // marks a valid payload
-            ev[idx] = (((e >> 34) << 21) | (u64)idx);
+    vector<Op> best;
+    bool have=false;
+    int tried=0;
+    for(auto&cd: cand){
+        if(have && best.size()<=400u && tried>=24) break;   // cheap enough answer
+        if(!have && tried>=40) break;
+        tried++;
+        if(build(cd.H,cd.r,cd.f)){
+            if(!have || ops.size()<best.size()){ best=ops; have=true; }
+            if(best.size()<=3u*(unsigned)n) break;          // good enough
         }
-        vector<u64>().swap(t0);
-        for (size_t j = 0; j < (size_t)k; j++) {
-            const u32* aj = &av[j * n];
-            u64* dst = &ev[nC + j * n];
-            for (int i = 0; i < n; i++) dst[i] = ((u64)aj[i] << 21) | (u64)(nC + j * n + i);
-        }
-        vector<u32>().swap(av);
-        sort(ev.begin(), ev.end());
+    }
+    if(!have){ printf("NO\n"); return 0; }
 
-        DSU d3; d3.init(n);
-        vector<int> mask3(n, 0);
-        vector<int> R(k, 0);
-        for (int j = 0; j < k; j++) R[j] = (1 << j);
-        for (auto& e : ev) {
-            u32 id = (u32)(e & ((1u << 21) - 1));
-            u32 w = (u32)(e >> 21);
-            if (id < (u32)nC) {
-                u64 uv = cityUV[id];
-                int u = (int)((uv >> 17) & 0x1FFFF), v = (int)(uv & 0x1FFFF);
-                int ru = d3.find(u), rv = d3.find(v);
-                if (ru == rv) continue;
-                int m1 = mask3[ru], m2 = mask3[rv];
-                if (__builtin_popcount(m1) > __builtin_popcount(m2)) swap(m1, m2);
-                int tmp = m1;
-                while (tmp) {
-                    int j = __builtin_ctz(tmp); tmp &= tmp - 1;
-                    int other = m2 & ~R[j];
-                    while (other) {
-                        int j2 = __builtin_ctz(other); other &= other - 1;
-                        delta[(size_t)j * k + j2] = (int)w;
-                        delta[(size_t)j2 * k + j] = (int)w;
-                        R[j] |= 1 << j2; R[j2] |= 1 << j;
-                    }
-                }
-                int nr = d3.uni(ru, rv);
-                mask3[nr] = m1 | m2;
-            } else {
-                u32 t = id - (u32)nC;
-                int j = (int)(t / (u32)n), i = (int)(t % (u32)n);
-                int ri = d3.find(i);
-                int other = mask3[ri] & ~R[j];
-                while (other) {
-                    int j2 = __builtin_ctz(other); other &= other - 1;
-                    delta[(size_t)j * k + j2] = (int)w;
-                    delta[(size_t)j2 * k + j] = (int)w;
-                    R[j] |= 1 << j2; R[j2] |= 1 << j;
-                }
-                mask3[ri] |= 1 << j;
-            }
-        }
+    printf("YES\n%d\n",(int)best.size());
+    for(auto&o:best){
+        printf("%d %d %d %d\n",o.a,o.b,o.c,o.d);
+        printf("%d %d %d %d %d %d\n",o.u1,o.v1,o.u2,o.v2,o.u3,o.v3);
     }
-
-    // ---------- 5. enumerate subsets ----------
-    vector<ll> cs(full + 1, 0), mh(full + 1, 0);
-    for (int S = 1; S <= full; S++) {
-        int lb = __builtin_ctz(S);
-        cs[S] = cs[S ^ (1 << lb)] + c[lb];
-    }
-    ll best = W0;
-    for (int S = 1; S <= full; S++) {
-        // HubMST(S)
-        if ((S & (S - 1)) == 0) mh[S] = 0;
-        else {
-            ll bv = LLONG_MAX;
-            for (int t = S; t; t &= t - 1) {
-                int j = __builtin_ctz(t);
-                int rest = S ^ (1 << j);
-                if (rest == 0) continue;
-                int cm = INT_MAX;
-                for (int t2 = rest; t2; t2 &= t2 - 1) {
-                    int j2 = __builtin_ctz(t2);
-                    int d = delta[(size_t)j * k + j2];
-                    if (d < cm) cm = d;
-                }
-                if (cm == INT_MAX) continue;
-                ll cand = mh[rest] + (ll)cm;
-                if (cand < bv) bv = cand;
-            }
-            mh[S] = (bv == LLONG_MAX) ? (LLONG_MAX / 4) : bv;
-        }
-        // Phi(S)
-        int comp = full ^ S;
-        ll phi = 0;
-        for (int t = S; t; t &= t - 1) {
-            int j = __builtin_ctz(t);
-            phi += T[(size_t)comp * k + j];
-        }
-        ll tot = cs[S] + phi + mh[S];
-        if (tot < best) best = tot;
-    }
-    printf("%lld\n", best);
     return 0;
 }

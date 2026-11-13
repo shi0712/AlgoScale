@@ -1,57 +1,58 @@
 ## Problem Description
 
-A row of $n$ positions must be filled with letters `a`, `b`, and `c`, with different letters at every pair of adjacent positions. A given string $s$ fixes some letters; each `?` is a position that must be assigned a letter.
+An apple tree is a tree rooted at vertex $1$ in which every non-root vertex has **strictly fewer direct children than its parent**.
 
-For each of $Q$ independent plans $(x,y,z)$, count assignments using at most $x$ new `a` letters, $y$ new `b` letters, and $z$ new `c` letters. These limits apply only to the original `?` positions, not to letters already fixed in $s$.
+For a given integer $k$, a configuration is a pair $(v,S)$: $v$ is a center vertex, and $S$ is a set of $k-1$ other vertices, all at one common distance from $v$. Distance is the number of edges on the unique path between two vertices.
 
-Assignments differ if any position receives a different letter. Copies of the same letter are indistinguishable. Return every count modulo $10^9+7$.
+Count these pairs modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains $n$ and $Q$. The second line contains the length-$n$ string $s$.
+The first line contains the number of test cases $t$.
 
-Each of the next $Q$ lines contains $x,y,z$ for one plan.
+Each case starts with $n,k$. The next line contains $p_2,\ldots,p_n$, where $p_i$ is the parent of vertex $i$.
 
 ## Output Format
 
 Write to standard output.
 
-Print $Q$ lines, each containing the number of valid assignments for the corresponding plan, modulo $1000000007$.
+For every test case, print the number of valid pairs $(v,S)$ modulo $998244353$.
 
 ## Examples
 
 Input:
 
 ```text
-6 1
-a?b??c
-2 2 2
+1
+3 3
+1 1
 ```
 
 Output:
 
 ```text
-3
+1
 ```
 
 ## Explanation / Notes
 
-The three valid strings are `acbabc`, `acbcac`, and `acbcbc`.
+The only valid pair has center $1$ and $S=\{2, 3\}$.
 
-Plans give upper bounds, so unused new letters are allowed. The original fixed letters cannot be changed. Every adjacent pair must differ after all question marks have been replaced.
+The center is distinguished from the selected set. The common distance is only required to exist; it is not an additional component of the counted object. When $k=1$, the selected set is empty, giving one pair for each possible center.
+
+The condition compares numbers of **children**, not undirected degrees or subtree sizes.
 
 ## Constraints
 
-- $1\le n\le1000$.
-- $1\le Q\le10^5$.
-- $|s|=n$ and every character is one of `a`, `b`, `c`, `?`.
-- For every plan, $0\le x,y,z\le1000$; these values are integers.
-- $x+y+z$ is at least the number of `?` characters in $s$.
-- Plans are independent and all refer to the same original string.
-- There is no promise that the fixed letters already permit a valid final arrangement; a plan may have answer zero.
-- Arithmetic modulus: $10^9+7$.
-- Time limit: **4 seconds**. Memory limit: **256 MB**.
-
-There is one instance per input.
+- $1\le t\le10^4$.
+- $2\le n\le10^6$ per test case.
+- $1\le k\le n$.
+- $1\le p_i<i$ for every $i=2,\ldots,n$.
+- The input is guaranteed to describe an apple tree rooted at vertex $1$.
+- For every non-root vertex $v$, its number of direct children is strictly less than its parent's number of direct children.
+- Across all cases, $\sum n\le10^6$.
+- The members of $S$ are distinct and do not include the center; $|S|=k-1$.
+- Answer modulus: $998244353$.
+- Time limit: **0.5 seconds**. Memory limit: **256 MB**.

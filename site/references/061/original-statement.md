@@ -1,24 +1,24 @@
 ## Problem Description
 
-A magical string initially contains lowercase English letters and has no run of three or more equal consecutive letters.
+There are $n$ sets containing $2m$ distinct elements in total. Initially, set $i$ contains $a_i$ elements, and each element belongs to exactly one set.
 
-In one operation, change one letter into another letter. The change is permitted only if it immediately creates a run of at least three equal consecutive letters. The whole resulting maximal run is then replaced by one asterisk, `*`.
+In each round, randomly partition all elements into $m$ pairs. Independently for each pair, randomly choose one of its two elements and move that element into the set containing its partner. The random matching and endpoint selections are uniform.
 
-An asterisk is inert: it cannot be edited, cannot join a run of letters, and is never removed, even when several asterisks become adjacent.
-
-Given a magical string $S$ and an integer $K$, perform at most $K$ operations to maximize the number of original characters absorbed into asterisks. Replacing a run of length $r$ contributes $r$ to this count, not one.
+Find the expected number of rounds until all elements belong to a single set. Express this expectation modulo $998244353$.
 
 ## Input Format
 
 Read from standard input.
 
-The first line contains the number of test cases $T$. Each of the next $T$ lines contains the string $S$ and integer $K$, separated by a space.
+The first line contains the number of test cases $T$.
+
+Each case contains a line with $n,m$, followed by a line with the $n$ initial set sizes $a_1,\ldots,a_n$.
 
 ## Output Format
 
 Write to standard output.
 
-For each case, print the maximum number of characters that can be transformed into asterisks using at most $K$ edits.
+For each case, print one integer. If the expectation is $P/Q$, output $P\cdot Q^{-1}\bmod998244353$, where the inverse satisfies $QQ^{-1}\equiv1\pmod{998244353}$.
 
 ## Examples
 
@@ -26,27 +26,29 @@ Input:
 
 ```text
 1
-cabacbc 2
+2 1
+1 1
 ```
 
 Output:
 
 ```text
-6
+1
 ```
 
 ## Explanation / Notes
 
-Edit the third character of `cabacbc` from `b` to `a`, obtaining `caaacbc`, then replace `aaa` to get `c*cbc`. Editing the remaining `b` to `c` removes another three letters, giving `c**` and a total of six absorbed characters.
+There are two elements, initially in separate sets. There is only one possible pair, and moving either endpoint puts both elements in one set. Exactly one round is required.
+
+Elements remain distinguishable even when they share a set. A set may become empty during the process. If all elements are already in one set, the required number of rounds is zero.
 
 ## Constraints
 
-- $1\le T\le50$.
-- $1\le |S|\le1000$ for each test case.
-- $1\le K\le1000$.
-- The initial string uses only the 26 lowercase English letters `a`–`z`.
-- Initially, every run of equal consecutive letters has length at most two.
-- Each operation must immediately create a run of at least three equal letters; arbitrary preparatory edits are not permitted.
-- Each created run is replaced by exactly one permanent asterisk.
-- Fewer than $K$ operations may be used, including zero.
-- Time limit: **1 second**. Memory limit: **1024 MB**.
+- $1\le T\le100$.
+- $n,m$ are integers satisfying $1\le n\le2m\le400$.
+- Each initial size satisfies $1\le a_i\le2m$.
+- $\sum_{i=1}^{n}a_i=2m$ in every test case.
+- All $2m$ elements are distinct and initially belong to exactly one set each.
+- Across all test cases, $\sum n\le800$ and $\sum m\le400$.
+- Every round pairs all elements, with exactly one selected endpoint per pair.
+- Answer modulus: $998244353$.
