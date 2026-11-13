@@ -1,3 +1,168 @@
-The standard program uses the interpolation formula from the optimized solution and runs in `O(n^2)` arithmetic operations, independently of `m`.
+# Double Sort 题解
 
-The official contest baseline is the dynamic-programming implementation in `admin/original.cpp`, whose running time is `O(n^2 m)`. The strengthened range is `n <= 300`, `m <= 10^9`.
+## 1. 将随机子集改写为正整数间隔
+
+选出的数为 $a_1<\cdots<a_n$，间隔为 $d_1=a_1$、$d_i=a_i-a_{i-1}$。于是
+
+$$
+d_i\ge1,\qquad \sum_i d_i\le m.
+$$
+
+反过来，每个满足条件的有序间隔序列都唯一对应原始子集，所以共有 $\binom mn$ 个等概率的间隔序列。
+
+题目中的 $c_k$，就是这 $n$ 个间隔里最小的 $k$ 个数之和。注意，$a_n$ 到 $m$ 的剩余距离不参与排序。
+
+新范围中 $m$ 可达 $10^9$，不能逐一枚举间隔长度。下面用组合计数消除排序，再用插值消除对 $m$ 的枚举。
+
+## 2. 用阈值表示最小的 $k$ 个数之和
+
+对整数 $q\ge0$，记
+
+$$
+X_q=|\{i:d_i>q\}|,
+$$
+
+并令 $a=n-k$。大于 $q$ 的间隔共有 $X_q$ 个，其中最多 $a$ 个属于被舍弃的最大间隔，所以最小的 $k$ 个间隔中恰有 $\max(X_q-a,0)$ 个大于 $q$。
+
+利用 $z=\sum_{q\ge0}[z>q]$，得到
+
+$$
+c_k=\sum_{q\ge0}\max(X_q-a,0).
+$$
+
+接下来先计算容易统计的组合数矩。
+
+## 3. 计算组合数矩 $F_s$
+
+固定一个大小为 $s$ 的间隔下标集合，要求这些间隔全部大于 $q$。将它们各减去 $q$ 后，所有间隔仍为正整数，总和上限变为 $m-sq$，所以方案数为
+
+$$
+\binom{m-sq}{n}.
+$$
+
+约定上标小于 $n$ 时组合数为零。对所有大小为 $s$ 的下标集合求和，定义
+
+$$
+F_s=\binom ns\sum_{q\ge0}\binom{m-sq}{n},\qquad 1\le s\le n.
+$$
+
+一个间隔序列在阈值 $q$ 下被统计了 $\binom{X_q}s$ 次，因此
+
+$$
+\frac{F_s}{\binom mn}=\sum_{q\ge0}\mathbb E\binom{X_q}s.
+$$
+
+## 4. 从组合数矩恢复答案
+
+当 $a=0$，即 $k=n$ 时，直接有
+
+$$
+\mathbb E[c_n]=\frac{F_1}{\binom mn}.
+$$
+
+当 $a\ge1$ 时使用恒等式
+
+$$
+\max(x-a,0)=\sum_{s=a+1}^{n}(-1)^{s-a-1}\binom{s-2}{a-1}\binom xs,
+\qquad 0\le x\le n.
+$$
+
+这个恒等式可以由有限差分得到。在整数点 $0\le x\le n$ 上，函数可以展开为
+
+$$
+f(x)=\sum_{s=0}^{n}\Delta^s f(0)\binom xs.
+$$
+
+取 $f(x)=\max(x-a,0)$。$s\le a$ 时系数为零；$s>a$ 时，计算交错和得到
+
+$$
+\Delta^s f(0)=\sum_{j=a+1}^{s}(-1)^{s-j}\binom sj(j-a)
+=(-1)^{s-a-1}\binom{s-2}{a-1}.
+$$
+
+代回阈值求和，并利用期望的线性性，得到
+
+$$
+\boxed{
+\mathbb E[c_k]=\frac{\displaystyle\sum_{s=a+1}^{n}(-1)^{s-a-1}\binom{s-2}{a-1}F_s}{\binom mn}
+},\qquad a=n-k\ge1.
+$$
+
+全部答案一共只需计算 $O(n^2)$ 个求和项。
+
+## 5. 用插值计算等差数列上的组合数之和
+
+剩下要计算
+
+$$
+S_s=\sum_{q\ge0}\binom{m-sq}{n}.
+$$
+
+写成 $m=sQ+r$，其中 $0\le r<s$，反转求和次序得到
+
+$$
+S_s=\sum_{j=0}^{Q}\binom{r+sj}{n}.
+$$
+
+固定 $s,r$ 后，$\binom{r+sj}{n}$ 是关于 $j$ 的 $n$ 次多项式，因此前缀和
+
+$$
+P_s(z)=\sum_{j=0}^{z}\binom{r+sj}{n}
+$$
+
+是次数至多 $n+1$ 的多项式。知道 $P_s(0),\ldots,P_s(n+1)$，就能求出任意大的 $P_s(Q)$。
+
+令 $d=n+1$。若 $Q\le d$，直接查已经计算的前缀和；否则使用连续整数节点的拉格朗日插值：
+
+$$
+P_s(Q)=\sum_{j=0}^{d}(-1)^{d-j}P_s(j)\binom Qj\binom{Q-j-1}{d-j}.
+$$
+
+设系数绝对值为 $L_j$，有
+
+$$
+L_0=\binom{Q-1}{d},\qquad
+L_{j+1}=L_j\frac{Q-j}{j+1}\frac{d-j}{Q-j-1}.
+$$
+
+这样每个 $s$ 只需 $O(n)$ 次大整数算术运算。
+
+样本点的组合数上标满足
+
+$$
+r+s(n+1)<n(n+2).
+$$
+
+所以可以提前用
+
+$$
+\binom xn=\binom{x-1}n\frac{x}{x-n}
+$$
+
+预处理这一区间内全部 $\binom xn$。小于 $n$ 的上标对应零，$\binom nn=1$。
+
+## 6. 为什么采用大整数
+
+插值公式和最终答案公式都有大量正负项相消，中间项可能远大于结果。如果直接用浮点数计算这些交错和，会丢失有效数字。
+
+参考程序用大整数保存组合数、插值系数、$F_s$ 和最终分子，全部精确计算结束后，才将分子与 $\binom mn$ 转成 `long double`，做最后一次除法。
+
+递推中的除法也应精确进行。例如
+
+$$
+L_j=\binom Qj\binom{Q-j-1}{d-j}.
+$$
+
+先乘 $Q-j$ 再除 $j+1$，将第一项更新为 $\binom Q{j+1}$；再乘 $d-j$ 并除 $Q-j-1$，更新第二项。这两个阶段都整除，不能随意把整数除法提前。
+
+## 7. 正确性与复杂度
+
+间隔变换保持样本空间一一对应；阈值求和准确表示最小的 $k$ 个数之和；$F_s$ 通过减去强制间隔长度得到所需组合数矩；有限差分公式将这些矩恢复为期望；插值则精确计算全部阈值的总和。因此得到的每个答案都正确。
+
+若一次大整数运算视为一次算术操作，总共需要
+
+$$
+O(n^2)\text{ 次大整数算术操作},\qquad O(n^2)\text{ 个大整数存储单元}.
+$$
+
+这不等于 $O(n^2)$ 次机器字操作。若中间整数最多使用 $L$ 个基数位，参考程序的朴素大整数乘法为 $O(L^2)$，可以给出保守的时间界 $O(n^2L^2)$、空间界 $O(n^2L)$。$m$ 的影响体现在整数长度中，不再体现在枚举次数中，因而适用于 $n\le300,m\le10^9$。

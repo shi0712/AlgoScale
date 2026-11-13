@@ -1,6 +1,94 @@
 "use strict";
 
-const SITE_RELEASE = "20261105-statement-compare";
+const SITE_RELEASE = "20261113-solutions";
+
+const MATH_DELIMITERS = [
+  { left: "$$", right: "$$", display: true },
+  { left: "\\[", right: "\\]", display: true },
+  { left: "$", right: "$", display: false },
+  { left: "\\(", right: "\\)", display: false },
+];
+
+// Keep TeX opaque to Markdown; otherwise escapes and emphasis change the formula.
+// Code spans and code blocks still use marked's own tokenizers.
+function mathToken(source, displayOnly = false) {
+  const delimiter = MATH_DELIMITERS.find(({ left, display }) =>
+    (!displayOnly || display) && source.startsWith(left));
+  if (!delimiter) return;
+  let braces = 0;
+  for (let i = delimiter.left.length; i < source.length; i += 1) {
+    if (braces <= 0 && source.startsWith(delimiter.right, i)) {
+      return { raw: source.slice(0, i + delimiter.right.length) };
+    }
+    // Match KaTeX auto-render's handling of escaped characters and brace groups.
+    if (source[i] === "\\") i += 1;
+    else if (source[i] === "{") braces += 1;
+    else if (source[i] === "}") braces -= 1;
+  }
+}
+
+function escapeMathHtml(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+marked.use({
+  tokenizer: {
+    emStrong(source, maskedSource, previousCharacter) {
+      if (!/^[_*]/.test(source)) return false;
+      // Outer emphasis is parsed before its inline children. Hide TeX's own
+      // emphasis characters from that lookahead as well as from tokenization.
+      const offset = maskedSource.length - source.length;
+      const openings = /\$|\\\(|\\\[/g;
+      let match;
+      while ((match = openings.exec(source))) {
+        const token = mathToken(source.slice(match.index));
+        if (!token) continue;
+        const start = offset + match.index;
+        maskedSource = maskedSource.slice(0, start) + "a".repeat(token.raw.length)
+          + maskedSource.slice(start + token.raw.length);
+        openings.lastIndex = match.index + token.raw.length;
+      }
+      return marked.Tokenizer.prototype.emStrong.call(this, source, maskedSource, previousCharacter);
+    },
+  },
+  extensions: [
+    {
+      name: "mathBlock",
+      level: "block",
+      start(source) {
+        const match = /(?:^|\n) {0,3}(?:\$\$|\\\[)/.exec(source);
+        return match ? match.index + (match[0].startsWith("\n") ? 1 : 0) : undefined;
+      },
+      tokenizer(source) {
+        const indent = /^ {0,3}(?=\$\$|\\\[)/.exec(source);
+        if (!indent) return;
+        const token = mathToken(source.slice(indent[0].length), true);
+        if (!token) return;
+        const end = /^[ \t]*(?:\n|$)/.exec(source.slice(indent[0].length + token.raw.length));
+        if (!end) return;
+        return { type: "mathBlock", raw: indent[0] + token.raw + end[0], text: token.raw };
+      },
+      renderer(token) {
+        return `<div>${escapeMathHtml(token.text)}</div>\n`;
+      },
+    },
+    {
+      name: "mathInline",
+      level: "inline",
+      start(source) {
+        const index = source.search(/\$|\\\(|\\\[/);
+        return index < 0 ? undefined : index;
+      },
+      tokenizer(source) {
+        const token = mathToken(source);
+        if (token) return { type: "mathInline", raw: token.raw, text: token.raw };
+      },
+      renderer(token) {
+        return `<span>${escapeMathHtml(token.text)}</span>`;
+      },
+    },
+  ],
+});
 
 const params = new URLSearchParams(window.location.search);
 const problemId = Number(params.get("id"));
@@ -48,12 +136,7 @@ function renderMarkdownInto(target, markdown) {
   }
   if (window.renderMathInElement) {
     window.renderMathInElement(target, {
-      delimiters: [
-        { left: "$$", right: "$$", display: true },
-        { left: "\\[", right: "\\]", display: true },
-        { left: "$", right: "$", display: false },
-        { left: "\\(", right: "\\)", display: false },
-      ],
+      delimiters: MATH_DELIMITERS,
       throwOnError: false,
     });
   }

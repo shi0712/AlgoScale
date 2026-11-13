@@ -13,7 +13,7 @@ class ReferenceAssetsTest(unittest.TestCase):
         )
 
     def test_every_problem_has_nonempty_reference_assets(self) -> None:
-        self.assertEqual(len(self.catalog), 85)
+        self.assertEqual(len(self.catalog), 74)
         for problem in self.catalog:
             with self.subTest(problem_id=problem["id"]):
                 assets = problem.get("referenceAssets", {})
@@ -51,7 +51,7 @@ class ReferenceAssetsTest(unittest.TestCase):
         self.assertEqual(files, expected)
 
     def test_problem_ids_are_contiguous(self) -> None:
-        self.assertEqual([problem["id"] for problem in self.catalog], list(range(1, 86)))
+        self.assertEqual([problem["id"] for problem in self.catalog], list(range(1, 75)))
 
 
 if __name__ == "__main__":
