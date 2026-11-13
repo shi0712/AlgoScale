@@ -54,6 +54,7 @@ function pendingNode() {
 function complexityLatex(value) {
   let source = String(value || "").trim().replace(/^\$+|\$+$/g, "");
   if (!source || source.toLowerCase() === "null") return "";
+  if (source.toLowerCase() === "no solution") return "\\mathrm{No\\ Solution}";
 
   // The admin accepts explicit LaTeX. Preserve deliberately formatted values,
   // while still normalizing the compact notation imported from the workbook.
