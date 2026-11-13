@@ -51,16 +51,23 @@ class TaxonomyTest(unittest.TestCase):
             counts.update(domains)
         self.assertEqual(dict(counts), DOMAINS)
 
-    def test_leaderboard_model_keys_match_published_accepted_code(self) -> None:
+    def test_leaderboard_results_match_published_metadata(self) -> None:
         leaderboard = json.loads(
             (ROOT / "site/data/leaderboard.json").read_text(encoding="utf-8")
         )
         for track, entries in leaderboard["tracks"].items():
             for entry in entries:
-                solved = sum(
-                    entry["modelKey"] in problem.get("generatedCode", {}).get(track, {})
-                    for problem in self.problems
-                )
+                explicit_ids = entry.get("solvedProblemIds")
+                if explicit_ids is not None:
+                    self.assertEqual(len(explicit_ids), len(set(explicit_ids)))
+                    self.assertTrue(set(explicit_ids) <= {p["id"] for p in self.problems})
+                    solved = len(explicit_ids)
+                else:
+                    solved = sum(
+                        entry["modelKey"]
+                        in problem.get("generatedCode", {}).get(track, {})
+                        for problem in self.problems
+                    )
                 self.assertEqual(solved, entry["solved"], (track, entry["model"]))
                 self.assertEqual(len(self.problems), entry["total"])
 

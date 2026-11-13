@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261113-final";
+const SITE_RELEASE = "20261113-kimi-k31";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",
@@ -129,7 +129,14 @@ function renderLeaderboard(data) {
   ]));
   const score = (entry, track, scope) => {
     const key = modelKey(entry);
-    const solved = scope.filter((problem) => Boolean(problem.generatedCode?.[track]?.[key])).length;
+    const explicitSolved = Array.isArray(entry.solvedProblemIds)
+      ? new Set(entry.solvedProblemIds.map(Number))
+      : null;
+    const solved = scope.filter((problem) => (
+      explicitSolved
+        ? explicitSolved.has(problem.id)
+        : Boolean(problem.generatedCode?.[track]?.[key])
+    )).length;
     return { solved, total: scope.length, passRate: scope.length ? (solved * 100) / scope.length : 0 };
   };
   const rows = (data.tracks[state.track] || []).map((entry) => ({
@@ -305,35 +312,6 @@ function renderProblems() {
     }
     row.append(referenceCell);
 
-    const codeCell = document.createElement("td");
-    const codeTracks = problem.generatedCode || {};
-    const codeCount = ["direct", "agent"].reduce((count, track) => {
-      const models = codeTracks[track];
-      return count + (models && typeof models === "object" ? Object.keys(models).length : 0);
-    }, 0);
-    if (codeCount) {
-      const details = element("details", "code-menu");
-      details.append(element("summary", "code-summary", `View code (${codeCount})`));
-      const panel = element("div", "code-panel");
-      [["Direct", codeTracks.direct], ["Agent", codeTracks.agent]].forEach(([trackLabel, models]) => {
-        if (!models || typeof models !== "object" || !Object.keys(models).length) return;
-        const group = element("div", "code-group");
-        group.append(element("span", "code-track-label", trackLabel));
-        Object.entries(models).forEach(([model, href]) => {
-          const link = element("a", "code-link", `${model} ↗`);
-          link.href = href;
-          link.target = "_blank";
-          link.rel = "noreferrer";
-          group.append(link);
-        });
-        panel.append(group);
-      });
-      details.append(panel);
-      codeCell.append(details);
-    } else {
-      codeCell.append(element("span", "code-unavailable", "—"));
-    }
-    row.append(codeCell);
     els.problemBody.append(row);
   });
 
@@ -359,7 +337,7 @@ async function loadData() {
   state.problems = await problemResponse.json();
   const leaderboard = await leaderboardResponse.json();
   const interactiveCount = state.problems.filter((problem) => problem.track === "Interactive").length;
-  [els.heroProblemCount, els.statProblemCount].forEach((node) => {
+  [els.heroProblemCount, els.statProblemCount].filter(Boolean).forEach((node) => {
     node.textContent = String(state.problems.length);
   });
   els.statInteractiveCount.textContent = String(interactiveCount);
