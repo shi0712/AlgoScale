@@ -12,12 +12,21 @@ $generatedRoot = Join-Path $siteRoot "generated"
 $leaderboardPath = Join-Path $siteRoot "data\leaderboard.json"
 $problemsPath = Join-Path $siteRoot "data\problems.json"
 $manifestPath = Join-Path $siteRoot "data\accepted-solutions.json"
+$usagePath = Join-Path $siteRoot "data\accepted-solution-usage.json"
 
 $leaderboard = Get-Content -Raw -LiteralPath $leaderboardPath | ConvertFrom-Json
 $problems = Get-Content -Raw -LiteralPath $problemsPath | ConvertFrom-Json
 $problemById = @{}
 foreach ($problem in $problems) {
     $problemById[[int]$problem.id] = $problem
+}
+$usageByKey = @{}
+if (Test-Path -LiteralPath $usagePath) {
+    $usageData = Get-Content -Raw -LiteralPath $usagePath | ConvertFrom-Json
+    foreach ($usage in $usageData.entries) {
+        $key = "$($usage.track):$($usage.modelKey):$([int]$usage.problemId)"
+        $usageByKey[$key] = $usage
+    }
 }
 
 function Get-LeaderboardEntry([string]$track, [string]$modelKey) {
@@ -52,7 +61,7 @@ function Add-ManifestEntry($entry, [string]$track, [int]$problemId, [string]$tar
     [void]$expectedFiles.Add($resolved)
     $digest = (Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash.ToLowerInvariant()
     $info = Get-Item -LiteralPath $resolved
-    $manifestEntries.Add([ordered]@{
+    $record = [ordered]@{
         problemId = $problemId
         title = [string]$problemById[$problemId].title
         track = $track
@@ -62,7 +71,17 @@ function Add-ManifestEntry($entry, [string]$track, [int]$problemId, [string]$tar
         path = "./generated/$track/$($entry.modelKey)/$($problemId.ToString('000')).cpp"
         bytes = [int64]$info.Length
         sha256 = $digest
-    })
+    }
+    $usageKey = "${track}:$($entry.modelKey):$problemId"
+    if ($usageByKey.ContainsKey($usageKey)) {
+        $usage = $usageByKey[$usageKey]
+        if ($track -eq "agent") {
+            $record.inputTokens = [int64]$usage.inputTokens
+            $record.cachedInputTokens = [int64]$usage.cachedInputTokens
+        }
+        $record.outputTokens = [int64]$usage.outputTokens
+    }
+    $manifestEntries.Add($record)
 }
 
 function Copy-PackageModel([string]$track, [string]$modelKey, [string]$sourceRoot) {
@@ -71,8 +90,10 @@ function Copy-PackageModel([string]$track, [string]$modelKey, [string]$sourceRoo
     New-Item -ItemType Directory -Path $targetRoot -Force | Out-Null
     foreach ($rawId in $entry.solvedProblemIds) {
         $problemId = [int]$rawId
-        $prefix = $problemId.ToString("000") + "_*.cpp"
-        $matches = @(Get-ChildItem -LiteralPath $sourceRoot -Filter $prefix -File)
+        $stem = $problemId.ToString("000")
+        $matches = @(Get-ChildItem -LiteralPath $sourceRoot -Filter "$stem*.cpp" -File | Where-Object {
+            $_.Name -eq "$stem.cpp" -or $_.Name -like "${stem}_*.cpp"
+        })
         if ($matches.Count -ne 1) {
             throw "Expected one source for $track/$modelKey/#$problemId, found $($matches.Count)"
         }
@@ -84,9 +105,11 @@ function Copy-PackageModel([string]$track, [string]$modelKey, [string]$sourceRoo
 
 $multiPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_leaderboard_passed_cpp_Opus_Kimi_Terra_20261114"
 $deepSeekPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_leaderboard_passed_cpp_DeepSeek_20261114"
+$gptSolPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_GPT-6.1-Sol_Accepted_Direct62_Agent72_20261115"
 
 Copy-PackageModel "direct" "kimi-k3-1-pro" (Join-Path $multiPackage "direct\kimi-k3-1-pro")
 Copy-PackageModel "direct" "deepseek-flash" (Join-Path $deepSeekPackage "direct\deepseek-flash")
+Copy-PackageModel "direct" "gpt-6-1-sol" (Join-Path $gptSolPackage "direct")
 Copy-PackageModel "agent" "claude-opus-5-5" (Join-Path $multiPackage "agent\claude-opus-5-5")
 Copy-PackageModel "agent" "kimi-k3-1-pro" (Join-Path $multiPackage "agent\kimi-k3-1-pro")
 Copy-PackageModel "agent" "gpt-6-1-terra" (Join-Path $multiPackage "agent\gpt-6-1-terra")

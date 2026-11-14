@@ -25,6 +25,7 @@ const elements = {
   sourceMode: document.querySelector("#source-mode"),
   sourceModel: document.querySelector("#source-model"),
   sourceHarness: document.querySelector("#source-harness"),
+  usage: document.querySelector("#source-usage"),
   raw: document.querySelector("#raw-source"),
   copy: document.querySelector("#copy-source"),
   code: document.querySelector("#source-code"),
@@ -161,6 +162,7 @@ async function loadSource(entry) {
   elements.sourceMode.textContent = entry.track;
   elements.sourceModel.textContent = entry.model;
   elements.sourceHarness.textContent = entry.harness ? `Harness: ${entry.harness}` : "";
+  renderTokenUsage(entry);
   elements.raw.href = entry.path;
   elements.loading.hidden = false;
   elements.code.textContent = "";
@@ -186,6 +188,27 @@ async function loadSource(entry) {
   } finally {
     if (state.selectedEntry && entryKey(state.selectedEntry) === requestKey) elements.loading.hidden = true;
   }
+}
+
+function renderTokenUsage(entry) {
+  const metrics = [];
+  if (entry.track === "agent") {
+    metrics.push(["Input tokens", entry.inputTokens]);
+    metrics.push(["Cached input", entry.cachedInputTokens]);
+  }
+  metrics.push(["Output tokens", entry.outputTokens]);
+  elements.usage.replaceChildren();
+  metrics.forEach(([label, value]) => {
+    const group = document.createElement("div");
+    const term = document.createElement("dt");
+    const amount = document.createElement("dd");
+    term.textContent = label;
+    amount.textContent = Number.isFinite(Number(value))
+      ? Number(value).toLocaleString("en-US")
+      : "Unavailable";
+    group.append(term, amount);
+    elements.usage.append(group);
+  });
 }
 
 function populateModels() {

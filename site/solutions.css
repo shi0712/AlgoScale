@@ -91,6 +91,10 @@ button, select { cursor: pointer; }
 .source-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
 .source-actions button, .source-actions a { padding: 6px 9px; border: 1px solid #5d6259; background: transparent; color: white; font-family: var(--mono); font-size: 8px; text-decoration: none; }
 .source-actions button:hover, .source-actions a:hover { border-color: var(--accent); color: var(--accent); }
+.source-usage { margin: 0; display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--line); background: #eeece4; }
+.source-usage div { min-width: 150px; padding: 10px 26px 11px; border-right: 1px solid var(--line); }
+.source-usage dt { color: var(--muted); font-family: var(--mono); font-size: 7px; letter-spacing: .08em; text-transform: uppercase; }
+.source-usage dd { margin: 3px 0 0; font-family: var(--mono); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .code-frame { position: relative; height: 430px; overflow: auto; background: #0d1117; scrollbar-color: #4a4f58 #0d1117; }
 .code-frame pre { min-width: 100%; width: max-content; margin: 0; }
 .code-frame code { min-height: 430px; padding: 22px 24px !important; font-family: var(--mono); font-size: 11px; line-height: 1.7; tab-size: 4; }
@@ -134,6 +138,8 @@ footer > a:last-child { justify-self: end; color: #aeb2a9; font-size: 10px; }
   .toolbar { grid-template-columns: 1fr; }
   .detail-header, .variant-section { padding-left: 18px; padding-right: 18px; }
   .source-toolbar { padding-left: 18px; align-items: flex-start; flex-direction: column; }
+  .source-usage div { flex: 1 1 100%; padding-left: 18px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .source-usage div:last-child { border-bottom: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
