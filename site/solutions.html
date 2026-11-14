@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Accepted C++ submissions for the AlgoScale benchmark." />
+    <meta name="theme-color" content="#f3f0e8" />
+    <title>Accepted Solutions — AlgoScale</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github-dark.min.css" />
+    <link rel="stylesheet" href="./solutions.css?v=20261114-2" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="AlgoScale home">
+        <span class="brand-mark" aria-hidden="true">A²</span>
+        <span>AlgoScale</span>
+      </a>
+      <nav class="page-nav" aria-label="Page navigation">
+        <a href="./#leaderboard">Leaderboard</a>
+        <a href="./#catalog">Problems</a>
+        <a class="is-current" href="./solutions.html" aria-current="page">Accepted solutions</a>
+        <a class="nav-github" href="https://github.com/shi0712/AlgoScale" target="_blank" rel="noreferrer">GitHub ↗</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="page-hero">
+        <div>
+          <p class="eyebrow"><span></span> Executable evidence</p>
+          <h1>Accepted<br /><em>solutions.</em></h1>
+        </div>
+        <div class="hero-note">
+          <p>
+            Browse the C++ programs that received a full score under the current
+            AlgoScale judge data. Superseded or failed submissions are not published.
+          </p>
+          <dl class="summary-stats" aria-label="Solution archive statistics">
+            <div><dt>Programs</dt><dd id="stat-programs">—</dd></div>
+            <div><dt>Problems covered</dt><dd id="stat-problems">—</dd></div>
+            <div><dt>Models</dt><dd id="stat-models">—</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="Accepted solution explorer">
+        <div class="toolbar">
+          <label class="search-field">
+            <span>Search</span>
+            <input id="solution-search" type="search" placeholder="Problem ID, title, or model" autocomplete="off" />
+          </label>
+          <label>
+            <span>Evaluation mode</span>
+            <select id="track-filter">
+              <option value="all">All modes</option>
+              <option value="direct">Direct</option>
+              <option value="agent">Agent</option>
+            </select>
+          </label>
+          <label>
+            <span>Model</span>
+            <select id="model-filter"><option value="all">All models</option></select>
+          </label>
+          <button id="clear-filters" type="button">Clear filters</button>
+        </div>
+
+        <div class="explorer-shell">
+          <aside class="problem-pane" aria-label="Problems with accepted solutions">
+            <div class="pane-heading">
+              <span>Problems</span>
+              <strong id="result-count">0</strong>
+            </div>
+            <div id="problem-list" class="problem-list"></div>
+            <p id="problem-empty" class="empty-message" hidden>No accepted solutions match these filters.</p>
+          </aside>
+
+          <article class="code-pane" aria-live="polite">
+            <div id="detail-empty" class="detail-empty">
+              <span>A²</span>
+              <p>Select a problem to inspect its accepted programs.</p>
+            </div>
+            <div id="detail-content" hidden>
+              <header class="detail-header">
+                <div>
+                  <p id="detail-id" class="detail-id"></p>
+                  <h2 id="detail-title"></h2>
+                </div>
+                <a id="problem-link" class="problem-link" href="./#catalog">Problem metadata ↗</a>
+              </header>
+              <div class="variant-section">
+                <div class="variant-heading">
+                  <span>Accepted variants</span>
+                  <span id="variant-count"></span>
+                </div>
+                <div id="variant-list" class="variant-list" role="list"></div>
+              </div>
+              <div class="source-toolbar">
+                <div>
+                  <span id="source-mode" class="mode-badge"></span>
+                  <strong id="source-model"></strong>
+                  <span id="source-harness" class="harness-label"></span>
+                </div>
+                <div class="source-actions">
+                  <button id="copy-source" type="button">Copy</button>
+                  <a id="raw-source" href="#" target="_blank" rel="noreferrer">Raw ↗</a>
+                </div>
+              </div>
+              <div class="code-frame">
+                <div id="loading-source" class="loading-source">Loading source…</div>
+                <pre><code id="source-code" class="language-cpp"></code></pre>
+              </div>
+              <p id="source-status" class="source-status" role="status"></p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand" href="./"><span class="brand-mark">A²</span><span>AlgoScale</span></a>
+      <p>Only judge-accepted C++ programs are retained in this archive.</p>
+      <a href="https://github.com/shi0712/AlgoScale" target="_blank" rel="noreferrer">Repository ↗</a>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/languages/cpp.min.js" defer></script>
+    <script src="./solutions.js?v=20261114-2" defer></script>
+  </body>
+</html>
