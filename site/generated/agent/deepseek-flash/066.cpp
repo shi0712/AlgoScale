@@ -1,320 +1,322 @@
 #include <bits/stdc++.h>
 using namespace std;
+
 using ll = long long;
 using i128 = __int128_t;
 
-/*
-  Walk Variance.
-
-  Key facts:
-   * For a walk W, Var(W) = min_mu (1/|W|) * sum_e (w_e - mu)^2 .
-   * inf over walks from 1 to n of Var  =  min over {simple paths 1->n} U {simple cycles
-     lying on a 1->n walk} of Var.   (any walk decomposes into a simple path plus closed
-     sub-walks, and the average of non-negative costs is at least the minimum of the parts;
-     a cycle can be traversed arbitrarily often, so its variance is approachable.)
-   * Hence answer = min_{mu} h(mu), where h(mu) = min over structures of the average
-     edge cost with c_e = (w_e - mu)^2.
-   * Every structure p gives a parabola cost_p(mu) = (mu - x_p)^2 + V_p with
-     x_p = S/k, V_p = Var.  All parabolas have the same shape, so the lower envelope
-     is exactly the lower hull of the points (x_p, y_p), y_p = Q/k, and the minimum of
-     the envelope equals min_p V_p.  We enumerate the hull vertices with the standard
-     divide-and-conquer: given two hull vertices p,q, evaluate at the mu where their
-     parabolas cross; the argmin there is a hull vertex strictly between them (if any).
-
-  All arithmetic is exact (rational): mu = A/B, edge cost scaled by B^2:
-     c_e = B^2 w^2 - 2 A B w + A^2  (integer >= 0).
-*/
+static const ll INF_LL = (ll)4e18;
+static const double INF_D = 1e300;
 
 int n, m;
-vector<array<int, 3>> Ein;
+struct Edge { int u, v, w; };
+vector<Edge> edges;
 
-int nn_;
-vector<array<int, 3>> E;   // renumbered edges among relevant vertices
-int src, tgt;
+vector<char> inR;          // vertex belongs to relevant region
+vector<int> relEdge;       // indices of edges fully inside R
 
-const ll INF = (ll)3e18;
+// ---------------------------------------------------------------
+// Cycle representation: l = length, S = sum of weights,
+// Q = sum of squared weights.  A cycle corresponds to the parabola
+//   phi_C(t) = (t - S/l)^2 + (Q/l - (S/l)^2) = t^2 + Led_C(t)
+// with Led_C(t) = (Q - 2 t S)/l.
+// ---------------------------------------------------------------
+struct Cyc {
+    ll l = 0, S = 0, Q = 0;
+    bool valid = false;
+};
 
-vector<ll> cbuf;
-vector<ll> dpP;    // (N*N)
-vector<int> parP;
-vector<ll> Fk;     // (N+2)*N
-
-struct Struct { ll k, S, Q; };
-
-// compare a/b with c/d  (b,d > 0)
-static inline int cmpfrac(ll a, ll b, ll c, ll d) {
-    i128 l = (i128)a * d, r = (i128)c * b;
-    if (l < r) return -1;
-    if (l > r) return 1;
-    return 0;
+static inline double varianceOf(const Cyc &c) {
+    // (l*Q - S^2) / l^2
+    i128 num = (i128)c.l * c.Q - (i128)c.S * c.S;
+    double den = (double)c.l * (double)c.l;
+    return (double)num / den;
 }
 
-// argmin over structures of average cost at mu = A/B (B > 0)
-Struct evalMu(ll A, ll B, bool &ok) {
-    ok = false;
-    Struct res{0, 0, 0};
-    const int N = nn_;
-    const int M = (int)E.size();
+// ---------------------------------------------------------------
+// Oracle: minimum mean cost cycle for edge costs (w - P/Qd)^2.
+// Equivalent (scaled by Qd^2 > 0) to integer costs (w*Qd - P)^2.
+// Uses Karp's algorithm, then extracts one optimal cycle exactly
+// via reduced costs.
+// ---------------------------------------------------------------
+static ll dpK[105][105];
+static ll costE[1005];
+static i128 pot[105];
+static vector<int> tightAdj[105];
+static int parV[105], parE[105];
+static char col[105];
+static vector<int> cycVerts, cycEdges;
+static bool foundCycle;
 
-    cbuf.resize(M);
-    for (int i = 0; i < M; i++) {
-        ll w = E[i][2];
-        cbuf[i] = B * B * w * w - 2 * A * B * w + A * A;
+static bool dfsTight(int u) {
+    col[u] = 1;
+    for (int ei : tightAdj[u]) {
+        int v = edges[ei].v;
+        if (col[v] == 0) {
+            parV[v] = u;
+            parE[v] = ei;
+            if (dfsTight(v)) return true;
+        } else if (col[v] == 1) {
+            // cycle: v ... u -> v
+            cycVerts.clear();
+            cycEdges.clear();
+            vector<int> tmp;
+            int x = u;
+            while (x != v) {
+                tmp.push_back(x);
+                x = parV[x];
+            }
+            reverse(tmp.begin(), tmp.end());
+            cycVerts.push_back(v);
+            for (int y : tmp) cycVerts.push_back(y);
+            for (size_t i = 1; i < cycVerts.size(); i++) cycEdges.push_back(parE[cycVerts[i]]);
+            cycEdges.push_back(ei);
+            return true;
+        }
     }
+    col[u] = 2;
+    return false;
+}
 
-    /* ---------------- simple paths / short walks 1 -> n : exactly j edges, j<=N-1 */
-    dpP.assign((size_t)N * N, INF);
-    parP.assign((size_t)N * N, -1);
-    dpP[(size_t)0 * N + src] = 0;
-    for (int j = 0; j + 1 < N; j++) {
-        const ll *cur = &dpP[(size_t)j * N];
-        ll *nxt = &dpP[(size_t)(j + 1) * N];
-        for (int ei = 0; ei < M; ei++) {
-            int x = E[ei][0], y = E[ei][1];
-            ll c = cur[x];
-            if (c >= INF) continue;
-            ll val = c + cbuf[ei];
-            if (val < nxt[y]) { nxt[y] = val; parP[(size_t)(j + 1) * N + y] = ei; }
-        }
+static Cyc oracle(ll P, ll Qd, double &bestVar) {
+    // Qd > 0 guaranteed by caller
+    Cyc res;
+    for (size_t idx = 0; idx < relEdge.size(); idx++) {
+        int ei = relEdge[idx];
+        i128 d = (i128)edges[ei].w * Qd - P;
+        costE[idx] = (ll)(d * d);
     }
-    ll bestC = -1;
-    int bestJ = -1;
-    for (int j = 1; j < N; j++) {
-        ll C = dpP[(size_t)j * N + tgt];
-        if (C >= INF) continue;
-        if (bestJ < 0 || cmpfrac(C, j, bestC, bestJ) < 0) { bestC = C; bestJ = j; }
-    }
-    Struct sp{0, 0, 0};
-    bool hasPath = false;
-    if (bestJ > 0) {
-        hasPath = true;
-        int v = tgt;
-        for (int j = bestJ; j >= 1; j--) {
-            int ei = parP[(size_t)j * N + v];
-            int w = E[ei][2];
-            sp.k++; sp.S += w; sp.Q += (ll)w * w;
-            v = E[ei][0];
-        }
-    }
+    int ne = (int)relEdge.size();
 
-    /* ---------------- cycles : Karp's minimum mean cycle ----------------
-       Virtual source: F_0(v) = 0 for all v, F_j = min cost of a j-edge walk.
-       The augmented graph has N+1 vertices, so Karp's formula uses lengths 1..N+1:
-         mu* = min_v max_{0<=j<=N} (F_{N+1}(v) - F_j(v)) / (N+1-j).
-    */
-    Fk.assign((size_t)(N + 2) * N, INF);
-    for (int v = 0; v < N; v++) Fk[v] = 0;             // virtual source, j = 0
-    for (int j = 1; j <= N + 1; j++) {
-        const ll *cur = &Fk[(size_t)(j - 1) * N];
-        ll *nxt = &Fk[(size_t)j * N];
-        for (int ei = 0; ei < M; ei++) {
-            int x = E[ei][0], y = E[ei][1];
-            ll c = cur[x];
-            if (c >= INF) continue;
-            ll val = c + cbuf[ei];
-            if (val < nxt[y]) nxt[y] = val;
-        }
-    }
-    bool have = false;
-    ll bnum = 0, bden = 1;
-    const ll *last = &Fk[(size_t)(N + 1) * N];
-    for (int v = 0; v < N; v++) {
-        if (last[v] >= INF) continue;
-        ll num = 0, den = 1;
-        int jj = -1;
-        for (int j = 0; j <= N; j++) {
-            ll fj = Fk[(size_t)j * N + v];
-            if (fj >= INF) continue;
-            ll nu = last[v] - fj, de = N + 1 - j;
-            if (jj < 0 || cmpfrac(nu, de, num, den) > 0) { num = nu; den = de; jj = j; }
-        }
-        if (jj < 0) continue;
-        if (!have || cmpfrac(num, den, bnum, bden) < 0) { have = true; bnum = num; bden = den; }
-    }
-    /*
-      Extraction of an actual minimum mean cycle.
-      lambda* = bnum/bden = p/q.  With costs c'_e = q*c_e - p every cycle has total c' >= 0,
-      and the minimum mean cycles are exactly the cycles with total c' == 0.
-      Hence the graph has no negative cycle: shortest distances d[] (virtual source connected
-      to every vertex with a 0-cost edge) are well defined, and the edges tight w.r.t. d[]
-      (d[y] == d[x] + c'_e) contain a cycle; every such cycle has total c' == 0.
-    */
-    Struct sc{0, 0, 0};
-    bool hasCyc = false;
-    ll cycC = 0;
-    if (have) {
-        vector<ll> cp(M);
-        for (int i = 0; i < M; i++) cp[i] = bden * cbuf[i] - bnum;
-        vector<ll> d(N, 0);
-        for (int it = 0; it < N; it++) {
-            bool ch = false;
-            for (int ei = 0; ei < M; ei++) {
-                int x = E[ei][0], y = E[ei][1];
-                ll nd = d[x] + cp[ei];
-                if (nd < d[y]) { d[y] = nd; ch = true; }
-            }
-            if (!ch) break;
-        }
-        // tight-edge subgraph
-        vector<vector<pair<int, int>>> adjT(N);   // (to, edge id)
-        for (int ei = 0; ei < M; ei++) {
-            int x = E[ei][0], y = E[ei][1];
-            if ((i128)d[x] + cp[ei] == (i128)d[y]) adjT[x].push_back({y, ei});
-        }
-        vector<int> state(N, 0), parE(N, -1), it(N, 0), stk;
-        int foundU = -1, foundV = -1, foundE = -1;   // back edge foundV -> foundU
-        for (int s0 = 0; s0 < N && foundU < 0; s0++) {
-            if (state[s0]) continue;
-            stk.clear();
-            stk.push_back(s0);
-            state[s0] = 1;
-            while (!stk.empty() && foundU < 0) {
-                int u = stk.back();
-                if (it[u] == (int)adjT[u].size()) { state[u] = 2; stk.pop_back(); continue; }
-                int y = adjT[u][it[u]].first, ei = adjT[u][it[u]].second;
-                it[u]++;
-                if (state[y] == 1) { foundU = y; foundV = u; foundE = ei; break; }
-                if (state[y] == 0) { state[y] = 1; parE[y] = ei; stk.push_back(y); }
-            }
-        }
-        if (foundU >= 0) {
-            hasCyc = true;
-            for (int cur = foundV; cur != foundU; ) {
-                int ei = parE[cur];
-                int ww = E[ei][2];
-                sc.k++; sc.S += ww; sc.Q += (ll)ww * ww; cycC += cbuf[ei];
-                cur = E[ei][0];
-            }
-            int ww = E[foundE][2];
-            sc.k++; sc.S += ww; sc.Q += (ll)ww * ww; cycC += cbuf[foundE];
-        } else if (have) {
-            // Safety net (unreachable in theory): fall back to any simple cycle.
-            for (int ei0 = 0; ei0 < M && !hasCyc; ei0++) {
-                int u0 = E[ei0][0], v0 = E[ei0][1];
-                vector<int> par(N, -2), pe(N, -1);
-                vector<int> q;
-                par[v0] = -1;
-                q.push_back(v0);
-                for (size_t h = 0; h < q.size() && par[u0] == -2; h++) {
-                    int u = q[h];
-                    for (int ei2 = 0; ei2 < M; ei2++) {
-                        if (E[ei2][0] != u) continue;
-                        int y = E[ei2][1];
-                        if (par[y] != -2) continue;
-                        par[y] = u; pe[y] = ei2; q.push_back(y);
-                    }
-                }
-                if (par[u0] == -2) continue;
-                sc = {0, 0, 0}; cycC = 0;
-                int ww = E[ei0][2];
-                sc.k++; sc.S += ww; sc.Q += (ll)ww * ww; cycC += cbuf[ei0];
-                for (int x = u0; x != v0; x = par[x]) {
-                    int ei2 = pe[x]; ww = E[ei2][2];
-                    sc.k++; sc.S += ww; sc.Q += (ll)ww * ww; cycC += cbuf[ei2];
-                }
-                hasCyc = true;
+    for (int v = 0; v < n; v++) dpK[0][v] = inR[v] ? 0 : INF_LL;
+    for (int k = 1; k <= n; k++) {
+        for (int v = 0; v < n; v++) dpK[k][v] = INF_LL;
+        for (int idx = 0; idx < ne; idx++) {
+            int ei = relEdge[idx];
+            int u = edges[ei].u, v = edges[ei].v;
+            ll prev = dpK[k - 1][u];
+            if (prev < INF_LL) {
+                ll val = prev + costE[idx];
+                if (val < dpK[k][v]) dpK[k][v] = val;
             }
         }
     }
 
-    if (hasPath && hasCyc) {
-        ok = true;
-        if (cmpfrac(cycC, sc.k, bestC, bestJ) < 0) return sc;
-        return sp;
+    // Karp: theta = min_v max_{0<=k<n} (dp[n][v]-dp[k][v])/(n-k)
+    bool got = false;
+    ll A = 0, B = 1;
+    for (int v = 0; v < n; v++) {
+        if (!inR[v] || dpK[n][v] >= INF_LL) continue;
+        bool loc = false;
+        ll bn = 0, bd = 1;
+        for (int k = 0; k < n; k++) {
+            if (dpK[k][v] >= INF_LL) continue;
+            ll num = dpK[n][v] - dpK[k][v];
+            ll den = (ll)(n - k);
+            if (!loc || (i128)num * bd > (i128)bn * den) {
+                bn = num; bd = den; loc = true;
+            }
+        }
+        if (loc) {
+            if (!got || (i128)bn * B < (i128)A * bd) {
+                A = bn; B = bd; got = true;
+            }
+        }
     }
-    if (hasPath) { ok = true; return sp; }
-    if (hasCyc) { ok = true; return sc; }
+    if (!got) return res;
+
+    // reduce A/B
+    {
+        ll a = A < 0 ? -A : A, b = B;
+        while (b) { ll t = a % b; a = b; b = t; }
+        ll g = a == 0 ? 1 : a;
+        A /= g; B /= g;
+    }
+
+    // potentials q[v] = min_k (dp[k][v]*B - A*k)
+    for (int v = 0; v < n; v++) pot[v] = ((i128)1 << 120);
+    for (int v = 0; v < n; v++) {
+        if (!inR[v]) continue;
+        for (int k = 0; k <= n; k++) {
+            if (dpK[k][v] >= INF_LL) continue;
+            i128 val = (i128)dpK[k][v] * B - (i128)A * k;
+            if (val < pot[v]) pot[v] = val;
+        }
+    }
+
+    for (int v = 0; v < n; v++) tightAdj[v].clear();
+    for (int idx = 0; idx < ne; idx++) {
+        int ei = relEdge[idx];
+        int u = edges[ei].u, v = edges[ei].v;
+        i128 red = (i128)costE[idx] * B - A;
+        if (red + pot[u] - pot[v] == 0) tightAdj[u].push_back(ei);
+    }
+
+    for (int v = 0; v < n; v++) col[v] = 0;
+    foundCycle = false;
+    for (int v = 0; v < n && !foundCycle; v++) {
+        if (inR[v] && col[v] == 0) {
+            if (dfsTight(v)) foundCycle = true;
+        }
+    }
+    if (!foundCycle) return res;
+
+    ll L = 0, S = 0, Q = 0;
+    for (int ei : cycEdges) {
+        L++;
+        S += edges[ei].w;
+        Q += (ll)edges[ei].w * edges[ei].w;
+    }
+    res.l = L; res.S = S; res.Q = Q; res.valid = true;
+    bestVar = min(bestVar, varianceOf(res));
     return res;
 }
 
+// ---------------------------------------------------------------
+// Fraction helpers
+// ---------------------------------------------------------------
+struct Frac { i128 num, den; };  // den > 0
+
+static bool fracLess(const Frac &a, const Frac &b) {
+    return a.num * b.den < b.num * a.den;
+}
+
+static bool sameParabola(const Cyc &a, const Cyc &b) {
+    return (i128)a.S * b.l == (i128)b.S * a.l &&
+           (i128)a.Q * b.l == (i128)b.Q * a.l;
+}
+
+// intersection of Led_A and Led_B
+static Frac intersectLine(const Cyc &A, const Cyc &B) {
+    i128 num = (i128)B.Q * A.l - (i128)A.Q * B.l;
+    i128 den = 2 * ((i128)B.S * A.l - (i128)A.S * B.l);
+    if (den < 0) { num = -num; den = -den; }
+    if (den == 0) return Frac{0, 0};  // same mean: caller must skip
+    // reduce (guard against negative num)
+    i128 g = 0;
+    i128 an = num < 0 ? -num : num;
+    i128 ad = den;
+    while (ad) { i128 t = an % ad; an = ad; ad = t; }
+    g = an;
+    if (g > 1) { num /= g; den /= g; }
+    return Frac{num, den};
+}
+
+// ---------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------
 int main() {
     if (scanf("%d %d", &n, &m) != 2) return 0;
-    Ein.resize(m);
+    edges.resize(m);
+    vector<vector<int>> fadj(n), badj(n);
     for (int i = 0; i < m; i++) {
         int x, y, w;
         scanf("%d %d %d", &x, &y, &w);
-        Ein[i] = {x - 1, y - 1, w};
+        --x; --y;
+        edges[i] = {x, y, w};
+        fadj[x].push_back(y);
+        badj[y].push_back(x);
     }
 
-    vector<vector<int>> fwd(n), rev(n);
-    for (auto &e : Ein) { fwd[e[0]].push_back(e[1]); rev[e[1]].push_back(e[0]); }
+    // reachability from vertex 0 and to vertex n-1
     vector<char> r1(n, 0), rn(n, 0);
     {
-        vector<int> q; q.push_back(0); r1[0] = 1;
-        for (size_t h = 0; h < q.size(); h++) {
-            int u = q[h];
-            for (int v : fwd[u]) if (!r1[v]) { r1[v] = 1; q.push_back(v); }
+        vector<int> st;
+        st.push_back(0); r1[0] = 1;
+        while (!st.empty()) {
+            int u = st.back(); st.pop_back();
+            for (int v : fadj[u]) if (!r1[v]) { r1[v] = 1; st.push_back(v); }
+        }
+        st.push_back(n - 1); rn[n - 1] = 1;
+        while (!st.empty()) {
+            int u = st.back(); st.pop_back();
+            for (int v : badj[u]) if (!rn[v]) { rn[v] = 1; st.push_back(v); }
         }
     }
-    {
-        vector<int> q; q.push_back(n - 1); rn[n - 1] = 1;
-        for (size_t h = 0; h < q.size(); h++) {
-            int u = q[h];
-            for (int v : rev[u]) if (!rn[v]) { rn[v] = 1; q.push_back(v); }
-        }
-    }
+
     if (!r1[n - 1]) { printf("-1\n"); return 0; }
 
-    vector<int> id(n, -1);
-    nn_ = 0;
-    for (int v = 0; v < n; v++) if (r1[v] && rn[v]) id[v] = nn_++;
-    src = id[0];
-    tgt = id[n - 1];
-    E.clear();
-    for (auto &e : Ein)
-        if (id[e[0]] >= 0 && id[e[1]] >= 0) E.push_back({id[e[0]], id[e[1]], e[2]});
-
-    // ---- hull recursion over mu -------------------------------------------
-    const ll M = 10000000LL;   // large enough to select min/max mean structures
-    bool okA, okB;
-    Struct pL = evalMu(-M, 1, okA);
-    Struct pR = evalMu(M, 1, okB);
-
-    ll anum = -1, aden = 1;
-    auto upd = [&](const Struct &s) {
-        if (s.k == 0) return;
-        ll num = s.k * s.Q - s.S * s.S;
-        ll den = s.k * s.k;
-        if (anum < 0 || cmpfrac(num, den, anum, aden) < 0) { anum = num; aden = den; }
-    };
-    upd(pL); upd(pR);
-
-    vector<pair<Struct, Struct>> st;
-    st.reserve(1024);
-    st.push_back({pL, pR});
-    while (!st.empty() && anum != 0) {
-        Struct p = st.back().first, q = st.back().second;
-        st.pop_back();
-        if (p.k == 0 || q.k == 0) continue;
-        // same mean?
-        i128 lhs = (i128)p.S * q.k, rhs = (i128)q.S * p.k;
-        if (lhs == rhs) continue;
-        ll A = (ll)((i128)q.Q * p.k - (i128)p.Q * q.k);
-        ll B = (ll)(2 * ((i128)q.S * p.k - (i128)p.S * q.k));
-        if (B < 0) { A = -A; B = -B; }
-        if (B == 0) continue;
-        bool ok;
-        Struct r = evalMu(A, B, ok);
-        if (!ok || r.k == 0) continue;
-        upd(r);            // r is a concrete structure: always a valid candidate
-        // for the recursion it must lie strictly between x_p and x_q
-        bool between;
-        if (lhs < rhs) {
-            between = ((i128)p.S * r.k < (i128)r.S * p.k) && ((i128)r.S * q.k < (i128)q.S * r.k);
-        } else {
-            between = ((i128)q.S * r.k < (i128)r.S * q.k) && ((i128)r.S * p.k < (i128)p.S * r.k);
-        }
-        if (!between) continue;
-        i128 Cr = (i128)B * B * r.Q - (i128)2 * A * B * r.S + (i128)A * A * r.k;
-        i128 Cp = (i128)B * B * p.Q - (i128)2 * A * B * p.S + (i128)A * A * p.k;
-        if (Cr * (i128)p.k >= Cp * (i128)r.k) continue;   // no structure strictly better
-        st.push_back({p, r});
-        st.push_back({r, q});
+    inR.assign(n, 0);
+    for (int v = 0; v < n; v++) inR[v] = (r1[v] && rn[v]);
+    for (int i = 0; i < m; i++) {
+        if (inR[edges[i].u] && inR[edges[i].v]) relEdge.push_back(i);
     }
 
-    if (anum < 0) { printf("-1\n"); return 0; }
-    long double ans = (long double)anum / (long double)aden;
-    if (ans < 0 && ans > -1e-18L) ans = 0;
-    printf("%.15Lf\n", ans);
+    // ---------------- path part ----------------
+    // min over walks 1 -> n of length <= n-1 of variance
+    double ans = INF_D;
+    int maxS = 20 * (n - 1);
+    vector<ll> dpPrev((size_t)n * (maxS + 1), INF_LL);
+    vector<ll> dpCur((size_t)n * (maxS + 1), INF_LL);
+    auto at = [&](vector<ll> &d, int v, int s) -> ll& { return d[(size_t)v * (maxS + 1) + s]; };
+    at(dpPrev, 0, 0) = 0;
+    for (int l = 1; l <= n - 1; l++) {
+        fill(dpCur.begin(), dpCur.end(), INF_LL);
+        int prevMax = 20 * (l - 1);
+        for (int ei : relEdge) {
+            const Edge &e = edges[ei];
+            ll w2 = (ll)e.w * e.w;
+            const ll *src = &dpPrev[(size_t)e.u * (maxS + 1)];
+            ll *dst = &dpCur[(size_t)e.v * (maxS + 1)];
+            for (int s = 0; s <= prevMax; s++) {
+                ll val = src[s];
+                if (val < INF_LL) {
+                    ll nv = val + w2;
+                    if (nv < dst[s + e.w]) dst[s + e.w] = nv;
+                }
+            }
+        }
+        // check vertex n-1
+        {
+            const ll *src = &dpCur[(size_t)(n - 1) * (maxS + 1)];
+            for (int s = 0; s <= 20 * l; s++) {
+                ll q = src[s];
+                if (q < INF_LL) {
+                    i128 num = (i128)l * q - (i128)s * s;
+                    double v = (double)num / ((double)l * l);
+                    if (v < ans) ans = v;
+                }
+            }
+        }
+        dpPrev.swap(dpCur);
+    }
+
+    // ---------------- cycle part ----------------
+    // Answer over cycles = min over all cycles of variance.  For a cycle C,
+    // phi_C(t) = (t - mean_C)^2 + var_C, and min over cycles of var_C equals
+    // min_t (min over cycles of phi_C(t)).  The inner min is a min-mean-cycle
+    // problem with edge costs (w - t)^2, solved by Karp.  All parabolas have
+    // the same curvature, so the lower envelope's breakpoints can be found by
+    // divide and conquer on exact rational intersection points.
+    double bestCycle = INF_D;
+    {
+        // oracle with P=0,Qd=1 returns invalid iff R contains no cycle
+        Cyc c0 = oracle(0, 1, bestCycle);
+        if (c0.valid) {
+            Cyc c20 = oracle(20, 1, bestCycle);
+            if (!sameParabola(c0, c20)) {
+                // stack of tasks
+                struct Task { Cyc A; Frac t1; Cyc B; Frac t2; };
+                vector<Task> st;
+                st.push_back(Task{c0, Frac{0, 1}, c20, Frac{20, 1}});
+                while (!st.empty()) {
+                    Task tk = st.back(); st.pop_back();
+                    if (sameParabola(tk.A, tk.B)) continue;
+                    Frac ts = intersectLine(tk.A, tk.B);
+                    if (ts.den == 0) continue;
+                    if (!(fracLess(tk.t1, ts) && fracLess(ts, tk.t2))) continue;
+                    ll P = (ll)ts.num, Qd = (ll)ts.den;
+                    Cyc C = oracle(P, Qd, bestCycle);
+                    if (!C.valid) continue;
+                    if (sameParabola(C, tk.A) || sameParabola(C, tk.B)) continue;
+                    st.push_back(Task{tk.A, tk.t1, C, ts});
+                    st.push_back(Task{C, ts, tk.B, tk.t2});
+                }
+            }
+        }
+    }
+
+    if (bestCycle < ans) ans = bestCycle;
+    if (ans >= INF_D / 2) printf("-1\n");
+    else printf("%.15f\n", ans);
     return 0;
 }

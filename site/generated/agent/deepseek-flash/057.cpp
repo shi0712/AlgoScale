@@ -1,168 +1,177 @@
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-
+#include <bits/stdc++.h>
 using namespace std;
-typedef long long ll;
 
 static const int MOD = 998244353;
-static const int MAXN = 1000005;
+static const int MAXN = 1000000;
 
-static int head_[MAXN], nxt_[MAXN], H_[MAXN];
-static int fOff[MAXN], dOff[MAXN];
-static int T_[MAXN];
-static int fBuf[2 * MAXN + 10];
-static int dBuf[4 * MAXN + 20];
-static int g_[MAXN];
-static int pfx[MAXN];
-static int fact_[MAXN], invfact_[MAXN];
+static int fac[MAXN + 1], ifac[MAXN + 1];
 
-/* ---------- fast input ---------- */
-static char ibuf[1 << 16];
-static int ipos = 0, ilen = 0;
-static inline int gc() {
-    if (ipos == ilen) {
-        ilen = (int)fread(ibuf, 1, sizeof(ibuf), stdin);
-        ipos = 0;
-        if (ilen <= 0) return -1;
+static inline int modpow(long long a, long long e) {
+    long long r = 1;
+    while (e) {
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
+        e >>= 1;
     }
-    return ibuf[ipos++];
-}
-static inline int readInt() {
-    int c = gc();
-    while (c < '0' || c > '9') { if (c == -1) return -1; c = gc(); }
-    int x = 0;
-    while (c >= '0' && c <= '9') { x = x * 10 + (c - '0'); c = gc(); }
-    return x;
+    return (int)r;
 }
 
-/* ---------- fast output ---------- */
-static char obuf[1 << 16];
-static int opos = 0;
-static inline void flushOut() {
-    if (opos) { fwrite(obuf, 1, opos, stdout); opos = 0; }
-}
-static inline void putInt(int x) {
-    if (opos > (1 << 15) - 16) flushOut();
-    char tmp[16]; int l = 0;
-    if (x == 0) tmp[l++] = '0';
-    while (x > 0) { tmp[l++] = char('0' + x % 10); x /= 10; }
-    while (l) obuf[opos++] = tmp[--l];
-    obuf[opos++] = '\n';
+static inline int comb(int x, int m) {
+    if (x < m || m < 0) return 0;
+    return (long long)fac[x] * ifac[m] % MOD * ifac[x - m] % MOD;
 }
 
-static ll modpow(ll b, ll e) {
-    ll r = 1; b %= MOD;
-    while (e) { if (e & 1) r = r * b % MOD; b = b * b % MOD; e >>= 1; }
-    return r;
-}
+struct FastScanner {
+    static const int SZ = 1 << 20;
+    int idx, size;
+    char buf[SZ];
+    FastScanner() : idx(0), size(0) {}
+    inline char read() {
+        if (idx >= size) {
+            size = (int)fread(buf, 1, SZ, stdin);
+            idx = 0;
+            if (size == 0) return 0;
+        }
+        return buf[idx++];
+    }
+    template <class T>
+    inline bool nextInt(T &out) {
+        char c;
+        T sign = 1;
+        T num = 0;
+        c = read();
+        if (!c) return false;
+        while (c != '-' && (c < '0' || c > '9')) {
+            c = read();
+            if (!c) return false;
+        }
+        if (c == '-') { sign = -1; c = read(); }
+        for (; c >= '0' && c <= '9'; c = read())
+            num = num * 10 + (c - '0');
+        out = num * sign;
+        return true;
+    }
+};
 
 int main() {
-    /* factorials up to MAXN-1 */
-    fact_[0] = 1;
-    for (int i = 1; i < MAXN; i++) fact_[i] = (int)((ll)fact_[i - 1] * i % MOD);
-    invfact_[MAXN - 1] = (int)modpow(fact_[MAXN - 1], MOD - 2);
-    for (int i = MAXN - 1; i > 0; i--) invfact_[i - 1] = (int)((ll)invfact_[i] * i % MOD);
+    fac[0] = 1;
+    for (int i = 1; i <= MAXN; ++i)
+        fac[i] = (long long)fac[i - 1] * i % MOD;
+    ifac[MAXN] = modpow(fac[MAXN], MOD - 2);
+    for (int i = MAXN; i >= 1; --i)
+        ifac[i - 1] = (long long)ifac[i] * i % MOD;
 
-    int t = readInt();
-    while (t-- > 0) {
-        int n = readInt();
-        int k = readInt();
-        for (int i = 1; i <= n; i++) head_[i] = 0;
-        for (int i = 2; i <= n; i++) {
-            int p = readInt();
-            nxt_[i] = head_[p];
-            head_[p] = i;
+    FastScanner fs;
+    int t;
+    if (!fs.nextInt(t)) return 0;
+
+    string output;
+    output.reserve(t * 12);
+
+    for (int tc = 0; tc < t; ++tc) {
+        int n, k;
+        fs.nextInt(n);
+        fs.nextInt(k);
+        vector<int> p(n + 1), ch(n + 1, 0);
+        for (int i = 2; i <= n; ++i) {
+            fs.nextInt(p[i]);
+            ++ch[p[i]];
         }
 
-        int r = k - 1;
-        if (r == 0) { putInt(n % MOD); continue; }
-        if (k > n) { putInt(0); continue; }   /* defensive; guaranteed not to happen */
+        long long answer;
+        if (k == 1) {
+            answer = n % MOD;
+        } else if (k == 2) {
+            answer = (long long)n * (n - 1) % MOD;
+        } else {
+            const int m = k - 1;
 
-        /* ---- subtree heights, bottom-up (p_i < i so index order is topological) ---- */
-        for (int v = n; v >= 1; v--) {
-            int h = 0;
-            for (int c = head_[v]; c; c = nxt_[c]) {
-                int hc = H_[c] + 1;
-                if (hc > h) h = hc;
+            // h[v] = height of the subtree rooted at v
+            vector<int> h(n + 1, 0);
+            for (int v = n; v >= 2; --v) {
+                int cand = h[v] + 1;
+                int pv = p[v];
+                if (cand > h[pv]) h[pv] = cand;
             }
-            H_[v] = h;
-        }
 
-        /* ---- offsets for subtree distance profiles f_v (indices 0..H) ---- */
-        int tot = 0;
-        for (int v = 1; v <= n; v++) { fOff[v] = tot; tot += H_[v] + 1; }
-        int tot2 = 0;
-        for (int v = 1; v <= n; v++) { dOff[v] = tot2; tot2 += H_[v] + 3; }
+            // Flat storage for down[v][0..h[v]]
+            vector<int> off(n + 2);
+            off[1] = 0;
+            for (int v = 1; v <= n; ++v)
+                off[v + 1] = off[v] + h[v] + 1;
+            const int totalEntries = off[n + 1];
+            vector<int> down(totalEntries, 0);
 
-        /* ---- compute f_v bottom-up ---- */
-        for (int v = n; v >= 1; v--) {
-            int *fv = fBuf + fOff[v];
-            int h = H_[v];
-            for (int d = 0; d <= h; d++) fv[d] = 0;
-            fv[0] = 1;
-            for (int c = head_[v]; c; c = nxt_[c]) {
-                int *fc = fBuf + fOff[c];
-                int hc = H_[c];
-                for (int d = 0; d <= hc; d++) fv[d + 1] += fc[d];
-            }
-        }
-
-        /* ---- binomial table g[m] = C(m, r) ---- */
-        int cr = invfact_[r];
-        g_[0] = 0;
-        for (int m = 1; m <= n; m++)
-            g_[m] = (m >= r) ? (int)((ll)fact_[m] * invfact_[m - r] % MOD * cr % MOD) : 0;
-
-        /* ---- root full-profile prefix D(1, .) ---- */
-        {
-            int *Dv = dBuf + dOff[1];
-            int h = H_[1];
-            int *fv = fBuf + fOff[1];
-            Dv[0] = 1;
-            for (int d = 1; d <= h + 2; d++) Dv[d] = (d <= h) ? fv[d] : 0;
-        }
-
-        ll ans = 0;
-        T_[1] = 0;
-
-        for (int v = 1; v <= n; v++) {
-            int *Dv = dBuf + dOff[v];
-            int h = H_[v];
-
-            /* prefix sums of g(D(v, e)) for e = 0..h+2 */
-            pfx[0] = 0;
-            for (int e = 1; e <= h + 2; e++) {
-                int s = pfx[e - 1] + g_[Dv[e]];
-                if (s >= MOD) s -= MOD;
-                pfx[e] = s;
-            }
-            /* add the "direct" part of T(v) */
-            int tv = T_[v] + pfx[h + 2];
-            if (tv >= MOD) tv -= MOD;
-            T_[v] = tv;
-            ans += tv;
-
-            /* children */
-            for (int c = head_[v]; c; c = nxt_[c]) {
-                int hc = H_[c];
-                int *Dc = dBuf + dOff[c];
-                int *fc = fBuf + fOff[c];
-                Dc[0] = 1;
-                for (int d = 1; d <= hc + 2; d++) {
-                    int val = Dv[d - 1];
-                    if (d <= hc) val += fc[d];
-                    if (d >= 2) val -= fc[d - 2];
-                    Dc[d] = val;
+            // down[v][d]: vertices in subtree(v) at distance d from v
+            for (int v = n; v >= 1; --v) {
+                int bv = off[v];
+                down[bv] = 1; // d = 0
+                if (v > 1) {
+                    int pv = p[v];
+                    int bp = off[pv] + 1;
+                    int hv = h[v];
+                    int *dst = &down[bp];
+                    int *src = &down[bv];
+                    for (int d = 0; d <= hv; ++d)
+                        dst[d] += src[d];
                 }
-                int t2 = T_[v] - pfx[hc + 1];
-                if (t2 < 0) t2 += MOD;
-                T_[c] = t2;
+            }
+
+            // c[v][d] = number of all vertices at distance d from v,
+            // stored only for d = 0..h[v].  A(v) = sum_{d>=1} C(c[v][d], m).
+            vector<int> c(totalEntries, 0);
+
+            int b1 = off[1], h1 = h[1];
+            c[b1] = 1;
+            vector<int> Av(n + 1, 0);
+            int rootA = 0;
+            for (int d = 1; d <= h1; ++d) {
+                int x = down[b1 + d];
+                c[b1 + d] = x;
+                rootA += comb(x, m);
+                if (rootA >= MOD) rootA -= MOD;
+            }
+            Av[1] = rootA;
+            answer = rootA;
+
+            for (int v = 2; v <= n; ++v) {
+                int pv = p[v], bv = off[v], bp = off[pv], hv = h[v];
+
+                int A = Av[pv];
+                // d = 1 of v
+                A += comb(1 + ch[v], m);
+                if (A >= MOD) A -= MOD;
+
+                // Replace the first hv+1 entries of the parent's profile by
+                // c[v][d] = c[p][d-1] + down[v][d] - down[v][d-2], d=e+1.
+                for (int e = 1; e <= hv + 1; ++e) {
+                    int orig = c[bp + e];
+                    int corr = orig;
+                    if (e + 1 <= hv) corr += down[bv + e + 1];
+                    corr -= down[bv + e - 1];
+
+                    A += comb(corr, m);
+                    if (A >= MOD) A -= MOD;
+                    A -= comb(orig, m);
+                    if (A < 0) A += MOD;
+                }
+
+                c[bv] = 1;
+                if (hv >= 1) c[bv + 1] = 1 + ch[v];
+                for (int d = 2; d <= hv; ++d) {
+                    c[bv + d] = c[bp + d - 1] + down[bv + d] - down[bv + d - 2];
+                }
+
+                Av[v] = A;
+                answer += A;
+                if (answer >= MOD) answer -= MOD;
             }
         }
 
-        putInt((int)(ans % MOD));
+        output += to_string(answer);
+        output.push_back('\n');
     }
-    flushOut();
+
+    fwrite(output.data(), 1, output.size(), stdout);
     return 0;
 }

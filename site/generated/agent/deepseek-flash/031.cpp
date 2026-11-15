@@ -1,308 +1,209 @@
 #include <bits/stdc++.h>
 using namespace std;
-typedef long long ll;
 
-static const int MOD = 998244353;
+static constexpr uint32_t MOD = 998244353;
 
-struct Mat { int a, b, c, d; };
-
-static inline Mat mmul(const Mat &x, const Mat &y) {
-    return Mat{
-        (int)(((ll)x.a * y.a + (ll)x.b * y.c) % MOD),
-        (int)(((ll)x.a * y.b + (ll)x.b * y.d) % MOD),
-        (int)(((ll)x.c * y.a + (ll)x.d * y.c) % MOD),
-        (int)(((ll)x.c * y.b + (ll)x.d * y.d) % MOD)};
+inline uint32_t mulmod(uint32_t a, uint32_t b) {
+    return (uint32_t)((uint64_t)a * b % MOD);
 }
-static const Mat IDM{1, 0, 0, 1};
-
-static int n;
-static vector<int> adjHead, adjNext, adjTo; // CSR adjacency
-static vector<int> par_, heavy, szs, ordr;
-static vector<char> mem_;
-static vector<int> kL;
-static vector<int> lightOff, lightPow, lidx;
-static vector<Mat> ltree;
-static vector<int> chainId, cpos, chainOff, chainPow;
-static vector<Mat> ctree;
-static vector<vector<int> > chains;
-static vector<int> inv2p;
-static vector<Mat> nodeM;
-static int root_;
-static int answer;
-
-static inline int nextpow2(int x) { int s = 1; while (s < x) s <<= 1; return s; }
-
-static inline void lightAgg(int x, int &AL, int &BL) {
-    if (lightPow[x] == 0) { AL = 1; BL = 0; return; }
-    const Mat &m = ltree[lightOff[x] + 1];
-    AL = m.a; BL = m.c;
+inline uint32_t addmod(uint32_t a, uint32_t b) {
+    uint32_t s = a + b;
+    if (s >= MOD) s -= MOD;
+    return s;
 }
 
-static inline void computeNodeM(int x) {
-    int AL, BL;
-    lightAgg(x, AL, BL);
-    if (mem_[x]) {
-        int t = (int)(((ll)2 * BL + AL) % MOD);
-        nodeM[x] = Mat{AL, (int)(2LL * AL % MOD), BL, t};
-    } else {
-        int k = kL[x];
-        int h = heavy[x];
-        if (h != -1 && !mem_[h]) k++;
-        int coef = inv2p[k];
-        int v1 = (int)((ll)AL * coef % MOD);
-        nodeM[x] = Mat{0, 0, v1, (int)(2LL * v1 % MOD)};
+uint32_t modpow(uint32_t a, uint64_t e) {
+    uint32_t r = 1;
+    while (e) {
+        if (e & 1) r = mulmod(r, a);
+        a = mulmod(a, a);
+        e >>= 1;
     }
+    return r;
 }
+inline uint32_t modinv(uint32_t a) { return modpow(a, MOD - 2); }
 
-static inline void updateNode(int x) {
-    computeNodeM(x);
-    int c = chainId[x], base = chainOff[c], S = chainPow[c];
-    int j = S + cpos[x];
-    ctree[base + j] = nodeM[x];
-    for (j >>= 1; j >= 1; j >>= 1)
-        ctree[base + j] = mmul(ctree[base + 2 * j], ctree[base + 2 * j + 1]);
-}
-
-static inline void setLightLeaf(int q, int y, int u, int J) {
-    int base = lightOff[q], S = lightPow[q];
-    int j = S + lidx[y];
-    ltree[base + j] = Mat{u, 0, J, u};
-    for (j >>= 1; j >= 1; j >>= 1)
-        ltree[base + j] = mmul(ltree[base + 2 * j], ltree[base + 2 * j + 1]);
-}
-
-static inline void setLightLeafRaw(int q, int y, int u, int J) {
-    int base = lightOff[q], S = lightPow[q];
-    ltree[base + S + lidx[y]] = Mat{u, 0, J, u};
-}
-
-static void flip(int x) {
-    mem_[x] = 1;
-    updateNode(x);
-    int p = par_[x];
-    if (p != -1 && heavy[p] == x) updateNode(p);
-    int c = chainId[x];
-    while (true) {
-        const Mat &pr = ctree[chainOff[c] + 1];
-        int P = pr.a, J = pr.c;
-        int top = chains[c][0];
-        if (top == root_) { answer = J; return; }
-        int q = par_[top];
-        int u = (int)((2LL * J + P) % MOD);
-        setLightLeaf(q, top, u, J);
-        if (top == x) kL[q]--;
-        updateNode(q);
-        c = chainId[q];
-    }
+struct Mat {
+    uint32_t a00, a01, a10, a11;
+};
+inline Mat operator*(const Mat& A, const Mat& B) {
+    Mat C;
+    C.a00 = (uint32_t)(((uint64_t)A.a00 * B.a00 + (uint64_t)A.a01 * B.a10) % MOD);
+    C.a01 = (uint32_t)(((uint64_t)A.a00 * B.a01 + (uint64_t)A.a01 * B.a11) % MOD);
+    C.a10 = (uint32_t)(((uint64_t)A.a10 * B.a00 + (uint64_t)A.a11 * B.a10) % MOD);
+    C.a11 = (uint32_t)(((uint64_t)A.a10 * B.a01 + (uint64_t)A.a11 * B.a11) % MOD);
+    return C;
 }
 
 int main() {
-    // ---- fast input ----
-    static string sbuf;
-    {
-        sbuf.reserve(1 << 22);
-        char tmp[1 << 16];
-        size_t r;
-        while ((r = fread(tmp, 1, sizeof(tmp), stdin)) > 0) sbuf.append(tmp, r);
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n;
+    if (!(cin >> n)) return 0;
+    vector<vector<int>> adj(n);
+    for (int i = 0; i < n - 1; i++) {
+        int u, v;
+        cin >> u >> v;
+        --u; --v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
     }
-    const char *buf = sbuf.data();
-    size_t bufLen = sbuf.size();
-    size_t bufPos = 0;
-    auto readInt = [&]() -> int {
-        while (bufPos < bufLen && (buf[bufPos] < '0' || buf[bufPos] > '9')) bufPos++;
-        int v = 0;
-        while (bufPos < bufLen && buf[bufPos] >= '0' && buf[bufPos] <= '9') {
-            v = v * 10 + (buf[bufPos] - '0');
-            bufPos++;
+    if (n == 1) return 0;
+    vector<int> ord(n - 1);
+    for (int i = 0; i < n - 1; i++) { cin >> ord[i]; --ord[i]; }
+
+    vector<int> deg(n);
+    for (int i = 0; i < n; i++) deg[i] = (int)adj[i].size();
+
+    // root at 0, iterative DFS order
+    vector<int> parent(n, -1), bfs;
+    bfs.reserve(n);
+    {
+        vector<char> vis(n, 0);
+        vector<int> st;
+        st.reserve(n);
+        st.push_back(0); vis[0] = 1;
+        while (!st.empty()) {
+            int u = st.back(); st.pop_back();
+            bfs.push_back(u);
+            for (int v : adj[u]) if (!vis[v]) { vis[v] = 1; parent[v] = u; st.push_back(v); }
         }
-        return v;
+    }
+    vector<int> sz(n, 1), heavy(n, -1);
+    for (int i = n - 1; i >= 0; i--) {
+        int u = bfs[i];
+        int best = 0;
+        for (int v : adj[u]) {
+            if (v == parent[u]) continue;
+            sz[u] += sz[v];
+            if (sz[v] > best) { best = sz[v]; heavy[u] = v; }
+        }
+    }
+
+    // HLD: assign positions chain by chain
+    vector<int> head(n), pos(n);
+    vector<int> chainHeads;
+    chainHeads.reserve(n);
+    {
+        vector<int> stNode, stHead;
+        stNode.push_back(0); stHead.push_back(0);
+        int curPos = 0;
+        while (!stNode.empty()) {
+            int u = stNode.back(); stNode.pop_back();
+            int h = stHead.back(); stHead.pop_back();
+            chainHeads.push_back(h);
+            for (int v = u; v != -1; v = heavy[v]) {
+                head[v] = h;
+                pos[v] = curPos++;
+                for (int w : adj[v]) {
+                    if (w != parent[v] && w != heavy[v]) {
+                        stNode.push_back(w);
+                        stHead.push_back(w);
+                    }
+                }
+            }
+        }
+    }
+    vector<int> clen(n, 0);
+    for (int u = 0; u < n; u++) clen[head[u]]++;
+    vector<int> offOfHead(n, -1), pszOfHead(n, -1);
+    int poolSize = 0;
+    for (int h : chainHeads) {
+        int psz = 1;
+        while (psz < clen[h]) psz <<= 1;
+        offOfHead[h] = poolSize;
+        pszOfHead[h] = psz;
+        poolSize += 2 * psz;
+    }
+    vector<Mat> pool(poolSize);
+    Mat initMat{1, 0, 0, 0};
+    for (int h : chainHeads) {
+        int off = offOfHead[h], psz = pszOfHead[h];
+        for (int i = 0; i < psz; i++) pool[off + psz + i] = initMat;
+        for (int i = psz - 1; i >= 1; i--) pool[off + i] = pool[off + 2*i] * pool[off + 2*i + 1];
+    }
+
+    vector<uint32_t> curF(n, 1), curE(n, 0);
+    vector<int> zc(n, 0);
+    vector<uint32_t> pn(n, 1), Ssum(n, 0), sumE(n, 0);
+    vector<char> active(n, 0);
+
+    auto getP = [&](int u) -> uint32_t { return zc[u] > 0 ? 0u : pn[u]; };
+    auto getQ = [&](int u) -> uint32_t {
+        if (zc[u] == 0) return mulmod(pn[u], Ssum[u]);
+        if (zc[u] == 1) return mulmod((MOD - sumE[u]) % MOD, pn[u]);
+        return 0u;
+    };
+    auto setLeaf = [&](int u, const Mat& m) {
+        int h = head[u];
+        int off = offOfHead[h], psz = pszOfHead[h];
+        int i = psz + (pos[u] - pos[h]);
+        pool[off + i] = m;
+        for (i >>= 1; i >= 1; i >>= 1) pool[off + i] = pool[off + 2*i] * pool[off + 2*i + 1];
+    };
+    auto recomputeMat = [&](int u) {
+        uint32_t P = getP(u), Q = getQ(u);
+        Mat m;
+        if (active[u]) {
+            m.a00 = addmod(mulmod((uint32_t)deg[u], P), Q);
+            m.a01 = (P == 0 ? 0u : MOD - P);
+            m.a10 = P;
+            m.a11 = 0;
+        } else {
+            m.a00 = P; m.a01 = 0; m.a10 = 0; m.a11 = 0;
+        }
+        setLeaf(u, m);
     };
 
-    n = readInt();
+    vector<uint32_t> pow2(n + 2, 1);
+    for (int i = 1; i <= n + 1; i++) pow2[i] = addmod(pow2[i-1], pow2[i-1]);
 
-    adjHead.assign(n, -1);
-    adjTo.reserve(2 * max(0, n - 1));
-    adjNext.reserve(2 * max(0, n - 1));
-    for (int i = 0; i < n - 1; i++) {
-        int u = readInt() - 1, v = readInt() - 1;
-
-        adjTo.push_back(v); adjNext.push_back(adjHead[u]); adjHead[u] = (int)adjTo.size() - 1;
-        adjTo.push_back(u); adjNext.push_back(adjHead[v]); adjHead[v] = (int)adjTo.size() - 1;
-    }
-    vector<int> ops(n > 1 ? n - 1 : 0);
-    vector<char> isOp(n, 0);
-    for (int i = 0; i < n - 1; i++) { ops[i] = readInt() - 1; isOp[ops[i]] = 1; }
-    if (n == 1) return 0;
-    int r = 0;
-    while (isOp[r]) r++;
-    root_ = r;
-
-    // ---- root the tree ----
-    par_.assign(n, -1);
-    ordr.reserve(n);
-    vector<int> stk;
-    stk.push_back(r);
-    vector<char> vis(n, 0);
-    vis[r] = 1;
-    while (!stk.empty()) {
-        int x = stk.back(); stk.pop_back();
-        ordr.push_back(x);
-        for (int e = adjHead[x]; e != -1; e = adjNext[e]) {
-            int y = adjTo[e];
-            if (!vis[y]) { vis[y] = 1; par_[y] = x; stk.push_back(y); }
-        }
-    }
-
-    // ---- sizes and heavy child ----
-    szs.assign(n, 1);
-    heavy.assign(n, -1);
-    for (int i = n - 1; i >= 0; i--) {
-        int x = ordr[i];
-        int best = -1, bestSz = 0;
-        for (int e = adjHead[x]; e != -1; e = adjNext[e]) {
-            int y = adjTo[e];
-            if (par_[y] == x) {
-                szs[x] += szs[y];
-                if (szs[y] > bestSz) { bestSz = szs[y]; best = y; }
-            }
-        }
-        heavy[x] = best;
-    }
-
-    // ---- HLD chains ----
-    chainId.assign(n, -1);
-    cpos.assign(n, 0);
-    chains.clear();
-    for (int i = 0; i < n; i++) {
-        int x = ordr[i];
-        if (par_[x] == -1 || heavy[par_[x]] != x) {
-            // x is chain head
-            int cid = (int)chains.size();
-            chains.push_back(vector<int>());
-            int y = x;
-            while (y != -1) {
-                chainId[y] = cid;
-                cpos[y] = (int)chains.back().size();
-                chains.back().push_back(y);
-                y = heavy[y];
-            }
-        }
-    }
-
-    // ---- light children blocks ----
-    // count light children
-    lightOff.assign(n, 0);
-    lightPow.assign(n, 0);
-    lidx.assign(n, 0);
-    {
-        vector<int> cnt(n, 0);
-        for (int x = 0; x < n; x++) {
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) cnt[p]++;
-        }
-        // assign indices in a stable order: iterate over children in reverse-order list
-        vector<int> fill(n, 0);
-        for (int i = n - 1; i >= 0; i--) {
-            int x = ordr[i];
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) lidx[x] = fill[p]++;
-        }
-        long long total = 0;
-        for (int x = 0; x < n; x++) {
-            if (cnt[x] > 0) {
-                lightPow[x] = nextpow2(cnt[x]);
-                total += 2LL * lightPow[x];
-            }
-        }
-        ltree.assign(total, IDM);
-        long long off = 0;
-        for (int x = 0; x < n; x++) {
-            if (lightPow[x] > 0) { lightOff[x] = (int)off; off += 2LL * lightPow[x]; }
-        }
-    }
-
-    // ---- chain segment trees ----
-    {
-        int nc = (int)chains.size();
-        chainOff.assign(nc, 0);
-        chainPow.assign(nc, 0);
-        long long total = 0;
-        for (int c = 0; c < nc; c++) {
-            chainPow[c] = nextpow2((int)chains[c].size());
-            total += 2LL * chainPow[c];
-        }
-        ctree.assign(total, IDM);
-        long long off = 0;
-        for (int c = 0; c < nc; c++) { chainOff[c] = (int)off; off += 2LL * chainPow[c]; }
-    }
-
-    // ---- inverse powers of 2 ----
-    inv2p.assign(n + 2, 1);
-    {
-        int inv2 = (MOD + 1) / 2;
-        for (int i = 1; i <= n + 1; i++) inv2p[i] = (int)((ll)inv2p[i - 1] * inv2 % MOD);
-    }
-
-    // ---- initial bottom-up DP ----
-    mem_.assign(n, 0);
-    kL.assign(n, 0);
-    nodeM.assign(n, IDM);
-    {
-        vector<int> Pv(n, 0), Jv(n, 0), Uv(n, 0);
-        // kL init: count light children (none in S yet)
-        for (int x = 0; x < n; x++) {
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) kL[p]++;
-        }
-        for (int i = n - 1; i >= 0; i--) {
-            int x = ordr[i];
-            if (lightPow[x] > 0) {
-                int base = lightOff[x], S = lightPow[x];
-                for (int j = S - 1; j >= 1; j--)
-                    ltree[base + j] = mmul(ltree[base + 2 * j], ltree[base + 2 * j + 1]);
-            }
-            computeNodeM(x);
-            int h = heavy[x];
-            int Px, Jx;
-            if (h == -1) { Px = nodeM[x].a; Jx = nodeM[x].c; }
-            else {
-                Px = (int)(((ll)nodeM[x].a * Pv[h] + (ll)nodeM[x].b * Jv[h]) % MOD);
-                Jx = (int)(((ll)nodeM[x].c * Pv[h] + (ll)nodeM[x].d * Jv[h]) % MOD);
-            }
-            Pv[x] = Px; Jv[x] = Jx;
-            Uv[x] = (int)((2LL * Jx + Px) % MOD);
-            int p = par_[x];
-            if (p != -1 && heavy[p] != x) setLightLeafRaw(p, x, Uv[x], Jv[x]);
-        }
-        answer = Jv[r];
-    }
-
-    // ---- build chain segment trees ----
-    {
-        int nc = (int)chains.size();
-        for (int c = 0; c < nc; c++) {
-            int base = chainOff[c], S = chainPow[c];
-            int L = (int)chains[c].size();
-            for (int i = 0; i < L; i++) ctree[base + S + i] = nodeM[chains[c][i]];
-            for (int j = S + L; j < 2 * S; j++) ctree[base + j] = IDM;
-            for (int j = S - 1; j >= 1; j--)
-                ctree[base + j] = mmul(ctree[base + 2 * j], ctree[base + 2 * j + 1]);
-        }
-    }
-
-    // ---- process operations ----
+    long long K = 1;
     string out;
     out.reserve((size_t)(n - 1) * 11);
-    char tmp[16];
-    for (int i = 0; i < n - 1; i++) {
-        flip(ops[i]);
-        int v = answer;
-        int len = 0;
-        if (v == 0) tmp[len++] = '0';
-        while (v > 0) { tmp[len++] = char('0' + v % 10); v /= 10; }
-        while (len > 0) out.push_back(tmp[--len]);
-        out.push_back('\n');
+
+    for (int step = 0; step < n - 1; step++) {
+        int x = ord[step];
+        int d = 0;
+        for (int v : adj[x]) if (!active[v]) d++;
+        K += (long long)d - 1;
+        active[x] = 1;
+        recomputeMat(x);
+
+        int u = x;
+        while (true) {
+            int h = head[u];
+            Mat pr = pool[offOfHead[h] + 1];
+            uint32_t nf = pr.a00, ne = pr.a10;
+            if (nf == curF[h] && ne == curE[h]) break;
+            uint32_t of = curF[h], oe = curE[h];
+            curF[h] = nf; curE[h] = ne;
+            int p = parent[h];
+            if (p < 0) break;
+            if (of == 0) {
+                zc[p]--;
+                sumE[p] = addmod(sumE[p], (MOD - oe) % MOD);
+            } else {
+                uint32_t iv = modinv(of);
+                pn[p] = mulmod(pn[p], iv);
+                Ssum[p] = addmod(Ssum[p], mulmod(oe, iv));
+            }
+            if (nf == 0) {
+                zc[p]++;
+                sumE[p] = addmod(sumE[p], ne);
+            } else {
+                uint32_t iv = modinv(nf);
+                pn[p] = mulmod(pn[p], nf);
+                Ssum[p] = addmod(Ssum[p], (MOD - mulmod(ne, iv)) % MOD);
+            }
+            recomputeMat(p);
+            u = p;
+        }
+
+        uint32_t ans = mulmod(curF[0], pow2[(size_t)(K - 1)]);
+        out += to_string(ans);
+        out += '\n';
     }
-    fwrite(out.data(), 1, out.size(), stdout);
+    cout << out;
     return 0;
 }

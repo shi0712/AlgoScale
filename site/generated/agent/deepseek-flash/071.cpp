@@ -1,141 +1,239 @@
 #include <bits/stdc++.h>
+#include <unistd.h>
 using namespace std;
 
-// ======================= Parity Echo =======================
-// Insert positions left to right.  Once positions 1..M are known (their
-// relative order / ranks), the hidden p_{M+1} is described by its rank
-//     t = #{ k in [1,M] : p_k < p_{M+1} }   in [0, M].
-// A query [l, M+1] returns the parity of inversions of that interval:
-//     S(l, M+1) = S(l, M) xor #{ k in [l,M] : p_k > p_{M+1} }   (mod 2)
-// and  #{k in [l,M] : p_k > p_{M+1}} = (M-l+1) - #{k in [l,M] : r_k < t},
-// where r_k is the rank of position k inside the known prefix.  S(l,M) is
-// computable (the whole prefix pattern is known), so one query reveals
-//     psi_l(t) = #{ k in [l,M] : r_k < t }   (mod 2),
-// a 1-bit function of t.  Pick the l whose split of the current candidate set
-// is most balanced.  For t1 < t2 the choice l = max{pos(q) : q in [t1,t2-1]}
-// separates them, and every query at least halves the candidate set, so at
-// most ceil(log2 M) queries are spent on element M+1 => at most 19953 queries
-// for n = 2000 (entropy bound log2(n!) = 19053).
-// ==========================================================
+static int n;
 
-// Core solver.  `query(l, m)` must return the parity of the number of inversions
-// of the interval [l, m] (1-based) of the hidden permutation.
-// Returns ans with ans[k] = value at position k+1 (0-based array of 1..n).
-template <class QueryFn>
-vector<int> solvePerm(int n, QueryFn query, long long* qcount = nullptr, int* maxAux = nullptr) {
-    vector<int> r;              // r[k] = rank (0-based) of position k+1 among prefix
-    r.reserve(n + 1);
-    vector<int> inv(n + 2, 0);  // inv[l] = parity of inversions of prefix positions l..M
-    vector<int> cand, nxt, cntle, psiArr, cntAt;
-    vector<uint64_t> w;
-    long long q = 0;
+// ---------- fast interactive I/O ----------
+static char inbuf[1 << 16];
+static int inpos = 0, inlen = 0;
 
-    for (int m = 1; m <= n; m++) {
-        int M = m - 1;
-        int tstar = 0;
-        if (M >= 1) {
-            cand.resize(M + 1);
-            iota(cand.begin(), cand.end(), 0);
-            while ((int)cand.size() > 1) {
-                int K = (int)cand.size();
-
-                // cntle[q] = number of candidates <= q, q = 0..M-1
-                cntle.assign(M, 0);
-                {
-                    int idx = 0;
-                    for (int q2 = 0; q2 < M; q2++) {
-                        while (idx < K && cand[idx] <= q2) idx++;
-                        cntle[q2] = idx;
-                    }
+static inline int readInt() {
+    int c;
+    // skip non-digits (and handle '-')
+    while (true) {
+        if (inpos == inlen) {
+            inlen = (int)read(0, inbuf, sizeof(inbuf));
+            inpos = 0;
+            if (inlen <= 0) return -1;
+        }
+        c = (unsigned char)inbuf[inpos++];
+        if (c == '-') {
+            int x = 0;
+            while (true) {
+                if (inpos == inlen) {
+                    inlen = (int)read(0, inbuf, sizeof(inbuf));
+                    inpos = 0;
+                    if (inlen <= 0) return -x;
                 }
-
-                int W = (K + 63) >> 6;
-                int lb = K & 63;
-                w.assign(W, 0);
-                int count = 0;
-                int bestl = -1, bestbal = INT_MAX;
-                for (int l = M; l >= 1; l--) {
-                    int pp = cntle[r[l - 1]];
-                    if (pp < K) {                       // otherwise nothing flips
-                        int f = pp >> 6, rem = pp & 63;
-                        int onesPrefix = 0;
-                        for (int i = 0; i < f; i++) onesPrefix += __builtin_popcountll(w[i]);
-                        if (rem) onesPrefix += __builtin_popcountll(w[f] & ((1ULL << rem) - 1));
-                        int ones = count - onesPrefix;
-                        w[f] ^= (~0ULL << rem);
-                        for (int i = f + 1; i < W; i++) w[i] = ~w[i];
-                        if (lb) w[W - 1] &= ((1ULL << lb) - 1);
-                        count += (K - pp) - 2 * ones;
-                    }
-                    int mx = max(count, K - count);
-                    if (mx < bestbal) { bestbal = mx; bestl = l; }
-                }
-
-                int bit = query(bestl, m);
-                q++;
-
-                int psi = (((M - bestl + 1) & 1) ^ inv[bestl] ^ bit);
-
-                cntAt.assign(M, 0);
-                for (int k = bestl - 1; k < M; k++) cntAt[r[k]] ^= 1;
-                psiArr.assign(M + 1, 0);
-                int cur = 0;
-                for (int t = 0; t <= M; t++) {
-                    psiArr[t] = cur;
-                    if (t < M) cur ^= cntAt[t];
-                }
-                nxt.clear();
-                for (int t : cand) if (psiArr[t] == psi) nxt.push_back(t);
-                // Safety net: some l always separates two candidates, so the set
-                // strictly shrinks; guard anyway so we can never spin forever.
-                if (nxt.empty() || (int)nxt.size() == K) break;
-                cand.swap(nxt);
-            }
-            tstar = cand[0];
-
-            int c = 0;
-            for (int l = M; l >= 1; l--) {
-                if (r[l - 1] < tstar) c ^= 1;
-                inv[l] ^= (((M - l + 1) & 1) ^ c);
+                c = (unsigned char)inbuf[inpos++];
+                if (c < '0' || c > '9') return -x;
+                x = x * 10 + (c - '0');
             }
         }
-        inv[m] = 0;
-        for (int k = 0; k < M; k++) if (r[k] >= tstar) r[k]++;
-        r.push_back(tstar);
-        if (maxAux) { int a = (int)cand.size(); if (a > *maxAux) *maxAux = a; }
+        if (c >= '0' && c <= '9') {
+            int x = c - '0';
+            while (true) {
+                if (inpos == inlen) {
+                    inlen = (int)read(0, inbuf, sizeof(inbuf));
+                    inpos = 0;
+                    if (inlen <= 0) return x;
+                }
+                c = (unsigned char)inbuf[inpos++];
+                if (c < '0' || c > '9') return x;
+                x = x * 10 + (c - '0');
+            }
+        }
     }
-    if (qcount) *qcount = q;
-    vector<int> ans(n);
-    for (int k = 0; k < n; k++) ans[k] = r[k] + 1;
-    return ans;
 }
 
-int main() {
+static char outbuf[1 << 16];
+static int outpos = 0;
+
+static inline void flushOut() {
+    int p = 0;
+    while (p < outpos) {
+        ssize_t w = write(1, outbuf + p, outpos - p);
+        if (w <= 0) break;
+        p += (int)w;
+    }
+    outpos = 0;
+}
+
+static inline void putChar(char c) {
+    if (outpos == (int)sizeof(outbuf)) flushOut();
+    outbuf[outpos++] = c;
+}
+
+static inline void putInt(int x) {
+    char tmp[12];
+    int len = 0;
+    if (x == 0) tmp[len++] = '0';
+    while (x > 0) { tmp[len++] = char('0' + x % 10); x /= 10; }
+    while (len) putChar(tmp[--len]);
+}
+
+static inline int ask(int l, int r) {
+    if (outpos > (int)sizeof(outbuf) - 32) flushOut();
+    putChar('?'); putChar(' ');
+    putInt(l); putChar(' '); putInt(r); putChar('\n');
+    flushOut();
+    int x = readInt();
+    if (x < 0) exit(0);
+    return x;
+}
+
+struct Fenwick {
+    vector<int> t;
     int n;
-    if (scanf("%d", &n) != 1) return 0;
-    if (n == 1) {
-        printf("! 1\n");
-        fflush(stdout);
-        return 0;
+    void init(int n_) {
+        n = n_;
+        t.assign(n + 2, 0);
+    }
+    void clear() { fill(t.begin(), t.end(), 0); }
+    void add(int i, int v) {
+        for (; i <= n; i += i & -i) t[i] += v;
+    }
+    int sum(int i) const {
+        int s = 0;
+        for (; i > 0; i -= i & -i) s += t[i];
+        return s;
+    }
+};
+
+int main() {
+    n = readInt();
+    if (n <= 0) return 0;
+
+    vector<int> ord; // positions sorted by hidden value (ascending), local order
+    ord.reserve(n);
+    vector<int> invord(n + 1, 0); // local rank of each position (0-based)
+
+    // suffix inversion parities of the currently known prefix
+    vector<int> prefQ(n + 2, 0);
+    Fenwick fw;
+    fw.init(n + 2);
+
+    const int WMAX = (n + 2 + 63) / 64;
+    vector<uint64_t> H((size_t)(n + 2) * WMAX, 0); // H[l*WMAX + w]
+    vector<uint64_t> C(WMAX, 0);
+
+    for (int i = 1; i <= n; ++i) {
+        int m = i - 1;
+        if (m == 0) {
+            ord.insert(ord.begin(), i);
+            invord[i] = 0;
+            continue;
+        }
+
+        // prefQ[l] = inversion parity of prefix interval [l, m]
+        fw.clear();
+        int inv = 0;
+        prefQ[m + 1] = 0;
+        for (int l = m; l >= 1; --l) {
+            int r = invord[l];          // local rank, 0..m-1
+            int less = fw.sum(r);       // number of later elements with rank < r
+            inv ^= (less & 1);
+            prefQ[l] = inv;
+            fw.add(r + 1, 1);
+        }
+
+        int W = (m + 1 + 63) / 64;
+
+        // Build row l=1: H[1][k] = (m-k) mod 2
+        {
+            uint64_t *row = &H[1 * WMAX];
+            for (int w = 0; w < W; ++w) row[w] = 0;
+            for (int k = 0; k <= m; ++k)
+                if ((m - k) & 1) row[k >> 6] |= (uint64_t)1 << (k & 63);
+        }
+        // Rows l=2..m
+        for (int l = 1; l <= m - 1; ++l) {
+            uint64_t *dst = &H[(l + 1) * WMAX];
+            uint64_t *src = &H[l * WMAX];
+            memcpy(dst, src, (size_t)W * sizeof(uint64_t));
+            int r = invord[l];
+            int len = r + 1;
+            int full = len >> 6, rem = len & 63;
+            for (int w = 0; w < full; ++w) dst[w] ^= ~(uint64_t)0;
+            if (rem) dst[full] ^= ((uint64_t)1 << rem) - 1;
+        }
+
+        // Candidate insertion slots k = 0..m
+        for (int w = 0; w < W; ++w) C[w] = ~(uint64_t)0;
+        if (((m + 1) & 63) != 0)
+            C[W - 1] &= ((uint64_t)1 << ((m + 1) & 63)) - 1;
+        int csize = m + 1;
+
+        // narrow down the insertion slot
+        while (csize > 1) {
+            int bestl = -1, bestmn = -1, bestcnt = 0;
+
+            auto evaluate = [&](int l) {
+                const uint64_t *row = &H[(size_t)l * WMAX];
+                int cnt = 0;
+                for (int w = 0; w < W; ++w)
+                    cnt += __builtin_popcountll(row[w] & C[w]);
+                int mn = min(cnt, csize - cnt);
+                if (mn > bestmn) {
+                    bestmn = mn;
+                    bestl = l;
+                    bestcnt = cnt;
+                }
+            };
+
+            if (m <= 256) {
+                for (int l = 1; l <= m; ++l) {
+                    evaluate(l);
+                    if (bestmn * 2 == csize) break;
+                }
+            } else {
+                const int K = 128;
+                for (int j = 0; j < K; ++j) {
+                    int l = 1 + (int)((long long)j * m / K);
+                    if (l > m) l = m;
+                    evaluate(l);
+                    if (bestmn * 2 == csize) break;
+                }
+                if (bestmn * 2 != csize) evaluate(m);
+                if (bestmn * 2 != csize &&
+                    (bestmn == 0 || (long long)bestmn * 3 < csize)) {
+                    for (int l = 1; l <= m; ++l) {
+                        evaluate(l);
+                        if (bestmn * 2 == csize) break;
+                    }
+                }
+            }
+
+            int b = ask(bestl, i) ^ prefQ[bestl];
+
+            if (b) {
+                for (int w = 0; w < W; ++w) C[w] &= H[(size_t)bestl * WMAX + w];
+                csize = bestcnt;
+            } else {
+                for (int w = 0; w < W; ++w) C[w] &= ~H[(size_t)bestl * WMAX + w];
+                csize -= bestcnt;
+            }
+        }
+
+        int k = 0;
+        for (int w = 0; w < W; ++w) {
+            if (C[w]) {
+                k = w * 64 + __builtin_ctzll(C[w]);
+                break;
+            }
+        }
+
+        ord.insert(ord.begin() + k, i);
+        for (int r = k; r < (int)ord.size(); ++r) invord[ord[r]] = r;
     }
 
-    auto query = [](int l, int rr) -> int {
-        printf("? %d %d\n", l, rr);
-        fflush(stdout);
-        int bit;
-        if (scanf("%d", &bit) != 1) exit(0);
-        if (bit < 0) exit(0);
-        return bit;
-    };
+    vector<int> ans(n + 1);
+    for (int r = 0; r < n; ++r) ans[ord[r]] = r + 1;
 
-    vector<int> ans = solvePerm(n, query);
-
-    static char buf[16 * 2005 + 16];
-    int len = 0;
-    buf[len++] = '!';
-    for (int k = 0; k < n; k++) len += sprintf(buf + len, " %d", ans[k]);
-    buf[len++] = '\n';
-    fwrite(buf, 1, len, stdout);
-    fflush(stdout);
+    putChar('!');
+    for (int i = 1; i <= n; ++i) { putChar(' '); putInt(ans[i]); }
+    putChar('\n');
+    flushOut();
     return 0;
 }

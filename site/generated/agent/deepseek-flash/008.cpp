@@ -1,176 +1,319 @@
-// 双律归减
-//
-// Operation S: x -> floor(sqrt(x))   (at most P times)
-// Operation H: x -> floor(x/2)       (at most Q times)
-// Minimise the total of all containers.
-//
-// For a single container an optimal plan is: a square-roots followed by b halvings
-// (S^c(H^d(x)) <= H^d(S^c(x))), and a <= 6 is enough for x <= 2e6.
-//
-// Lagrangian relaxation on the number of halvings.  For integer nu >= 0 define
-//     phi_nu(u) = min_{b>=0} ( u >> b ) + nu * b
-// (the optimum of "halve u b times, pay nu per halving").  Then the Lagrangian
-// dual value of the whole instance is
-//     D(nu) = sum_i phi_nu(h_i) - (sum of the P largest sqrt-step gains) - nu*Q,
-//     gain(i,a) = phi_nu(c_{i,a-1}) - phi_nu(c_{i,a}),  c_{i,0}=h_i, c_{i,a}=isqrt(c_{i,a-1}).
-// D is concave in nu and  max_{nu>=0} D(nu)  equals the exact optimum (the relaxation
-// is tight because the residual problem is an integral polymatroid; the gains along a
-// sqrt chain are non-increasing, so the top-P choice is automatically prefix closed).
-//
-// Gains only depend on the value, and containers sharing a value share their whole
-// chain, so we aggregate by value: one histogram of gains per distinct value and
-// per sqrt level.  Evaluating D(nu) costs O(#distinct values + #gain values).
 #include <bits/stdc++.h>
 using namespace std;
 
-static char *ibuf;
-static size_t ipos = 0, ilen = 0;
+namespace {
 
-static inline int readInt() {
-    while (ipos < ilen && (ibuf[ipos] < '0' || ibuf[ipos] > '9')) ipos++;
-    if (ipos >= ilen) return -1;
-    int x = 0;
-    while (ipos < ilen && ibuf[ipos] >= '0' && ibuf[ipos] <= '9') x = x * 10 + (ibuf[ipos++] - '0');
-    return x;
-}
-
-int n, P, Q, maxh;
-vector<int> sqv;                  // sqv[u] = floor(sqrt(u))
-vector<int> phiArr;               // phi values at the needed points
-vector<int> hist;                 // histogram of sqrt gains
-vector<long long> memo;
-vector<int> allvals;              // values where phi is needed, ascending
-vector<pair<int, int>> levlist[7];// per chain level: (value, weight)
-vector<int> touched;
-
-static long long evalD(int nu) {
-    long long &m = memo[nu];
-    if (m != LLONG_MIN) return m;
-    if (nu == 0) return m = 0;
-    int b = 0;
-    for (int v : allvals) {
-        while (((long long)nu << (b + 1)) < (long long)v) b++;
-        phiArr[v] = (int)((v >> b) + (long long)nu * b);
+struct FastScanner {
+    static const int SZ = 1 << 20;
+    int idx = 0, size = 0;
+    char buf[SZ];
+    inline char read() {
+        if (idx >= size) {
+            size = (int)fread(buf, 1, SZ, stdin);
+            idx = 0;
+            if (size == 0) return 0;
+        }
+        return buf[idx++];
     }
-    long long sumPhi = 0;
-    int maxg = 0;
-    touched.clear();
-    for (int a = 1; a <= 6; a++) {
-        for (const auto &pr : levlist[a]) {
-            int v = pr.first, w = pr.second;
-            int g = phiArr[v] - phiArr[sqv[v]];
-            if (a == 1) sumPhi += (long long)w * phiArr[v];
-            if (g > 0) {
-                if (hist[g] == 0) touched.push_back(g);
-                hist[g] += w;
-                if (g > maxg) maxg = g;
+    int nextInt() {
+        char c;
+        do { c = read(); } while (c && (c < '0' || c > '9'));
+        int x = 0;
+        while (c >= '0' && c <= '9') {
+            x = x * 10 + (c - '0');
+            c = read();
+        }
+        return x;
+    }
+};
+
+struct Evaluator {
+    int maxH, D, SMAX;
+    const vector<int>* hvals;
+    const vector<int>* freq;
+    const vector<int>* isqrtv;
+    vector<int> c0arr;      // C_T(h)
+    vector<uint8_t> q0arr;  // qgt(h,T)
+    vector<uint8_t> qendarr; // qgt at the last chosen positive sqrt
+    vector<int> bucket;
+    vector<int> csmall;
+    vector<uint8_t> qsmall;
+    int T;
+
+    inline void calcLarge(int x, int& c, int& qg) const {
+        if (x == 0) { c = 0; qg = 0; return; }
+        int den = 2 * T + 1;
+        int e;
+        if (x < den) {
+            qg = 0;
+        } else {
+            int bx = 31 - __builtin_clz((unsigned)x);
+            int bd = 31 - __builtin_clz((unsigned)den);
+            e = bx - bd;
+            if (((long long)den << e) > x) --e;
+            qg = e + 1;
+        }
+        c = (x >> qg) + T * qg;
+    }
+
+    void prepareSmall() {
+        int den = 2 * T + 1;
+        for (int x = 0; x <= SMAX; ++x) {
+            int qg;
+            if (x == 0 || x < den) {
+                qg = 0;
+            } else {
+                int bx = 31 - __builtin_clz((unsigned)x);
+                int bd = 31 - __builtin_clz((unsigned)den);
+                int e = bx - bd;
+                if (((long long)den << e) > x) --e;
+                qg = e + 1;
             }
+            qsmall[x] = (uint8_t)qg;
+            csmall[x] = (x >> qg) + T * qg;
         }
     }
-    long long rem = P, gain = 0;
-    for (int g = maxg; g >= 1 && rem > 0; g--) {
-        int c = hist[g];
-        if (!c) continue;
-        long long take = rem < c ? rem : c;
-        gain += take * g;
-        rem -= take;
+
+    // Computes D(T) and one valid q-count of a minimizer at this price.
+    void eval(int t, long long& D, long long& qcount) {
+        T = t;
+        prepareSmall();
+
+        const vector<int>& hv = *hvals;
+        const vector<int>& fq = *freq;
+        const vector<int>& sq = *isqrtv;
+        int nD = (int)hv.size();
+
+        fill(bucket.begin(), bucket.end(), 0);
+
+        long long base = 0, savSum = 0;
+        long long savCnt = 0;
+        int maxS = 0;
+
+        for (int id = 0; id < nD; ++id) {
+            int h = hv[id];
+            int f = fq[h];
+            int c0, q0;
+            calcLarge(h, c0, q0);
+            c0arr[id] = c0;
+            q0arr[id] = (uint8_t)q0;
+            base += (long long)f * c0;
+
+            int x = h;
+            int cprev = c0, qprev = q0;
+            while (x > 1) {
+                int xn = sq[x];
+                int cn = csmall[xn];
+                int s = cprev - cn;
+                if (s <= 0) break;
+                bucket[s] += f;
+                savCnt += f;
+                savSum += (long long)s * f;
+                if (s > maxS) maxS = s;
+                cprev = cn;
+                qprev = qsmall[xn];
+                x = xn;
+            }
+            qendarr[id] = (uint8_t)qprev;
+        }
+
+        long long selected;
+        int cutoff;
+        long long remCut = 0;
+        if ((long long)P >= savCnt) {
+            selected = savSum;
+            cutoff = 0;
+        } else {
+            long long left = P;
+            long long got = 0;
+            int v = maxS;
+            for (; v >= 1; --v) {
+                int cnt = bucket[v];
+                if (cnt == 0) continue;
+                if (cnt < left) {
+                    got += (long long)cnt * v;
+                    left -= cnt;
+                } else if (cnt == left) {
+                    got += (long long)cnt * v;
+                    left = 0;
+                    // all items with saving >= v are selected; no partial bucket
+                    cutoff = (v > 1 ? v - 1 : 0);
+                    remCut = 0;
+                    break;
+                } else {
+                    got += left * v;
+                    remCut = left;
+                    cutoff = v;
+                    left = 0;
+                    break;
+                }
+            }
+            selected = got;
+            if (v < 1) cutoff = 0;
+        }
+
+        D = base - selected - (long long)T * Q;
+
+        // Compute q-count for the selected p allocation.
+        // Reconstruct the number of selected lines from the bucket cutoff.
+        long long qc = 0;
+        if (cutoff == 0) {
+            // all positive marginals selected
+            for (int id = 0; id < nD; ++id) {
+                int h = hv[id];
+                qc += (long long)fq[h] * qendarr[id];
+            }
+        } else {
+            long long rem = remCut;
+            // First skip all items strictly above cutoff by using second pass.
+            for (int id = 0; id < nD; ++id) {
+                int h = hv[id];
+                int f = fq[h];
+                int cs[8];
+                int qs[8];
+                int len = 1;
+                cs[0] = c0arr[id];
+                qs[0] = q0arr[id];
+                int x = h;
+                while (x > 1) {
+                    int xn = sq[x];
+                    int cn = csmall[xn];
+                    int s = cs[len - 1] - cn;
+                    if (s <= 0) break;
+                    cs[len] = cn;
+                    qs[len] = qsmall[xn];
+                    ++len;
+                    x = xn;
+                }
+                int m = len - 1;
+                int basep = 0;
+                while (basep < m && cs[basep] - cs[basep + 1] > cutoff) ++basep;
+                int r = 0;
+                while (basep + r < m && cs[basep + r] - cs[basep + r + 1] == cutoff) ++r;
+
+                long long capacity = (long long)f * r;
+                if (capacity > 0 && rem > 0) {
+                    long long take = min(rem, capacity);
+                    long long full = take / r;
+                    int part = (int)(take % r);
+                    qc += (long long)(f - full - (part > 0)) * qs[basep];
+                    if (full > 0) qc += full * qs[basep + r];
+                    if (part > 0) qc += qs[basep + part];
+                    rem -= take;
+                } else {
+                    qc += (long long)f * qs[basep];
+                }
+            }
+        }
+        qcount = qc;
     }
-    for (int g : touched) hist[g] = 0;
-    return m = sumPhi - gain - (long long)nu * Q;
-}
+
+    // P is needed inside eval; store a copy.
+    int P, Q;
+};
+
+} // namespace
 
 int main() {
+    FastScanner fs;
+    int n = fs.nextInt();
+    int P = fs.nextInt();
+    int Q = fs.nextInt();
+
+    const int MAXV = 2000000;
+    vector<int> freq(MAXV + 1, 0);
+    int maxH = 0;
+    for (int i = 0; i < n; ++i) {
+        int h = fs.nextInt();
+        ++freq[h];
+        if (h > maxH) maxH = h;
+    }
+
+    if (maxH == 0) {
+        puts("0");
+        return 0;
+    }
+
+    vector<int> isqrtv(maxH + 1);
+    for (int x = 0; x <= maxH; ++x) {
+        int r = (int)std::sqrt((double)x);
+        while ((long long)(r + 1) * (r + 1) <= x) ++r;
+        while ((long long)r * r > x) --r;
+        isqrtv[x] = r;
+    }
+
+    vector<int> hvals;
+    hvals.reserve(maxH + 1);
+    for (int h = 0; h <= maxH; ++h)
+        if (freq[h]) hvals.push_back(h);
+
+    // Zeroability check: minimal number of halvings needed to make all heights 0,
+    // after spending at most P square-root operations.
     {
-        size_t cap = 1 << 20;
-        ibuf = (char *)malloc(cap);
-        while (true) {
-            if (ilen == cap) { cap <<= 1; ibuf = (char *)realloc(ibuf, cap); }
-            size_t r = fread(ibuf + ilen, 1, cap - ilen, stdin);
-            if (r == 0) break;
-            ilen += r;
+        long long baseZ = 0;
+        long long cntZ[32] = {};
+        for (int h : hvals) {
+            int f = freq[h];
+            int z0 = (h == 0 ? 0 : 32 - __builtin_clz((unsigned)h));
+            baseZ += (long long)f * z0;
+            int x = h;
+            int zp = z0;
+            while (x > 1) {
+                int xn = isqrtv[x];
+                int zn = 32 - __builtin_clz((unsigned)xn);
+                int d = zp - zn;
+                if (d > 0) cntZ[d] += f;
+                x = xn;
+                zp = zn;
+            }
+        }
+        long long left = P;
+        long long reduced = 0;
+        for (int d = 31; d >= 1 && left > 0; --d) {
+            if (!cntZ[d]) continue;
+            long long take = min(left, cntZ[d]);
+            reduced += take * d;
+            left -= take;
+        }
+        if (baseZ - reduced <= Q) {
+            puts("0");
+            return 0;
         }
     }
-    n = readInt();
-    if (n < 0) return 0;
-    P = readInt(); Q = readInt();
-    {
-        vector<int> h(n);
-        maxh = 0;
-        for (int i = 0; i < n; i++) {
-            h[i] = readInt();
-            if (h[i] < 0) h[i] = 0;
-            if (h[i] > maxh) maxh = h[i];
-        }
-        free(ibuf); ibuf = nullptr;
-        if (maxh == 0) { printf("0\n"); return 0; }
-        sqv.assign(maxh + 1, 0);
-        for (int u = 1; u <= maxh; u++) {
-            int r = (int)sqrt((double)u);
-            while ((long long)(r + 1) * (r + 1) <= (long long)u) ++r;
-            while ((long long)r * r > (long long)u) --r;
-            sqv[u] = r;
-        }
-        vector<int> cnt(maxh + 1, 0);
-        for (int u : h) cnt[u]++;
-        vector<int>().swap(h);
-        vector<int> vals;
-        vals.reserve(min((size_t)maxh + 1, (size_t)n));
-        for (int u = 0; u <= maxh; u++) if (cnt[u]) vals.push_back(u);
-        levlist[1].reserve(vals.size());
-        for (int u : vals) levlist[1].push_back({u, cnt[u]});
-        vector<int>().swap(cnt);
-        vector<int> agg;
-        int lim = (int)(sqrt((double)maxh)) + 2;
-        agg.assign(lim + 1, 0);
-        for (int a = 2; a <= 6; a++) {
-            int hi = 0;
-            for (const auto &pr : levlist[a - 1]) hi = max(hi, sqv[pr.first]);
-            if ((int)agg.size() <= hi) agg.resize(hi + 1, 0);
-            vector<int> used;
-            used.reserve(levlist[a - 1].size());
-            for (const auto &pr : levlist[a - 1]) {
-                int v = sqv[pr.first];
-                if (agg[v] == 0) used.push_back(v);
-                agg[v] += pr.second;
-            }
-            levlist[a].reserve(used.size());
-            for (int v : used) { levlist[a].push_back({v, agg[v]}); agg[v] = 0; }
-            if (levlist[a].empty()) break;
-            bool fixed = true;
-            for (const auto &pr : levlist[a]) if (sqv[pr.first] != pr.first) { fixed = false; break; }
-            if (fixed) break; // all chains reached 0/1: deeper gains vanish
-        }
-        // collect values where phi must be evaluated
-        {
-            vector<int> extra;
-            extra.reserve(2 * (size_t)levlist[1].size());
-            for (int a = 1; a <= 6; a++)
-                for (const auto &pr : levlist[a]) {
-                    extra.push_back(pr.first);
-                    extra.push_back(sqv[pr.first]);
-                }
-            sort(extra.begin(), extra.end());
-            extra.erase(unique(extra.begin(), extra.end()), extra.end());
-            allvals.reserve(extra.size() + vals.size());
-            size_t i = 0, j = 0;
-            while (i < vals.size() || j < extra.size()) {
-                if (j == extra.size() || (i < vals.size() && vals[i] < extra[j])) allvals.push_back(vals[i++]);
-                else if (i == vals.size() || extra[j] < vals[i]) allvals.push_back(extra[j++]);
-                else { allvals.push_back(vals[i]); i++; j++; }
-            }
-            vector<int>().swap(extra);
-            allvals.shrink_to_fit();
-            vector<int>().swap(vals);
-        }
-    }
-    phiArr.assign(maxh + 1, 0);
-    hist.assign(maxh + 1, 0);
-    memo.assign(maxh + 2, LLONG_MIN);
-    int lo = 0, hi = maxh;
-    while (lo < hi) {
+
+    int SMAX = isqrtv[maxH];
+    Evaluator ev;
+    ev.maxH = maxH;
+    ev.D = (int)hvals.size();
+    ev.SMAX = SMAX;
+    ev.hvals = &hvals;
+    ev.freq = &freq;
+    ev.isqrtv = &isqrtv;
+    ev.P = P;
+    ev.Q = Q;
+    ev.c0arr.resize(ev.D);
+    ev.q0arr.resize(ev.D);
+    ev.qendarr.resize(ev.D);
+    ev.bucket.assign(maxH + 2, 0);
+    ev.csmall.assign(SMAX + 1, 0);
+    ev.qsmall.assign(SMAX + 1, 0);
+
+    int lo = 1, hi = (maxH + 1) / 2;
+    long long best = LLONG_MIN;
+    while (lo <= hi) {
         int mid = lo + (hi - lo) / 2;
-        if (evalD(mid) < evalD(mid + 1)) lo = mid + 1; else hi = mid;
+        long long D, qc;
+        ev.eval(mid, D, qc);
+        if (D > best) best = D;
+        if (qc == Q) {
+            break;
+        } else if (qc > Q) {
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
     }
-    printf("%lld\n", evalD(lo));
+
+    printf("%lld\n", best);
     return 0;
 }

@@ -105,7 +105,7 @@ function Copy-PackageModel([string]$track, [string]$modelKey, [string]$sourceRoo
 
 $multiPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_leaderboard_passed_cpp_Opus_Kimi_Terra_20261114"
 $deepSeekPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_DeepSeek_Flash_Direct_128K_AC24_20261115"
-$deepSeekAgentPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_leaderboard_passed_cpp_DeepSeek_20261114"
+$deepSeekAgentPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_DeepSeek_Agent_Offline_AC38_20261115"
 $gptSolPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_GPT-6.1-Sol_Accepted_Direct62_Agent72_20261115"
 
 Copy-PackageModel "direct" "kimi-k3-1-pro" (Join-Path $multiPackage "direct\kimi-k3-1-pro")

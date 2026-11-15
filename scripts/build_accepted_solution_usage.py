@@ -31,6 +31,10 @@ DEEPSEEK_DIRECT_SUMMARY = (
     WORKSPACE_ROOT
     / "artifacts/local_uoj_deepseek_flash_direct_128k_20261115/summary.csv"
 )
+DEEPSEEK_AGENT_JOB = Path(
+    "/home/sjw/harbor-deepseek-harness-jobs/"
+    "uoj-74-deepseek-flash-deepseek-harness-20261115-135457"
+)
 
 
 def digest(path: Path) -> str:
@@ -111,6 +115,29 @@ def index_harbor_runs() -> tuple[
                 if usage:
                     index[digest(root_path / "solution.cpp")] = usage
     return index, deepseek_by_problem
+
+
+def deepseek_harness_usage() -> dict[int, dict[str, int]]:
+    """Read per-problem usage emitted by the offline DeepSeek harness run."""
+    usage_by_problem: dict[int, dict[str, int]] = {}
+    if not DEEPSEEK_AGENT_JOB.is_dir():
+        return usage_by_problem
+    for trial_root in DEEPSEEK_AGENT_JOB.glob("uoj-local-*__*"):
+        match = re.match(r"uoj-local-(\d+)__", trial_root.name)
+        if not match:
+            continue
+        usage_path = trial_root / "agent/deepseek-harness-usage.json"
+        try:
+            payload = json.loads(usage_path.read_text(encoding="utf-8"))
+            totals = payload["record"]["rows"]["tokenUsage"]["val"]["totals"]
+        except (OSError, json.JSONDecodeError, KeyError, TypeError):
+            continue
+        usage_by_problem[int(match.group(1))] = {
+            "inputTokens": int(totals.get("uncachedInputTokens") or 0),
+            "cachedInputTokens": int(totals.get("cacheReadTokens") or 0),
+            "outputTokens": int(totals.get("outputTokens") or 0),
+        }
+    return usage_by_problem
 
 
 def kimi_source_records() -> dict[int, str]:
@@ -229,10 +256,12 @@ def main() -> None:
     direct_index = {} if args.reuse_existing else index_direct_runs()
     if args.reuse_existing:
         harbor_index, deepseek_agent_by_old_id = {}, {}
+        deepseek_agent_by_current_id = deepseek_harness_usage()
         kimi_records: dict[int, str] = {}
         current_to_old: dict[int, int] = {}
     else:
         harbor_index, deepseek_agent_by_old_id = index_harbor_runs()
+        deepseek_agent_by_current_id = deepseek_harness_usage()
         kimi_records = kimi_source_records()
         current_to_old = current_to_old_problem_ids()
     deepseek_direct_by_problem_id = deepseek_direct_usage()
@@ -241,9 +270,8 @@ def main() -> None:
     for entry in manifest["entries"]:
         usage: dict[str, int] | None
         usage_key = (entry["track"], entry["modelKey"], int(entry["problemId"]))
-        if args.reuse_existing and not (
-            entry["track"] == "direct" and entry["modelKey"] == "deepseek-flash"
-        ):
+        refresh_deepseek = entry["modelKey"] == "deepseek-flash"
+        if args.reuse_existing and not refresh_deepseek:
             usage = preserved_usage.get(usage_key)
         elif entry["track"] == "direct":
             usage = direct_index.get(entry["sha256"])
@@ -254,8 +282,11 @@ def main() -> None:
             if usage is None and entry["modelKey"] == "kimi-k3-1-pro":
                 usage = kimi_usage(int(entry["problemId"]), kimi_records)
             if usage is None and entry["modelKey"] == "deepseek-flash":
-                old_id = current_to_old.get(int(entry["problemId"]))
-                usage = deepseek_agent_by_old_id.get(old_id) if old_id else None
+                problem_id = int(entry["problemId"])
+                usage = deepseek_agent_by_current_id.get(problem_id)
+                if usage is None:
+                    old_id = current_to_old.get(problem_id)
+                    usage = deepseek_agent_by_old_id.get(old_id) if old_id else None
         if usage is None:
             continue
         record: dict[str, Any] = {
@@ -280,10 +311,10 @@ def main() -> None:
     ]
     assert len(deepseek_direct_entries) == 20
     assert sum(entry["outputTokens"] for entry in deepseek_direct_entries) == 1_155_002
-    assert len(deepseek_agent_entries) == 30
-    assert sum(entry["inputTokens"] for entry in deepseek_agent_entries) == 142_825_142
-    assert sum(entry["cachedInputTokens"] for entry in deepseek_agent_entries) == 248_448
-    assert sum(entry["outputTokens"] for entry in deepseek_agent_entries) == 6_781_363
+    assert len(deepseek_agent_entries) == 38
+    assert sum(entry["inputTokens"] for entry in deepseek_agent_entries) == 911_998
+    assert sum(entry["cachedInputTokens"] for entry in deepseek_agent_entries) == 331_736_192
+    assert sum(entry["outputTokens"] for entry in deepseek_agent_entries) == 6_523_506
 
     payload = {
         "updated": manifest["updated"],

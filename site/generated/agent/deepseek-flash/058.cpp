@@ -1,93 +1,93 @@
-#include <cstdio>
-#include <cstring>
-#include <algorithm>
+#include <bits/stdc++.h>
+using namespace std;
 
-// ---------------------------------------------------------------------------
-// Fast input
-// ---------------------------------------------------------------------------
-namespace fastio {
-static const int IN_SZ = 1 << 20;
-static char ibuf[IN_SZ];
-static int ipos = 0, ilen = 0;
-
-inline int gc() {
-    if (ipos == ilen) {
-        ilen = (int)fread(ibuf, 1, IN_SZ, stdin);
-        ipos = 0;
-        if (ilen <= 0) return -1;
+class FastScanner {
+    static constexpr int BUFSIZE = 1 << 20;
+    char buf[BUFSIZE];
+    int idx = 0, size = 0;
+public:
+    inline char readChar() {
+        if (idx >= size) {
+            size = (int)fread(buf, 1, BUFSIZE, stdin);
+            idx = 0;
+            if (size == 0) return 0;
+        }
+        return buf[idx++];
     }
-    return ibuf[ipos++];
-}
 
-inline bool readInt(long long &x) {
-    int c = gc();
-    while (c != -1 && (c < '0' || c > '9')) c = gc();
-    if (c == -1) return false;
-    long long v = 0;
-    while (c >= '0' && c <= '9') { v = v * 10 + (c - '0'); c = gc(); }
-    x = v;
-    return true;
-}
-
-static const int OUT_SZ = 1 << 22;
-static char obuf[OUT_SZ];
-static int opos = 0;
-
-inline void flush() { fwrite(obuf, 1, opos, stdout); opos = 0; }
-inline void outYes() {
-    if (opos + 4 > OUT_SZ) flush();
-    obuf[opos++] = 'Y'; obuf[opos++] = 'E'; obuf[opos++] = 'S'; obuf[opos++] = '\n';
-}
-inline void outNo() {
-    if (opos + 3 > OUT_SZ) flush();
-    obuf[opos++] = 'N'; obuf[opos++] = 'O'; obuf[opos++] = '\n';
-}
-} // namespace fastio
-
-using namespace fastio;
-
-static const int MAXA = 1000000;
-
-// cnt[v] = number of types with a_i == v
-static int cnt[MAXA + 2];
-// suf[v] = number of types with a_i >= v
-static int suf[MAXA + 2];
-// g[d] = sum_i floor(a_i / d)
-static long long g[MAXA + 2];
+    template <typename T>
+    bool nextInt(T &out) {
+        char c;
+        do {
+            c = readChar();
+            if (!c) return false;
+        } while (c <= ' ');
+        T val = 0;
+        while (c > ' ') {
+            val = val * 10 + (T)(c - '0');
+            c = readChar();
+        }
+        out = val;
+        return true;
+    }
+};
 
 int main() {
-    long long N, Q;
-    if (!readInt(N)) return 0;
-    readInt(Q);
+    FastScanner fs;
 
-    int M = 0;
-    for (long long i = 0; i < N; ++i) {
-        long long a;
-        readInt(a);
-        if (a > M) M = (int)a;
-        ++cnt[(int)a];
+    int N, Q;
+    if (!fs.nextInt(N)) return 0;
+    fs.nextInt(Q);
+
+    static constexpr int MAXA = 1000000;
+    // Initially frequencies; afterwards it becomes suffix counts.
+    static int cnt[MAXA + 2];
+
+    int A = 0;
+    for (int i = 0; i < N; ++i) {
+        int x = 0;
+        fs.nextInt(x);
+        ++cnt[x];
+        if (x > A) A = x;
     }
 
-    // suffix counts
-    suf[M + 1] = 0;
-    for (int v = M; v >= 1; --v) suf[v] = suf[v + 1] + cnt[v];
+    // cnt[y] = number of topping types with a_i >= y.
+    for (int y = A - 1; y >= 1; --y) cnt[y] += cnt[y + 1];
 
-    // g[d] = sum_{t>=1} suf[t*d]
-    for (int d = 1; d <= M; ++d) {
-        long long s = 0;
-        for (int t = d; t <= M; t += d) s += suf[t];
-        g[d] = s;
+    vector<unsigned long long> queries(Q);
+    vector<unsigned char> needed(A + 1, 0);
+    vector<int> neededT;
+    neededT.reserve(2048);
+
+    for (int j = 0; j < Q; ++j) {
+        unsigned long long k = 0;
+        fs.nextInt(k);
+        queries[j] = k;
+        int t = (int)((unsigned long long)(A - 1) / k + 1); // ceil(A / k)
+        if (!needed[t]) {
+            needed[t] = 1;
+            neededT.push_back(t);
+        }
     }
 
-    for (long long qi = 0; qi < Q; ++qi) {
-        long long K;
-        if (!readInt(K)) break;
-        // minimal feasible deliciousness d: need K*d >= M
-        long long d = (K <= 0) ? (long long)M : ((long long)M + K - 1) / K;
-        if (d < 1) d = 1;
-        bool ok = (d <= M) && (g[d] >= K);
-        if (ok) outYes(); else outNo();
+    vector<unsigned long long> f(A + 1, 0);
+
+    // f[t] = sum_i floor(a_i / t) = sum_{m >= 1} cnt[m * t].
+    for (int t : neededT) {
+        unsigned long long s = 0;
+        for (int m = t; m <= A; m += t) s += (unsigned int)cnt[m];
+        f[t] = s;
     }
-    flush();
+
+    string out;
+    out.reserve((size_t)Q * 4);
+
+    for (int j = 0; j < Q; ++j) {
+        unsigned long long k = queries[j];
+        int t = (int)((unsigned long long)(A - 1) / k + 1);
+        out += (f[t] >= k ? "YES\n" : "NO\n");
+    }
+
+    fwrite(out.data(), 1, out.size(), stdout);
     return 0;
 }

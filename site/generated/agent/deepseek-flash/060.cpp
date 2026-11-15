@@ -1,191 +1,133 @@
-// Staple Stable
-//
-// Model: a horizontal cut is a full grid line across the sheet and splits every
-// current piece it meets; likewise vertical.  Hence the final pieces are exactly
-// the cells of the grid induced by the chosen horizontal cut lines H and vertical
-// cut lines V, and the number of cuts is |H| + |V|.
-//
-// If the largest horizontal piece length is P and the largest vertical piece
-// length is D, we need exactly ceil(h/P) horizontal pieces and ceil(w/D) vertical
-// pieces, so the answer is
-//
-//      min over P,D >= 1 with P*D <= s of  (ceil(h/P)-1) + (ceil(w/D)-1).
-//
-// For a fixed P the best D is floor(s/P), and it is never useful to take P > h or
-// P > s, so
-//
-//      K = min over 1 <= P <= min(s,h) of  G(P),
-//      G(P) = ceil(h/P) + ceil(w/floor(s/P)),        answer = K - 2.
-//
-// G is searched with three exact prunings:
-//   * integer bounds:  G(P) < U  =>  ceil(h/P) <= U-2  and  ceil(w/floor(s/P)) <= U-2
-//   * convexity bound: G(P) >= phi(P) = h/P + w*P/s, and phi is convex, so only
-//     P with phi(P) <= U (a contiguous interval found by binary search) can matter
-//   * inside the surviving interval the minimum is attained either at a point that
-//     is the maximum of a block of constant floor(s/P), or at a point that is the
-//     minimum of a block of constant ceil(h/P); both enumerations are O(#blocks).
-//
-// Everything is done in exact integer arithmetic (128 bit where needed).
-
 #include <bits/stdc++.h>
 using namespace std;
 
-typedef unsigned long long u64;
-typedef __uint128_t u128;
+using ull = unsigned long long;
+using i128 = __int128_t;
+struct Solver {
+    ull H, W, S;
 
-static inline u64 cdiv(u64 a, u64 b) { return a / b + (a % b != 0); }
-
-// floor(sqrt(x)) for x < 2^128 (result fits in u64 because x <= 10^36)
-static inline u64 isqrt128(u128 x) {
-    if (x == 0) return 0;
-    u64 r = (u64)sqrtl((long double)x);
-    while (r > 0 && (u128)r * r > x) --r;
-    while ((u128)(r + 1) * (r + 1) <= x) ++r;
-    return r;
-}
-
-// G(P) = ceil(h/P) + ceil(w/floor(s/P)); requires 1 <= P <= s
-static inline u64 evalG(u64 h, u64 w, u64 s, u64 P) {
-    u64 d = s / P;
-    return cdiv(h, P) + cdiv(w, d);
-}
-
-// phi(P) = h/P + w*P/s <= U   (multiplied by s*P:  h*s <= P*(s*U - w*P))
-static inline bool phiLE(u64 h, u64 w, u64 s, u64 U, u64 P) {
-    u128 sU = (u128)s * U;
-    u128 wP = (u128)w * P;
-    if (sU < wP) return false;
-    u128 T = sU - wP;                 // s*U - w*P
-    u128 hs = (u128)h * s;
-    u128 q = hs / P, r = hs % P;      // compare h*s/P with T
-    if (q != T) return q < T;
-    return r == 0;
-}
-
-// phi(P+1) >= phi(P)  <=>  h*s <= w*P*(P+1)   (evaluated without overflow)
-static inline bool vertexAt(u64 h, u64 w, u64 s, u64 P) {
-    u128 hs = (u128)h * s;
-    u128 W = (u128)w * ((u128)P + 1);
-    u128 q = hs / P, r = hs % P;      // compare h*s/P with w*(P+1)
-    if (q != W) return q < W;
-    return r == 0;
-}
-
-// K = min over 1 <= P <= min(s,h) of G(P)
-static u64 solveK(u64 h, u64 w, u64 s) {
-    u64 Pmax = min(s, h);
-    u64 U = ~(u64)0;                  // best known value of G
-
-    auto tryP = [&](u64 P) {
-        if (P >= 1 && P <= Pmax) U = min(U, evalG(h, w, s, P));
-    };
-
-    // ---- a good upper bound: evaluate the continuous optima and their neighbours
-    {
-        u64 b1 = isqrt128((u128)((u128)h * s / w));   // ~ sqrt(h*s/w)
-        u64 b2 = isqrt128((u128)((u128)w * s / h));   // ~ sqrt(w*s/h)
-        for (long long d = -8; d <= 8; ++d) {
-            long long x = (long long)b1 + d;
-            if (x >= 1) tryP((u64)x);
-        }
-        for (long long d = -8; d <= 8; ++d) {
-            long long x = (long long)b2 + d;
-            if (x >= 1 && (u64)x <= min(s, w)) tryP(min(Pmax, s / (u64)x));
-        }
-        tryP(1);
-        tryP(Pmax);
-        tryP(Pmax > 1 ? Pmax - 1 : 1);
-        tryP(min(Pmax, (u64)2));
-        for (u64 D = 1; D <= 8; ++D) tryP(min(Pmax, s / D));
-        u64 Dw = min(s, w);
-        for (long long d = -8; d <= 8; ++d) {
-            long long x = (long long)Dw + d;
-            if (x >= 1) tryP(min(Pmax, s / (u64)x));
-        }
-    }
-    if (U <= 2) return U;             // cannot be beaten (answer would be <= 0)
-
-    // ---- discrete vertex of the convex phi: smallest P with phi(P+1) >= phi(P)
-    u64 Pv;
-    if (!vertexAt(h, w, s, Pmax)) {
-        Pv = Pmax;
-    } else {
-        u64 a = 1, b = Pmax;
-        while (a < b) {
-            u64 m = a + (b - a) / 2;
-            if (vertexAt(h, w, s, m)) b = m; else a = m + 1;
-        }
-        Pv = a;
+    // Is L(x) = H/x + W*x/S <= T ?  (exact, avoiding overflow)
+    inline bool ok(ull x, i128 T) const {
+        ull q1 = H / x;
+        ull r1 = H % x;
+        i128 prod = (i128)W * (i128)x;
+        ull q2 = (ull)(prod / (i128)S);
+        ull r2 = (ull)(prod % (i128)S);
+        i128 d = T - (i128)q1 - (i128)q2;
+        if (d < 0) return false;
+        if (d >= 2) return true;
+        if (d == 0) return (r1 == 0 && r2 == 0);
+        // d == 1: r1/x + r2/S <= 1
+        return (i128)r1 * (i128)S + (i128)r2 * (i128)x <= (i128)S * (i128)x;
     }
 
-    // ---- interval where the convex lower bound phi is <= U
-    u64 Plo, Phi;
-    if (!phiLE(h, w, s, U, Pv)) {
-        // cannot happen (phi(Pv) = min_P phi(P) <= G(P_best) = U); keep the search safe
-        Plo = 1;
-        Phi = Pmax;
-    } else {
-        {
-            u64 a = 1, b = Pv;                   // phi non-increasing on [1,Pv]
-            while (a < b) {
-                u64 m = a + (b - a) / 2;
-                if (phiLE(h, w, s, U, m)) b = m; else a = m + 1;
+    inline ull F(ull x) const {
+        ull y = S / x;          // >= 1 since x <= S
+        return H / x + W / y;
+    }
+
+    ull solve() {
+        if (H > W) swap(H, W);
+        if (H == 0) return W / S;
+
+        // zero cuts
+        if ((i128)(H + 1) * (i128)(W + 1) <= (i128)S) return 0;
+
+        // one cut
+        if ((i128)(H + 1) * (i128)(W / 2 + 1) <= (i128)S) return 1;
+        if ((i128)(H / 2 + 1) * (i128)(W + 1) <= (i128)S) return 1;
+
+        if ((i128)H * (i128)W <= (i128)S) return 2;
+
+        // a = floor(sqrt(H*S/W)); since H <= W this is at most sqrt(S)
+        ull z = (ull)(((i128)H * (i128)S) / (i128)W);
+        ull a = (ull)sqrtl((long double)z);
+        while ((i128)(a + 1) * (i128)(a + 1) <= (i128)z) ++a;
+        while (a > 0 && (i128)a * (i128)a > (i128)z) --a;
+        if (a < 1) a = 1;
+        if (a > S) a = S;
+
+        // A good initial upper bound from a few candidates around the continuous optimum.
+        ull U = F(1);
+        U = min(U, F(S));
+        ull lc = (a > 3 ? a - 3 : 1);
+        ull rc = min(S, a + 3);
+        for (ull x = lc; x <= rc; ++x) U = min(U, F(x));
+        if (H + 1 <= S) U = min(U, F(H + 1));
+
+        if (U <= 1) return U;
+        if (U == 2) return 2;
+
+        i128 T = (i128)U + 2;
+
+        // Find the first integer x in [1,S] with L(x) <= T.
+        ull lo;
+        if (ok(1, T)) {
+            lo = 1;
+        } else if (ok(a, T)) {
+            ull L = 2, R = a;
+            while (L < R) {
+                ull mid = (L + R) >> 1;
+                if (ok(mid, T)) R = mid;
+                else L = mid + 1;
             }
-            Plo = a;
+            lo = L;
+        } else {
+            // No solution on [1,a]; the first possible one is a+1.
+            lo = a + 1;
         }
+        if (lo > S) return U; // cannot happen for valid input, kept as a safety net
+
+        // Find the last integer x in [lo,S] with L(x) <= T.
+        ull hi = lo;
         {
-            u64 a = Pv, b = Pmax;                // phi non-decreasing on [Pv,Pmax]
-            while (a < b) {
-                u64 m = a + (b - a + 1) / 2;
-                if (phiLE(h, w, s, U, m)) a = m; else b = m - 1;
+            ull L = lo, R = S;
+            while (L < R) {
+                ull mid = (L + R + 1) >> 1;
+                if (ok(mid, T)) L = mid;
+                else R = mid - 1;
             }
-            Phi = a;
+            hi = L;
         }
+
+        ull best = U;
+
+        // Enumerate left endpoints of blocks where floor(H/x) is constant.
+        ull x = lo;
+        if (x <= H) {
+            ull q = H / x;
+            ull l = H / (q + 1) + 1;
+            if (l < x) x = H / q + 1;   // skip the partial first block
+        }
+        while (x <= hi) {
+            if (x > H) {
+                if (x == H + 1) best = min(best, F(x));
+                break;
+            }
+            ull q = H / x;
+            best = min(best, q + W / (S / x)); // F(x), reusing q
+            ull r = H / q;                     // last x of this block
+            x = r + 1;
+            if (x > hi) break;
+        }
+        return best;
     }
-
-    // ---- integer necessary conditions for G(P) < U  (both terms are >= 1)
-    u64 V = U - 2;
-    u64 Alo = cdiv(h, V);                        // ceil(h/P) <= V
-    u64 Bhi = min(Pmax, s / cdiv(w, V));         // floor(s/P) >= ceil(w/V)
-
-    u64 A = max(max(Alo, Plo), (u64)1);
-    u64 B = min(min(Bhi, Phi), Pmax);
-    if (A > B) return U;
-
-    // ---- enumerate the surviving candidates with the cheapest of three strategies
-    u64 best = U;
-    u64 c1 = B - A + 1;                              // every integer P
-    u64 c2 = s / A - s / B + 1;                      // blocks of constant floor(s/P)
-    u64 c3 = cdiv(h, A) - cdiv(h, B) + 1;            // blocks of constant ceil(h/P)
-
-    if (c1 <= c2 && c1 <= c3) {
-        for (u64 P = A; P <= B; ++P) best = min(best, evalG(h, w, s, P));
-    } else if (c2 <= c3) {
-        u64 Dhi = s / A, Dlo = s / B;
-        for (u64 D = Dlo; D <= Dhi; ++D) {
-            u64 P = min(B, s / D);                   // largest P of this block
-            best = min(best, evalG(h, w, s, P));
-        }
-    } else {
-        u64 vhi = cdiv(h, A), vlo = cdiv(h, B);
-        for (u64 v = vlo; v <= vhi; ++v) {
-            u64 P = min(B, max(A, cdiv(h, v)));      // smallest P of this block
-            best = min(best, evalG(h, w, s, P));
-        }
-    }
-    return best;
-}
+};
 
 int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
     int t;
-    if (scanf("%d", &t) != 1) return 0;
+    if (!(cin >> t)) return 0;
     while (t--) {
-        u64 h, w, s;
-        if (scanf("%llu %llu %llu", &h, &w, &s) != 3) return 0;
-        u64 ans;
-        if ((u128)h * w <= s) ans = 0;               // the whole sheet already fits
-        else ans = solveK(h, w, s) - 2;
-        printf("%llu\n", ans);
+        ull h, w, s;
+        cin >> h >> w >> s;
+        Solver sol;
+        sol.H = h - 1;
+        sol.W = w - 1;
+        sol.S = s;
+        cout << sol.solve() << '\n';
     }
     return 0;
 }

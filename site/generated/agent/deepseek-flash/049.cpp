@@ -1,114 +1,121 @@
 #include <bits/stdc++.h>
 using namespace std;
+using ll = long long;
 
-typedef long long ll;
 static const int MOD = 998244353;
 
-static inline ll pw(ll b, ll e) {
-    b %= MOD;
-    if (b < 0) b += MOD;
-    ll r = 1;
-    while (e) {
-        if (e & 1) r = r * b % MOD;
-        b = b * b % MOD;
+long long modpow(long long a, long long e) {
+    long long r = 1;
+    a %= MOD;
+    while (e > 0) {
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
         e >>= 1;
     }
     return r;
 }
-static inline ll inv_mod(ll a) { return pw(a, MOD - 2); }
+
+/*
+ Short derivation
+ ----------------
+ For a state that is "sorted prefix + sorted suffix", let A be the set of values
+ in the prefix, |A| = k, and a_1 < ... < a_k its sorted elements.
+ Define O_j = a_j - j (number of values below a_j that are not in A).
+ The expected remaining time E satisfies, with q = n/(n-1) and x = q-1 = 1/(n-1),
+
+     E = q + (q-1) * (sum over the non-terminal proper transitions).
+
+ This makes E a universal polynomial in q, so g := E/q = E/(1+x) is a universal
+ polynomial in x with E = q*g holding for every n.  In terms of the partition
+ formed by the positive O_j it turns out that
+
+     g = 1 + x * ( sum_{t>=1} g(drop t longest rows) + sum_{c>=1} g(remove c columns) ).
+
+ Expanding that recurrence is the same as counting monotone (right/down) lattice
+ paths inside the Young diagram of the partition, with weight x per move.
+ Decomposing a path by its endpoint (i,j) gives
+
+     g(partition) = sum over cells (i,j) of A(i,j),
+
+ where A(i,j) is the total x-weight of paths from (0,0) to (i,j):
+     A(0,0) = 1,
+     A(i,j) = x * ( sum_{j'<j} A(i,j') + sum_{i'<i} A(i',j) ).
+ Storing row prefix sums of A makes summing over a whole diagram O(#rows).
+
+ Finally the answer is  1 + x * sum_{k=1}^{n-1} g(state after k values),
+ evaluated at x = 1/(n-1) modulo MOD.
+*/
 
 int main() {
     int T;
     if (scanf("%d", &T) != 1) return 0;
-    vector<int> p;
     while (T--) {
         int n;
-        scanf("%d", &n);
-        p.resize(n);
+        if (scanf("%d", &n) != 1) return 0;
+        vector<int> p(n);
         for (int i = 0; i < n; i++) scanf("%d", &p[i]);
 
-        if (n == 1) { puts("0"); continue; }
         bool sorted = true;
-        for (int i = 0; i < n; i++) if (p[i] != i + 1) { sorted = false; break; }
+        for (int i = 0; i < n; i++)
+            if (p[i] != i + 1) { sorted = false; break; }
         if (sorted) { puts("0"); continue; }
 
-        // v = 1/(n-1), q = n/(n-1), onepv = 1+v, t = (v/(1+v))^2 = 1/n^2
-        ll v = inv_mod(n - 1);
-        ll q = (ll)n % MOD * v % MOD;
-        ll onepv = (1 + v) % MOD;
-        ll t = v * v % MOD * inv_mod(onepv * onepv % MOD) % MOD;
-        ll tm1 = (t - 1 + MOD) % MOD;
-        ll onepv2 = onepv * onepv % MOD;
+        // x = 1/(n-1).  (q = n/(n-1) = 1 + x.)
+        int x = (int)modpow(n - 1, MOD - 2);
 
-        // powers of (1+v)
-        vector<int> p1v(n + 1);
-        p1v[0] = 1;
-        for (int k = 1; k <= n; k++) p1v[k] = (int)((ll)p1v[k - 1] * onepv % MOD);
-
-        int N = n;
-        // U[A][B] = v*(H(A,B) + H'(A,B))
-        vector<vector<int>> U(N + 1, vector<int>(N + 1, 0));
-        vector<int> H0(N + 1), H1(N + 1), P0(N + 1, 0), P1(N + 1);
-        for (int B = 0; B <= N; B++) {
-            H0[B] = p1v[B];
-            ll h1 = (ll)p1v[B] * onepv % MOD;
-            if (B > 0) h1 = (h1 + (ll)B % MOD * v % MOD * v % MOD * p1v[B - 1]) % MOD;
-            H1[B] = (int)h1;
-            P1[B] = (int)(v * p1v[B] % MOD);
-            U[0][B] = (int)(v * (ll)(H0[B] + P0[B]) % MOD);
-            U[1][B] = (int)(v * (ll)((H1[B] + P1[B]) % MOD) % MOD);
-        }
-        vector<int> invA(N + 2);
-        for (int a = 1; a <= N + 1; a++) invA[a] = (int)inv_mod(a);
-
-        vector<int> nH(N + 1), nP(N + 1);
-        for (int A = 1; A <= N - 1; A++) {
-            ll invA1 = invA[A + 1];
-            ll cstH = ((ll)onepv * (((2LL * A + 1) % MOD - (ll)A * t % MOD + MOD) % MOD)) % MOD * invA1 % MOD;
-            ll coefH = (ll)onepv * t % MOD * invA1 % MOD;
-            ll c2H = onepv2 * ((ll)A % MOD) % MOD * tm1 % MOD * invA1 % MOD;
-            ll cstP = ((ll)onepv * ((2LL * A % MOD - (ll)(A - 1) * t % MOD + MOD) % MOD)) % MOD * invA[A] % MOD;
-            ll coefP = (ll)onepv * t % MOD * invA[A] % MOD;
-            ll c2P = onepv2 * tm1 % MOD;
-            for (int B = 0; B <= N; B++) {
-                ll c1h = (cstH + coefH * B) % MOD;
-                ll nh = (c1h * H1[B] + c2H * H0[B]) % MOD;
-                ll c1p = (cstP + coefP * B) % MOD;
-                ll np = (c1p * P1[B] + c2P * P0[B]) % MOD;
-                nH[B] = (int)nh;
-                nP[B] = (int)np;
-                U[A + 1][B] = (int)(v * ((nh + np) % MOD) % MOD);
+        // pref[i*n + j] = sum_{j'=0..j} A(i,j)
+        vector<int> pref((size_t)n * n);
+        vector<int> colsum(n, 0); // colsum[j] = sum_{i'<i} A(i',j)
+        for (int i = 0; i < n; i++) {
+            ll rowsum = 0;
+            size_t base = (size_t)i * n;
+            for (int j = 0; j < n; j++) {
+                int a;
+                if (i == 0 && j == 0) {
+                    a = 1;
+                } else {
+                    ll s = 0;
+                    if (j > 0) s += rowsum;   // sum_{j'<j} A(i,j')
+                    if (i > 0) s += colsum[j]; // sum_{i'<i} A(i',j)
+                    s %= MOD;
+                    a = (int)((ll)x * s % MOD);
+                }
+                rowsum += a;
+                if (rowsum >= MOD) rowsum -= MOD;
+                pref[base + j] = (int)rowsum;
+                int c = colsum[j] + a;
+                if (c >= MOD) c -= MOD;
+                colsum[j] = c;
             }
-            H0.swap(H1); H1.swap(nH);
-            P0.swap(P1); P1.swap(nP);
         }
 
-        vector<char> present(n, 0);
-        int alpha = 0, r = -1;
-        ll total = 0;
-        for (int i = 1; i <= n; i++) {
-            int x = p[i - 1] - 1;
-            present[x] = 1;
-            if (x == alpha) { while (alpha < n && present[alpha]) alpha++; }
-            if (x > r) r = x;
-            if (alpha == i) continue;  // already sorted state
-            int lo = alpha + 1, hi = r - 1;
-            int ones = 0;
-            for (int pos = lo; pos <= hi; pos++) if (present[pos]) ones++;
-            int Z = (hi - lo + 1) - ones;
-            ll f = p1v[Z];
-            int zeros_seen = 0, ones_seen = 0;
-            for (int pos = lo; pos <= hi; pos++) {
-                if (present[pos]) {
-                    int Aq = zeros_seen, Bq = ones - ones_seen - 1;
-                    f += U[Aq][Bq];
-                    if (f >= MOD) f -= MOD;
-                    ones_seen++;
-                } else zeros_seen++;
+        vector<int> seen; seen.reserve(n);
+        vector<int> parts; parts.reserve(n);
+        ll total = 0; // sum of g over prefixes of size 1..n-1
+
+        for (int k = 1; k <= n; k++) {
+            int v = p[k - 1];
+            seen.insert(lower_bound(seen.begin(), seen.end(), v), v);
+            if (k == n) break;
+
+            // positive O_j, already nondecreasing in j
+            parts.clear();
+            for (int j = 1; j <= k; j++) {
+                int O = seen[j - 1] - j;
+                if (O > 0) parts.push_back(O);
             }
-            total = (total + q * f) % MOD;
+            // partition rows sorted descending = parts reversed
+            int g = 0, row = 0;
+            for (int idx = (int)parts.size() - 1; idx >= 0; idx--, row++) {
+                int len = parts[idx];
+                g += pref[(size_t)row * n + (len - 1)];
+                if (g >= MOD) g -= MOD;
+            }
+            total += g;
+            if (total >= MOD) total -= MOD;
         }
-        ll ans = (1 + total * inv_mod(n)) % MOD;
+
+        ll ans = (1 + (ll)x * total) % MOD;
         printf("%lld\n", ans);
     }
     return 0;

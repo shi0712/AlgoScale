@@ -1,87 +1,136 @@
 #include <bits/stdc++.h>
 using namespace std;
-typedef long long ll;
-static const ll MOD = 998244353;
 
-ll pw(ll b, ll e) { ll r = 1 % MOD; b %= MOD; while (e) { if (e & 1) r = r * b % MOD; b = b * b % MOD; e >>= 1; } return r; }
+static const int MOD = 998244353;
 
 int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
     int n, m;
-    if (scanf("%d %d", &n, &m) != 2) return 0;
+    if (!(cin >> n >> m)) return 0;
     vector<int> a(m), b(m);
-    for (int i = 0; i < m; i++) scanf("%d", &a[i]);
-    for (int i = 0; i < m; i++) scanf("%d", &b[i]);
+    for (int i = 0; i < m; ++i) cin >> a[i];
+    for (int i = 0; i < m; ++i) cin >> b[i];
 
-    vector<ll> fact(n + 1, 1), inv_fact(n + 1, 1);
-    for (int i = 1; i <= n; i++) fact[i] = fact[i - 1] * i % MOD;
-    inv_fact[n] = pw(fact[n], MOD - 2);
-    for (int i = n; i >= 1; i--) inv_fact[i - 1] = inv_fact[i] * i % MOD;
-    auto C = [&](int N, int K) -> ll {
-        if (K < 0 || K > N) return 0;
-        return fact[N] * inv_fact[K] % MOD * inv_fact[N - K] % MOD;
-    };
-
-    int B = 0;
-    for (int x : b) B += x;
-
-    // F[i] = P(Gamma_i <= t) as polynomial in x = exp(-t)
-    // G[i] = E[(b_i - c_i(t))^+] as polynomial in x = exp(-t)
-    vector<vector<ll>> F(m), G(m);
-    for (int i = 0; i < m; i++) {
-        int ai = a[i], bi = b[i];
-        vector<ll> S(ai + 1, 0), gi(ai + 1, 0);
-        for (int j = 0; j < bi; j++) {
-            ll cS = C(ai, j);
-            ll cG = (ll)(bi - j) % MOD * C(ai, j) % MOD;
-            // (1-x)^j
-            for (int t = 0; t <= j; t++) {
-                ll cj = C(j, t);
-                ll s1 = cS * cj % MOD;
-                ll s2 = cG * cj % MOD;
-                if (t & 1) { s1 = (MOD - s1) % MOD; s2 = (MOD - s2) % MOD; }
-                int d = ai - j + t;
-                S[d] = (S[d] + s1) % MOD;
-                gi[d] = (gi[d] + s2) % MOD;
-            }
-        }
-        vector<ll> fi(ai + 1, 0);
-        fi[0] = 1;
-        for (int d = 0; d <= ai; d++) fi[d] = (fi[d] - S[d] + MOD) % MOD;
-        F[i] = fi;
-        G[i] = gi;
+    int B = 0, A = 0;
+    for (int i = 0; i < m; ++i) {
+        B += b[i];
+        if (b[i] > 0) A += a[i];
+    }
+    if (B == 0) {
+        cout << 0 << '\n';
+        return 0;
     }
 
-    // Q = prod_i F[i]  (degree <= n)
-    vector<ll> Q(1, 1);
-    for (int i = 0; i < m; i++) {
-        vector<ll> R(Q.size() + F[i].size() - 1, 0);
-        for (size_t p = 0; p < Q.size(); p++) {
-            if (!Q[p]) continue;
-            for (size_t q = 0; q < F[i].size(); q++)
-                R[p + q] = (R[p + q] + Q[p] * F[i][q]) % MOD;
+    // Binomial coefficients up to n.
+    vector<vector<int>> C(n + 1);
+    for (int i = 0; i <= n; ++i) {
+        C[i].assign(i + 1, 0);
+        C[i][0] = C[i][i] = 1;
+        for (int j = 1; j < i; ++j) {
+            int v = C[i - 1][j - 1] + C[i - 1][j];
+            if (v >= MOD) v -= MOD;
+            C[i][j] = v;
+        }
+    }
+
+    // Q(p) = product over b_i > 0 of P(Bin(a_i,p) >= b_i).
+    vector<int> Q(1, 1);
+
+    for (int i = 0; i < m; ++i) {
+        if (b[i] == 0) continue;
+        int ai = a[i], bi = b[i];
+        vector<int> Pi(ai + 1, 0);
+        // P(Bin(ai,p) >= bi) = sum_{k=bi..ai} C(ai,k) p^k (1-p)^(ai-k)
+        for (int k = bi; k <= ai; ++k) {
+            long long coef = C[ai][k];
+            int e = ai - k;
+            const int* row = C[e].data();
+            int base = k;
+            for (int j = 0; j <= e; ++j) {
+                long long val = coef * row[j] % MOD;
+                int idx = base + j;
+                if (j & 1) {
+                    int x = Pi[idx] - (int)val;
+                    if (x < 0) x += MOD;
+                    Pi[idx] = x;
+                } else {
+                    int x = Pi[idx] + (int)val;
+                    if (x >= MOD) x -= MOD;
+                    Pi[idx] = x;
+                }
+            }
+        }
+
+        // Multiply Q by Pi.
+        vector<int> R(Q.size() + Pi.size() - 1, 0);
+        for (size_t x = 0; x < Q.size(); ++x) {
+            if (Q[x] == 0) continue;
+            long long qx = Q[x];
+            for (size_t y = 0; y < Pi.size(); ++y) {
+                if (Pi[y] == 0) continue;
+                R[x + y] = (int)((R[x + y] + qx * Pi[y]) % MOD);
+            }
         }
         Q.swap(R);
     }
 
-    // P(x) = (n-B)*(1 - Q) + sum_i G[i]
-    vector<ll> P(n + 1, 0);
-    ll w = (ll)(n - B) % MOD;
-    for (size_t d = 0; d < Q.size(); d++) {
-        ll v = (d == 0 ? (1 - Q[0] + MOD) % MOD : (MOD - Q[d]) % MOD);
-        P[d] = (P[d] + w * v) % MOD;
+    // S(p) = sum_i sum_{k=0}^{b_i-1} (b_i-k) C(a_i,k) p^k (1-p)^(a_i-k)
+    vector<int> S(n + 1, 0);
+    for (int i = 0; i < m; ++i) {
+        int ai = a[i], bi = b[i];
+        for (int k = 0; k < bi; ++k) {
+            long long coef = (long long)C[ai][k] * (bi - k) % MOD;
+            int e = ai - k;
+            const int* row = C[e].data();
+            int base = k;
+            for (int j = 0; j <= e; ++j) {
+                long long val = coef * row[j] % MOD;
+                int idx = base + j;
+                if (j & 1) {
+                    int x = S[idx] - (int)val;
+                    if (x < 0) x += MOD;
+                    S[idx] = x;
+                } else {
+                    int x = S[idx] + (int)val;
+                    if (x >= MOD) x -= MOD;
+                    S[idx] = x;
+                }
+            }
+        }
     }
-    for (int i = 0; i < m; i++)
-        for (size_t d = 0; d < G[i].size(); d++) P[d] = (P[d] + G[i][d]) % MOD;
 
-    // E[T] = integral_0^inf P(exp(-t)) dt = sum_R P[R] / R
-    vector<ll> inv(n + 1, 0);
-    if (n >= 1) inv[1] = 1;
-    for (int i = 2; i <= n; i++) inv[i] = (MOD - (MOD / i) * inv[MOD % i] % MOD) % MOD;
-    ll ans = 0;
-    for (int R = 1; R <= n; R++) {
-        if (!P[R]) continue;
-        ans = (ans + P[R] * inv[R]) % MOD;
+    // T(p) = (n-B)(1-Q(p)) + S(p) = (1-p) * P(p)
+    int D = n - B;
+    vector<int> T(A + 1, 0);
+    for (int j = 0; j <= A; ++j) {
+        long long val = (j < (int)S.size() ? S[j] : 0);
+        long long q = (j < (int)Q.size() ? Q[j] : 0);
+        long long one = (j == 0 ? 1 : 0);
+        val += (long long)D * ((one - q + MOD) % MOD) % MOD;
+        val %= MOD;
+        T[j] = (int)val;
     }
-    printf("%lld\n", ans);
+
+    // P(p) = T(p)/(1-p).  If T(p)=sum T_j p^j, then P_j = sum_{l<=j} T_l.
+    // Answer = integral_0^1 P(p) dp.
+    vector<int> inv(A + 1);
+    if (A >= 1) {
+        inv[1] = 1;
+        for (int i = 2; i <= A; ++i) {
+            inv[i] = (int)(MOD - (long long)(MOD / i) * inv[MOD % i] % MOD);
+        }
+    }
+
+    long long ans = 0, pref = 0;
+    for (int j = 0; j < A; ++j) {
+        pref += T[j];
+        if (pref >= MOD) pref -= MOD;
+        ans += pref * inv[j + 1] % MOD;
+        ans %= MOD;
+    }
+
+    cout << ans % MOD << '\n';
     return 0;
 }
