@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261116-opus-direct";
+const SITE_RELEASE = "20261116-agent-rounds";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",

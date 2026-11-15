@@ -78,6 +78,9 @@ function Add-ManifestEntry($entry, [string]$track, [int]$problemId, [string]$tar
         if ($track -eq "agent") {
             $record.inputTokens = [int64]$usage.inputTokens
             $record.cachedInputTokens = [int64]$usage.cachedInputTokens
+            if ($usage.PSObject.Properties.Name -contains "rounds") {
+                $record.rounds = [int]$usage.rounds
+            }
         }
         $record.outputTokens = [int64]$usage.outputTokens
     }

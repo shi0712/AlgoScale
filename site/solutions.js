@@ -1,4 +1,4 @@
-const SITE_RELEASE = "20261116-opus-direct";
+const SITE_RELEASE = "20261116-agent-rounds";
 
 const state = {
   problems: [],
@@ -195,6 +195,7 @@ async function loadSource(entry) {
 function renderTokenUsage(entry) {
   const metrics = [];
   if (entry.track === "agent") {
+    metrics.push(["Interaction rounds", entry.rounds]);
     metrics.push(["Input tokens", entry.inputTokens]);
     metrics.push(["Cached input", entry.cachedInputTokens]);
   }

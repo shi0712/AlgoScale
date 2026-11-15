@@ -41,6 +41,67 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def trajectory_path(trial_root: Path) -> Path:
+    agent_dir = trial_root / "agent"
+    for name in (
+        "codex.txt",
+        "claude-code.txt",
+        "kimi-code.txt",
+        "deepseek-harness.txt",
+    ):
+        candidate = agent_dir / name
+        if candidate.exists():
+            return candidate
+    return agent_dir / "claude-code.txt"
+
+
+def count_agent_rounds(path: Path) -> int:
+    """Count model turns using the same rules as the Harbor live monitor."""
+    assistant_messages: set[str] = set()
+    codex_messages: set[str] = set()
+    legacy_rounds = 0
+    if not path.exists():
+        return 0
+
+    with path.open(encoding="utf-8", errors="replace") as stream:
+        for line in stream:
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                if line.strip() == "dsh: reasoning:":
+                    legacy_rounds += 1
+                continue
+            if not isinstance(event, dict):
+                continue
+
+            # Kimi Code emits top-level assistant roles.
+            if event.get("role") == "assistant":
+                legacy_rounds += 1
+
+            # Codex CLI emits a pair of lifecycle events for each item. Deduplicate
+            # by item ID so started/completed count as one model turn.
+            if event.get("type") in {"item.started", "item.completed"}:
+                item = event.get("item")
+                if isinstance(item, dict):
+                    item_id = item.get("id")
+                    if isinstance(item_id, str) and item.get("type") == "agent_message":
+                        codex_messages.add(item_id)
+
+            # Claude Code can emit several stream chunks for one assistant message.
+            if event.get("type") == "assistant":
+                message = event.get("message")
+                if isinstance(message, dict):
+                    message_id = message.get("id")
+                    if isinstance(message_id, str):
+                        assistant_messages.add(message_id)
+
+    if codex_messages:
+        return len(codex_messages)
+    if assistant_messages:
+        return len(assistant_messages)
+    return legacy_rounds
+
+
 def result_usage(result_path: Path) -> dict[str, int] | None:
     try:
         result = json.loads(result_path.read_text(encoding="utf-8"))
@@ -74,10 +135,11 @@ def index_direct_runs() -> dict[str, dict[str, int]]:
     return index
 
 
-def index_harbor_runs() -> tuple[
-    dict[str, dict[str, int]], dict[int, dict[str, int]]
+def index_harbor_runs(accepted_hashes: set[str]) -> tuple[
+    dict[str, dict[str, int]], dict[str, int], dict[int, dict[str, int]]
 ]:
     index: dict[str, dict[str, int]] = {}
+    rounds_by_digest: dict[str, int] = {}
     deepseek_by_problem: dict[int, dict[str, int]] = {}
     home = Path("/home/sjw")
     skipped = {".cache", "node_modules", ".git", "venv", ".venv"}
@@ -111,10 +173,21 @@ def index_harbor_runs() -> tuple[
                     pass
             if root_path.parts[-2:] == ("artifacts", "app") and "solution.cpp" in files:
                 trial_root = root_path.parent.parent
+                solution_path = root_path / "solution.cpp"
+                solution_digest = digest(solution_path)
                 usage = result_usage(trial_root / "result.json")
                 if usage:
-                    index[digest(root_path / "solution.cpp")] = usage
-    return index, deepseek_by_problem
+                    index[solution_digest] = usage
+                if solution_digest in accepted_hashes:
+                    rounds = count_agent_rounds(trajectory_path(trial_root))
+                    previous = rounds_by_digest.get(solution_digest)
+                    if previous is not None and previous != rounds:
+                        raise RuntimeError(
+                            f"conflicting round counts for {solution_digest}: "
+                            f"{previous} and {rounds}"
+                        )
+                    rounds_by_digest[solution_digest] = rounds
+    return index, rounds_by_digest, deepseek_by_problem
 
 
 def deepseek_harness_usage() -> dict[int, dict[str, int]]:
@@ -236,7 +309,7 @@ def existing_usage() -> dict[tuple[str, str, int], dict[str, int]]:
     return {
         (entry["track"], entry["modelKey"], int(entry["problemId"])): {
             key: int(entry[key])
-            for key in ("inputTokens", "cachedInputTokens", "outputTokens")
+            for key in ("inputTokens", "cachedInputTokens", "outputTokens", "rounds")
             if entry.get(key) is not None
         }
         for entry in payload.get("entries", [])
@@ -252,15 +325,20 @@ def main() -> None:
     )
     args = parser.parse_args()
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    accepted_agent_hashes = {
+        entry["sha256"] for entry in manifest["entries"] if entry["track"] == "agent"
+    }
     preserved_usage = existing_usage() if args.reuse_existing else {}
     direct_index = {} if args.reuse_existing else index_direct_runs()
     if args.reuse_existing:
-        harbor_index, deepseek_agent_by_old_id = {}, {}
+        harbor_index, rounds_by_digest, deepseek_agent_by_old_id = {}, {}, {}
         deepseek_agent_by_current_id = deepseek_harness_usage()
         kimi_records: dict[int, str] = {}
         current_to_old: dict[int, int] = {}
     else:
-        harbor_index, deepseek_agent_by_old_id = index_harbor_runs()
+        harbor_index, rounds_by_digest, deepseek_agent_by_old_id = index_harbor_runs(
+            accepted_agent_hashes
+        )
         deepseek_agent_by_current_id = deepseek_harness_usage()
         kimi_records = kimi_source_records()
         current_to_old = current_to_old_problem_ids()
@@ -270,7 +348,9 @@ def main() -> None:
     for entry in manifest["entries"]:
         usage: dict[str, int] | None
         usage_key = (entry["track"], entry["modelKey"], int(entry["problemId"]))
-        refresh_deepseek = entry["modelKey"] == "deepseek-flash"
+        refresh_deepseek = (
+            entry["track"] == "direct" and entry["modelKey"] == "deepseek-flash"
+        )
         if args.reuse_existing and not refresh_deepseek:
             usage = preserved_usage.get(usage_key)
         elif entry["track"] == "direct":
@@ -287,6 +367,14 @@ def main() -> None:
                 if usage is None:
                     old_id = current_to_old.get(problem_id)
                     usage = deepseek_agent_by_old_id.get(old_id) if old_id else None
+            if usage is not None and entry["sha256"] in rounds_by_digest:
+                usage = dict(usage)
+                usage["rounds"] = rounds_by_digest[entry["sha256"]]
+            elif usage is not None and args.reuse_existing:
+                preserved_rounds = (preserved_usage.get(usage_key) or {}).get("rounds")
+                if preserved_rounds is not None:
+                    usage = dict(usage)
+                    usage["rounds"] = preserved_rounds
         if usage is None:
             continue
         record: dict[str, Any] = {
@@ -298,6 +386,8 @@ def main() -> None:
         if entry["track"] == "agent":
             record["inputTokens"] = usage["inputTokens"]
             record["cachedInputTokens"] = usage.get("cachedInputTokens", 0)
+            if usage.get("rounds") is not None:
+                record["rounds"] = usage["rounds"]
         entries.append(record)
 
     entries.sort(key=lambda item: (item["problemId"], item["track"], item["modelKey"]))
@@ -315,6 +405,9 @@ def main() -> None:
     assert sum(entry["inputTokens"] for entry in deepseek_agent_entries) == 911_998
     assert sum(entry["cachedInputTokens"] for entry in deepseek_agent_entries) == 331_736_192
     assert sum(entry["outputTokens"] for entry in deepseek_agent_entries) == 6_523_506
+    agent_entries = [entry for entry in entries if entry["track"] == "agent"]
+    assert len(agent_entries) == len(accepted_agent_hashes)
+    assert all(entry.get("rounds", 0) > 0 for entry in agent_entries)
 
     payload = {
         "updated": manifest["updated"],
