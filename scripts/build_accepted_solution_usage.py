@@ -55,8 +55,23 @@ def trajectory_path(trial_root: Path) -> Path:
     return agent_dir / "claude-code.txt"
 
 
-def count_agent_rounds(path: Path) -> int:
+def count_agent_rounds(trial_root: Path) -> int:
     """Count model turns using the same rules as the Harbor live monitor."""
+    standardized = trial_root / "agent/trajectory.json"
+    if standardized.exists():
+        try:
+            trajectory = json.loads(standardized.read_text(encoding="utf-8"))
+            rounds = sum(
+                1
+                for step in trajectory.get("steps", [])
+                if isinstance(step, dict) and step.get("source") == "agent"
+            )
+            if rounds:
+                return rounds
+        except (OSError, json.JSONDecodeError, AttributeError):
+            pass
+
+    path = trajectory_path(trial_root)
     assistant_messages: set[str] = set()
     codex_messages: set[str] = set()
     legacy_rounds = 0
@@ -179,7 +194,7 @@ def index_harbor_runs(accepted_hashes: set[str]) -> tuple[
                 if usage:
                     index[solution_digest] = usage
                 if solution_digest in accepted_hashes:
-                    rounds = count_agent_rounds(trajectory_path(trial_root))
+                    rounds = count_agent_rounds(trial_root)
                     previous = rounds_by_digest.get(solution_digest)
                     if previous is not None and previous != rounds:
                         raise RuntimeError(
