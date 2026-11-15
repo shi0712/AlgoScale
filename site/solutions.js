@@ -1,3 +1,5 @@
+const SITE_RELEASE = "20261116-opus-direct";
+
 const state = {
   problems: [],
   entries: [],
@@ -238,7 +240,7 @@ async function initialize() {
   try {
     const [problemResponse, solutionResponse] = await Promise.all([
       fetch("./data/problems.json"),
-      fetch("./data/accepted-solutions.json"),
+      fetch(`./data/accepted-solutions.json?v=${SITE_RELEASE}`, { cache: "no-store" }),
     ]);
     if (!problemResponse.ok || !solutionResponse.ok) throw new Error("Archive metadata is unavailable.");
     const [problems, manifest] = await Promise.all([problemResponse.json(), solutionResponse.json()]);

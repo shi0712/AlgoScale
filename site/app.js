@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261113-kimi-k31";
+const SITE_RELEASE = "20261116-opus-direct";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",
