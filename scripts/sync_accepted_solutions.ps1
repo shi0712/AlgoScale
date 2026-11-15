@@ -104,16 +104,17 @@ function Copy-PackageModel([string]$track, [string]$modelKey, [string]$sourceRoo
 }
 
 $multiPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_leaderboard_passed_cpp_Opus_Kimi_Terra_20261114"
-$deepSeekPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_leaderboard_passed_cpp_DeepSeek_20261114"
+$deepSeekPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_DeepSeek_Flash_Direct_128K_AC24_20261115"
+$deepSeekAgentPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_leaderboard_passed_cpp_DeepSeek_20261114"
 $gptSolPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_GPT-6.1-Sol_Accepted_Direct62_Agent72_20261115"
 
 Copy-PackageModel "direct" "kimi-k3-1-pro" (Join-Path $multiPackage "direct\kimi-k3-1-pro")
-Copy-PackageModel "direct" "deepseek-flash" (Join-Path $deepSeekPackage "direct\deepseek-flash")
+Copy-PackageModel "direct" "deepseek-flash" (Join-Path $deepSeekPackage "direct")
 Copy-PackageModel "direct" "gpt-6-1-sol" (Join-Path $gptSolPackage "direct")
 Copy-PackageModel "agent" "claude-opus-5-5" (Join-Path $multiPackage "agent\claude-opus-5-5")
 Copy-PackageModel "agent" "kimi-k3-1-pro" (Join-Path $multiPackage "agent\kimi-k3-1-pro")
 Copy-PackageModel "agent" "gpt-6-1-terra" (Join-Path $multiPackage "agent\gpt-6-1-terra")
-Copy-PackageModel "agent" "deepseek-flash" (Join-Path $deepSeekPackage "agent\deepseek-flash")
+Copy-PackageModel "agent" "deepseek-flash" (Join-Path $deepSeekAgentPackage "agent\deepseek-flash")
 
 $glmEntry = Get-LeaderboardEntry "direct" "glm-5-3-flash"
 $glmTargetRoot = Join-Path $generatedRoot "direct\glm-5-3-flash"
@@ -160,7 +161,10 @@ foreach ($file in Get-ChildItem -LiteralPath $generatedRoot -Recurse -Filter "*.
     }
 }
 
-$orderedEntries = @($manifestEntries | Sort-Object problemId, track, model)
+$orderedEntries = @(
+    $manifestEntries.ToArray() |
+        Sort-Object @{ Expression = { [int]$_.problemId } }, track, model
+)
 $manifest = [ordered]@{
     updated = [string]$leaderboard.updated
     total = $orderedEntries.Count

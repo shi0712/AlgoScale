@@ -4,28 +4,36 @@ using namespace std;
 using u64 = unsigned long long;
 using u128 = __uint128_t;
 
-constexpr u64 MOD = 998244353;
+constexpr long long MOD = 998244353;
 
-u64 mul_mod(u64 a, u64 b, u64 mod) {
-    return (u128)a * b % mod;
-}
-
-u64 pow_mod(u64 a, u64 d, u64 mod) {
+u64 mod_pow_u64(u64 a, u64 d, u64 mod) {
+    a %= mod;
     u64 res = 1 % mod;
     while (d) {
-        if (d & 1) res = mul_mod(res, a, mod);
-        a = mul_mod(a, a, mod);
+        if (d & 1) res = (u128)res * a % mod;
+        a = (u128)a * a % mod;
         d >>= 1;
     }
     return res;
 }
 
-bool is_prime(u64 n) {
+long long mod_pow_mod(long long a, long long d) {
+    a %= MOD;
+    long long res = 1;
+    while (d > 0) {
+        if (d & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        d >>= 1;
+    }
+    return res;
+}
+
+bool isPrime(u64 n) {
     if (n < 2) return false;
 
-    static int small[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
-    for (int p : small) {
-        if (n % p == 0) return n == (u64)p;
+    static const u64 small[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
+    for (u64 p : small) {
+        if (n % p == 0) return n == p;
     }
 
     u64 d = n - 1;
@@ -35,7 +43,7 @@ bool is_prime(u64 n) {
         ++s;
     }
 
-    static u64 bases[] = {
+    static const u64 bases[] = {
         2ULL, 325ULL, 9375ULL, 28178ULL,
         450775ULL, 9780504ULL, 1795265022ULL
     };
@@ -43,84 +51,65 @@ bool is_prime(u64 n) {
     for (u64 a : bases) {
         if (a % n == 0) continue;
 
-        u64 x = pow_mod(a % n, d, n);
+        u64 x = mod_pow_u64(a % n, d, n);
         if (x == 1 || x == n - 1) continue;
 
-        bool witness = true;
+        bool passed = false;
         for (int r = 1; r < s; ++r) {
-            x = mul_mod(x, x, n);
+            x = (u128)x * x % n;
             if (x == n - 1) {
-                witness = false;
+                passed = true;
                 break;
             }
         }
 
-        if (witness) return false;
+        if (!passed) return false;
     }
 
     return true;
 }
 
-mt19937_64 rng64(chrono::steady_clock::now().time_since_epoch().count());
+u64 gcd_u64(u64 a, u64 b) {
+    while (b) {
+        u64 t = a % b;
+        a = b;
+        b = t;
+    }
+    return a;
+}
+
+mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 u64 pollard(u64 n) {
     if (n % 2 == 0) return 2;
     if (n % 3 == 0) return 3;
 
     while (true) {
-        u64 y = rng64() % (n - 1) + 1;
-        u64 c = rng64() % (n - 1) + 1;
-
-        const u64 block = 128;
-        u64 g = 1, r = 1, q = 1;
-        u64 x = 0, ys = 0;
+        u64 c = rng() % (n - 1) + 1;
+        u64 x = rng() % n;
+        u64 y = x;
+        u64 d = 1;
 
         auto f = [&](u64 v) -> u64 {
-            u64 z = mul_mod(v, v, n);
-            z += c;
-            if (z >= n) z -= n;
-            return z;
+            return ((u128)v * v + c) % n;
         };
 
-        while (g == 1) {
-            x = y;
-            for (u64 i = 0; i < r; ++i) y = f(y);
+        while (d == 1) {
+            x = f(x);
+            y = f(f(y));
 
-            u64 k = 0;
-            while (k < r && g == 1) {
-                ys = y;
-                u64 lim = min(block, r - k);
-
-                for (u64 i = 0; i < lim; ++i) {
-                    y = f(y);
-                    u64 diff = (x > y ? x - y : y - x);
-                    q = mul_mod(q, diff, n);
-                }
-
-                g = std::gcd(q, n);
-                k += lim;
-            }
-
-            r <<= 1;
+            u64 diff = (x > y ? x - y : y - x);
+            d = gcd_u64(diff, n);
         }
 
-        if (g == n) {
-            g = 1;
-            do {
-                ys = f(ys);
-                u64 diff = (x > ys ? x - ys : ys - x);
-                g = std::gcd(diff, n);
-            } while (g == 1);
-        }
-
-        if (g != n && g != 1) return g;
+        if (d != n) return d;
     }
 }
 
 void factor_rec(u64 n, vector<u64>& fac) {
     if (n == 1) return;
 
-    if (is_prime(n)) {
+    if (isPrime(n)) {
         fac.push_back(n);
         return;
     }
@@ -130,151 +119,129 @@ void factor_rec(u64 n, vector<u64>& fac) {
     factor_rec(n / d, fac);
 }
 
-struct Factor {
+struct Info {
     u64 p;
-    int a;
-};
-
-unordered_map<u64, vector<Factor>> cache_fac;
-
-vector<Factor> get_factors(u64 n) {
-    if (n == 1) return {};
-
-    auto it = cache_fac.find(n);
-    if (it != cache_fac.end()) return it->second;
-
-    vector<u64> fac;
-
-    static int small[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
-    u64 tmp = n;
-
-    for (int p : small) {
-        while (tmp % p == 0) {
-            fac.push_back((u64)p);
-            tmp /= p;
-        }
-    }
-
-    if (tmp > 1) factor_rec(tmp, fac);
-
-    sort(fac.begin(), fac.end());
-
-    vector<Factor> res;
-    for (size_t i = 0; i < fac.size();) {
-        u64 p = fac[i];
-        int cnt = 0;
-
-        while (i < fac.size() && fac[i] == p) {
-            ++cnt;
-            ++i;
-        }
-
-        res.push_back({p, cnt});
-    }
-
-    cache_fac[n] = res;
-    return res;
-}
-
-class Solver {
-    static constexpr int MAXF = 20;
-    static constexpr int MAXE = 70;
-
-    int K;
-    u64 p[MAXF];
-    int expo[MAXF];
-
-    u64 eModArr[MAXF][MAXE];
-    u64 qArr[MAXF][MAXE];
-    u64 phiArr[MAXF][MAXE];
-
-    u64 m, ans;
-
-    void build(int i) {
-        u64 P = p[i];
-        int a = expo[i];
-        u64 pmod = P % MOD;
-
-        eModArr[i][0] = 1;
-        for (int b = 1; b <= a; ++b) {
-            eModArr[i][b] = eModArr[i][b - 1] * pmod % MOD;
-        }
-
-        qArr[i][0] = 1;
-        for (int b = 1; b <= a; ++b) {
-            qArr[i][b] = qArr[i][b - 1];
-            if (b & 1) qArr[i][b] *= P;
-        }
-
-        u64 phiC[MAXE];
-        phiC[0] = 1;
-
-        u64 pPow = 1;
-        u64 pm1 = (pmod + MOD - 1) % MOD;
-
-        for (int c = 1; c <= a; ++c) {
-            phiC[c] = pPow * pm1 % MOD;
-            pPow = pPow * pmod % MOD;
-        }
-
-        for (int b = 0; b <= a; ++b) {
-            phiArr[i][b] = phiC[a - b];
-        }
-    }
-
-    void dfs(int idx, u64 eMod, u64 phiMod, u64 qVal) {
-        if (idx == K) {
-            u64 cnt = m / qVal + 1;
-            u64 term = eMod * phiMod % MOD;
-            term = term * (cnt % MOD) % MOD;
-
-            ans += term;
-            if (ans >= MOD) ans -= MOD;
-            return;
-        }
-
-        for (int b = 0; b <= expo[idx]; ++b) {
-            dfs(
-                idx + 1,
-                eMod * eModArr[idx][b] % MOD,
-                phiMod * phiArr[idx][b] % MOD,
-                qVal * qArr[idx][b]
-            );
-        }
-    }
-
-public:
-    u64 calculate(const vector<Factor>& fs, u64 mm) {
-        K = (int)fs.size();
-        m = mm;
-        ans = 0;
-
-        for (int i = 0; i < K; ++i) {
-            p[i] = fs[i].p;
-            expo[i] = fs[i].a;
-            build(i);
-        }
-
-        dfs(0, 1, 1, 1);
-        return ans;
-    }
+    int e;
+    int h;
+    vector<long long> coef;
+    vector<u64> powers;
 };
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
+    const int LIM = 10000;
+    vector<bool> composite(LIM + 1, false);
+    vector<int> primes;
+
+    for (int i = 2; i <= LIM; ++i) {
+        if (!composite[i]) {
+            primes.push_back(i);
+            if ((long long)i * i <= LIM) {
+                for (int j = i * i; j <= LIM; j += i) {
+                    composite[j] = true;
+                }
+            }
+        }
+    }
+
     int T;
     cin >> T;
-
-    Solver solver;
 
     while (T--) {
         u64 n, m;
         cin >> n >> m;
 
-        auto fs = get_factors(n);
-        cout << solver.calculate(fs, m) << '\n';
+        vector<u64> fac;
+        u64 rem = n;
+
+        for (int p : primes) {
+            if ((u64)p * p > rem) break;
+
+            if (rem % p == 0) {
+                while (rem % p == 0) {
+                    fac.push_back((u64)p);
+                    rem /= p;
+                }
+            }
+        }
+
+        if (rem > 1) {
+            factor_rec(rem, fac);
+        }
+
+        sort(fac.begin(), fac.end());
+
+        vector<pair<u64, int>> pf;
+        for (u64 x : fac) {
+            if (pf.empty() || pf.back().first != x) {
+                pf.push_back({x, 1});
+            } else {
+                ++pf.back().second;
+            }
+        }
+
+        vector<Info> infos;
+        infos.reserve(pf.size());
+
+        for (auto [p, e] : pf) {
+            int h = (e + 1) / 2;
+
+            long long pm = p % MOD;
+            long long pe1 = mod_pow_mod(pm, e - 1);
+
+            long long phi = pe1 * ((pm - 1 + MOD) % MOD) % MOD;
+
+            vector<long long> coef;
+            coef.reserve(h + 1);
+
+            coef.push_back(phi);
+
+            long long two_phi = 2 * phi % MOD;
+            for (int a = 1; a < h; ++a) {
+                coef.push_back(two_phi);
+            }
+
+            long long ch;
+            if (e % 2 == 0) {
+                long long val = (2 * pm % MOD - 1 + MOD) % MOD;
+                ch = pe1 * val % MOD;
+            } else {
+                ch = pe1 * pm % MOD;
+            }
+            coef.push_back(ch);
+
+            vector<u64> powers(h + 1);
+            powers[0] = 1;
+            for (int a = 1; a <= h; ++a) {
+                powers[a] = powers[a - 1] * p;
+            }
+
+            infos.push_back({p, e, h, move(coef), move(powers)});
+        }
+
+        long long ans = 0;
+
+        auto dfs = [&](auto&& self, int idx, u64 d, long long w) -> void {
+            if (idx == (int)infos.size()) {
+                long long cnt = (m / d + 1ULL) % MOD;
+                ans = (ans + w * cnt) % MOD;
+                return;
+            }
+
+            const Info& info = infos[idx];
+
+            for (int a = 0; a <= info.h; ++a) {
+                u64 nd = d * info.powers[a];
+                long long nw = w * info.coef[a] % MOD;
+                self(self, idx + 1, nd, nw);
+            }
+        };
+
+        dfs(dfs, 0, 1, 1);
+
+        cout << ans % MOD << '\n';
     }
 
     return 0;

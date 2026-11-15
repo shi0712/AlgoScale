@@ -12,10 +12,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    const int64 B = 50000;
-    const int64 W = 60000;
-    const int64 INF = (int64)4e18;
-
     int T;
     cin >> T;
 
@@ -23,124 +19,164 @@ int main() {
         int64 h, w, s;
         cin >> h >> w >> s;
 
-        // Keep w <= h. The problem is symmetric.
-        if (h < w) swap(h, w);
+        // Already one rectangle of area h*w is enough.
+        if ((i128)h * w <= s) {
+            cout << 0 << '\n';
+            continue;
+        }
 
-        int64 ans = INF;
+        /*
+            Choose a maximum horizontal piece length H.
+            Then the maximum vertical piece length can be:
+                Q = floor(s / H)
+            capped naturally by ceil(w / Q).
 
-        auto evalH = [&](int64 H) {
-            if (H <= 0 || H > h || H > s) return;
-            int64 Qcap = s / H;
-            if (Qcap <= 0) return;
+            We minimise:
+                ceil(h / H) + ceil(w / floor(s / H))
+            and subtract 2 (cuts = pieces - 1 in each direction).
 
-            int64 Q = min(w, Qcap);
-            int64 pieces = ceil_div(h, H) + ceil_div(w, Q);
-            ans = min(ans, pieces - 2);
-        };
-
-        auto evalQ = [&](int64 Q) {
-            if (Q <= 0 || Q > w || Q > s) return;
-            int64 Hcap = s / Q;
-            if (Hcap <= 0) return;
-
-            int64 H = min(h, Hcap);
-            int64 pieces = ceil_div(h, H) + ceil_div(w, Q);
-            ans = min(ans, pieces - 2);
-        };
-
+            H only needs to be at most min(h, s), because the other
+            direction needs at least one unit of length.
+         */
         int64 maxH = min(h, s);
-        int64 maxQ = min(w, s);
+        int64 best = LLONG_MAX / 4;
 
-        // Enumerate all small possible maximum piece sizes.
-        int64 limH = min(maxH, B);
-        for (int64 H = 1; H <= limH; ++H) {
-            evalH(H);
+        auto evaluate = [&](int64 H) {
+            if (H < 1 || H > maxH) return;
+            int64 Q = s / H;
+            if (Q == 0) return;
+
+            int64 horizontalPieces = ceil_div(h, H);
+            int64 verticalPieces = ceil_div(w, Q);
+            best = min(best, horizontalPieces + verticalPieces);
+        };
+
+        // For small enough H, simply brute force.
+        const int64 BRUTE_LIMIT = 200000;
+        if (maxH <= BRUTE_LIMIT) {
+            for (int64 H = 1; H <= maxH; ++H) evaluate(H);
+            cout << best - 2 << '\n';
+            continue;
         }
 
-        int64 limQ = min(maxQ, B);
-        for (int64 Q = 1; Q <= limQ; ++Q) {
-            evalQ(Q);
+        // Continuous optimum for H:
+        // minimise h/H + w*H/s  ->  H = sqrt(h*s/w)
+        long double H0real =
+            sqrtl((long double)h * (long double)s / (long double)w);
+
+        int64 floorStart = (int64)floor(H0real);
+        int64 ceilStart = (int64)ceil(H0real);
+
+        floorStart = max<int64>(1, min<int64>(floorStart, maxH));
+        ceilStart = max<int64>(1, min<int64>(ceilStart, maxH));
+
+        // Evaluate several important candidates.
+        vector<int64> candidates;
+        candidates.push_back(1);
+        candidates.push_back(maxH);
+
+        for (int d = -3; d <= 3; ++d) {
+            candidates.push_back(floorStart + d);
+            candidates.push_back(ceilStart + d);
         }
 
-        // Boundary cases.
-        evalH(maxH);
-        evalQ(maxQ);
-
-        // Check candidates around continuous optimum.
-        if (w > 0) {
-            long double th = sqrt((long double)h * (long double)s / (long double)w);
-            int64 cH = (int64)floorl(th);
-            cH = max<int64>(1, min<int64>(cH, maxH));
-            for (int d = -5; d <= 5; ++d) {
-                int64 H = cH + d;
-                if (1 <= H && H <= maxH) evalH(H);
+        // Symmetric continuous optimum in terms of the vertical maximum:
+        // Q = sqrt(w*s/h), and H is around s/Q.
+        long double Q0real =
+            sqrtl((long double)w * (long double)s / (long double)h);
+        int64 qApprox = (int64)floor(Q0real);
+        for (int d = -3; d <= 3; ++d) {
+            int64 q = qApprox + d;
+            if (q >= 1) {
+                int64 H = s / q;
+                candidates.push_back(H);
+                candidates.push_back(H - 1);
+                candidates.push_back(H + 1);
             }
         }
 
-        if (h > 0) {
-            long double tq = sqrt((long double)w * (long double)s / (long double)h);
-            int64 cQ = (int64)floorl(tq);
-            cQ = max<int64>(1, min<int64>(cQ, maxQ));
-            for (int d = -5; d <= 5; ++d) {
-                int64 Q = cQ + d;
-                if (1 <= Q && Q <= maxQ) evalQ(Q);
+        // Also try the continuous optimum number of intervals.
+        long double T0real =
+            sqrtl((long double)h * (long double)w / (long double)s);
+        int64 tApprox = (int64)floor(T0real);
+        for (int d = -3; d <= 3; ++d) {
+            int64 x = tApprox + d;
+            if (x >= 1) {
+                int64 H = ceil_div(h, x);
+                candidates.push_back(H);
+                candidates.push_back(H - 1);
+                candidates.push_back(H + 1);
             }
         }
 
-        bool largeK = ((i128)h * w > (i128)s * B * B);
+        for (int64 H : candidates) evaluate(H);
 
-        if (!largeK) {
-            // The continuous optimum has O(B) pieces. Enumerate the number
-            // of horizontal pieces around it.
-            int64 maxA = min(h, 2 * B + 100);
-            maxA = min(maxA, ans + 2);
+        auto lowerBound = [&](int64 H) -> long double {
+            long double a = (long double)h / (long double)H;
+            long double q = (long double)s / (long double)H;
 
-            for (int64 a = 1; a <= maxA; ++a) {
-                int64 H = ceil_div(h, a);
-                if (H > s) continue;
+            if (q > (long double)w) q = (long double)w;
+            if (q < 1.0L) q = 1.0L;
 
-                int64 Qcap = s / H;
-                int64 Q = min(w, Qcap);
-                if (Q <= 0) continue;
+            long double b = (long double)w / q;
 
-                int64 b = ceil_div(w, Q);
-                int64 pieces = a + b;
-                ans = min(ans, pieces - 2);
-            }
-        } else {
-            // K is large. If both maximum dimensions are > B, the optimum
-            // is close to the continuous optimum. If one is <= B, it was
-            // already covered by the small enumeration above.
-            if (w > 0) {
-                long double tq = sqrt((long double)w * (long double)s / (long double)h);
-                int64 center;
-                if (tq < 1.0L) center = 1;
-                else if (tq > (long double)maxQ) center = maxQ;
-                else center = (int64)floorl(tq);
+            if (a < 1.0L) a = 1.0L;
+            if (b < 1.0L) b = 1.0L;
 
-                int64 lo = max<int64>(1, center - W);
-                int64 hi = min<int64>(maxQ, center + W);
-                for (int64 Q = lo; Q <= hi; ++Q) {
-                    evalQ(Q);
-                }
+            return a + b;
+        };
+
+        auto nextRight = [&](int64 H) -> int64 {
+            int64 A = ceil_div(h, H);
+            int64 nextA = LLONG_MAX;
+
+            if (A > 1) {
+                nextA = (h - 1) / (A - 1) + 1;
             }
 
-            if (h > 0) {
-                long double th = sqrt((long double)h * (long double)s / (long double)w);
-                int64 center;
-                if (th < 1.0L) center = 1;
-                else if (th > (long double)maxH) center = maxH;
-                else center = (int64)floorl(th);
+            int64 Q = s / H;
+            int64 nextQ = s / Q + 1;
 
-                int64 lo = max<int64>(1, center - W);
-                int64 hi = min<int64>(maxH, center + W);
-                for (int64 H = lo; H <= hi; ++H) {
-                    evalH(H);
-                }
-            }
+            return min(nextA, nextQ);
+        };
+
+        auto prevLeft = [&](int64 H) -> int64 {
+            int64 A = ceil_div(h, H);
+            int64 prevA = ceil_div(h, A) - 1;
+
+            int64 Q = s / H;
+            int64 prevQ = s / (Q + 1);
+
+            return max(prevA, prevQ);
+        };
+
+        // Scan events to the right of the continuous optimum.
+        int64 H = ceilStart;
+        while (true) {
+            evaluate(H);
+
+            // If even the continuous lower bound cannot improve the current
+            // integer answer, all further candidates to the right are useless.
+            if (lowerBound(H) > (long double)best - 0.25L) break;
+
+            int64 nxt = nextRight(H);
+            if (nxt > maxH) break;
+            H = nxt;
         }
 
-        cout << ans << '\n';
+        // Scan events to the left of the continuous optimum.
+        H = floorStart;
+        while (true) {
+            evaluate(H);
+
+            if (lowerBound(H) > (long double)best - 0.25L) break;
+
+            int64 prv = prevLeft(H);
+            if (prv < 1) break;
+            H = prv;
+        }
+
+        cout << best - 2 << '\n';
     }
 
     return 0;

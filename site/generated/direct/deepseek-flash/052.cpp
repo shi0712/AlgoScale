@@ -1,354 +1,232 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-struct FastScanner {
-    static constexpr int BUFSIZE = 1 << 20;
-    int idx = 0, size = 0;
-    char buf[BUFSIZE];
+using ll = long long;
+const ll NEG = -(1LL << 60);
 
-    char readChar() {
-        if (idx >= size) {
-            size = (int)fread(buf, 1, BUFSIZE, stdin);
-            idx = 0;
-            if (size == 0) return 0;
-        }
-        return buf[idx++];
-    }
-
-    template <class T>
-    bool nextInt(T &out) {
-        char c = readChar();
-        if (!c) return false;
-        while (c != '-' && (c < '0' || c > '9')) {
-            c = readChar();
-            if (!c) return false;
-        }
-        T sign = 1;
-        if (c == '-') {
-            sign = -1;
-            c = readChar();
-        }
-        T num = 0;
-        while (c >= '0' && c <= '9') {
-            num = num * 10 + (c - '0');
-            c = readChar();
-        }
-        out = num * sign;
-        return true;
-    }
+struct Item {
+    int full;
+    int b[11];
 };
 
-const long long NEG = -(1LL << 60);
+/*
+    dp2[s] = max value for exact total weight s after adding one weight class.
 
-// ndp[t] = max_{0 <= j <= cnt, j*d <= t} dp[t-j*d] + pref[j]
-// pref is concave: its increments are sorted decreasing.
-void mergeDP(
-    const vector<long long> &dp,
-    vector<long long> &ndp,
-    int d,
-    const vector<long long> &pref,
-    int k
-) {
-    int m = (int)pref.size() - 1;
+    For this class, if we take c items, we take the c largest full values,
+    so pref[c] is concave.  The transition is
 
-    if (m == 0) {
-        for (int i = 0; i <= k; ++i) ndp[i] = dp[i];
+        ndp[s] = max_c dp[s - c*w] + pref[c].
+
+    For every remainder modulo w, this is a max-plus convolution with a
+    concave sequence.  Its best previous index is monotone, so divide and
+    conquer optimization computes one class transition in O(K log K).
+*/
+void add_class(const vector<ll>& dp, vector<ll>& ndp, int w,
+               const vector<ll>& pref, int K) {
+    if (w > K || (int)pref.size() <= 1) {
+        ndp = dp;
         return;
     }
 
-    vector<int> qL(k + 1), qS(k + 1);
+    int m = (int)pref.size() - 1;
+    ndp.assign(K + 1, NEG);
 
-    for (int R = 0; R < d && R <= k; ++R) {
-        int L = (k - R) / d;
-        int head = 0, tail = 0;
+    for (int rem = 0; rem < w && rem <= K; ++rem) {
+        int L = (K - rem) / w + 1; // number of states with this remainder
 
-        for (int i = 0; i <= L; ++i) {
-            int minL = i - m;
-            if (minL < 0) minL = 0;
-
-            while (head < tail && qL[head] < minL) ++head;
-
-            int pos = R + i * d;
-            long long curOld = dp[pos];
-
-            if (curOld != NEG) {
-                int l2 = i;
-                int newStart = i;
-
-                while (head < tail) {
-                    int l1 = qL[tail - 1];
-                    int st1 = qS[tail - 1];
-                    int expire1 = l1 + m;
-
-                    if (st1 > expire1) {
-                        --tail;
-                        continue;
-                    }
-
-                    int lower = max(i, st1);
-                    int dist = l2 - l1;
-                    int lowX = lower - l2;
-                    int maxX = m - dist;
-
-                    int cross;
-
-                    if (lowX > maxX) {
-                        cross = expire1 + 1;
-                    } else {
-                        long long diff = curOld - dp[R + l1 * d];
-
-                        int lo = lowX, hi = maxX, ansX = -1;
-                        while (lo <= hi) {
-                            int mid = (lo + hi) >> 1;
-                            long long need = pref[mid + dist] - pref[mid];
-
-                            if (need <= diff) {
-                                ansX = mid;
-                                hi = mid - 1;
-                            } else {
-                                lo = mid + 1;
-                            }
-                        }
-
-                        if (ansX == -1) cross = expire1 + 1;
-                        else cross = l2 + ansX;
-                    }
-
-                    if (cross <= st1) {
-                        --tail;
-                        continue;
-                    }
-
-                    newStart = cross;
-                    break;
-                }
-
-                if (head == tail) newStart = i;
-
-                qL[tail] = l2;
-                qS[tail] = newStart;
-                ++tail;
-            }
-
-            while (head + 1 < tail && qS[head + 1] <= i) ++head;
-
-            if (head < tail) {
-                int l = qL[head];
-                ndp[pos] = dp[R + l * d] + pref[i - l];
-            } else {
-                ndp[pos] = NEG;
-            }
+        vector<ll> A(L);
+        for (int j = 0; j < L; ++j) {
+            A[j] = dp[rem + j * w];
         }
+
+        auto solve = [&](auto&& self, int l, int r, int optL, int optR) -> void {
+            if (l > r) return;
+
+            int mid = (l + r) >> 1;
+
+            int lo = max(optL, mid - m);
+            if (lo < 0) lo = 0;
+            int hi = min(optR, mid);
+
+            ll bestVal = NEG;
+            int bestJ = -1;
+
+            if (lo <= hi) {
+                for (int j = lo; j <= hi; ++j) {
+                    if (A[j] == NEG) continue;
+
+                    ll val = A[j] + pref[mid - j];
+                    if (val > bestVal || (val == bestVal && j > bestJ)) {
+                        bestVal = val;
+                        bestJ = j;
+                    }
+                }
+            }
+
+            if (bestJ != -1) {
+                ndp[rem + mid * w] = bestVal;
+            } else {
+                // No reachable predecessor in this interval.
+                if (optL > mid) bestJ = optL;
+                else bestJ = min(mid, optR);
+            }
+
+            if (bestJ < optL) bestJ = optL;
+            if (bestJ > optR) bestJ = optR;
+
+            self(self, l, mid - 1, optL, bestJ);
+            self(self, mid + 1, r, bestJ, optR);
+        };
+
+        solve(solve, 0, L - 1, 0, L - 1);
     }
 }
 
 int main() {
-    FastScanner fs;
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
     int n, k;
-    if (!fs.nextInt(n)) return 0;
-    fs.nextInt(k);
+    cin >> n >> k;
 
-    vector<array<int, 11>> W(n);
-    vector<vector<pair<long long, int>>> groups(11);
+    vector<vector<Item>> groups(11);
 
-    long long sumP = 0;
-    long long sumFull = 0;
+    int totalP = 0;
+    ll totalFull = 0;
 
     for (int i = 0; i < n; ++i) {
         int p;
-        fs.nextInt(p);
-        sumP += p;
+        cin >> p;
 
+        Item it;
         for (int j = 1; j <= p; ++j) {
-            fs.nextInt(W[i][j]);
+            cin >> it.b[j];
         }
 
-        long long full = W[i][p];
-        sumFull += full;
-        groups[p].push_back({full, i});
+        it.full = it.b[p];
+        groups[p].push_back(it);
+
+        totalP += p;
+        totalFull += it.full;
     }
 
-    if (sumP <= k) {
-        printf("%lld\n", sumFull);
+    // If all items can be fully upgraded, the answer is simply the sum
+    // of all full bonuses.
+    if (totalP <= k) {
+        cout << totalFull << '\n';
         return 0;
     }
 
-    if (k == 0) {
-        printf("0\n");
-        return 0;
+    // Sort full bonuses inside every weight class in decreasing order.
+    for (int w = 1; w <= 10; ++w) {
+        sort(groups[w].begin(), groups[w].end(),
+             [](const Item& a, const Item& b) {
+                 return a.full > b.full;
+             });
     }
 
-    vector<long long> pref[11];
-    int cnt[11] = {};
+    // Prefix sums of full bonuses for each weight class.
+    vector<vector<ll>> prefAll(11);
+    for (int w = 1; w <= 10; ++w) {
+        int m = (int)groups[w].size();
+        prefAll[w].assign(m + 1, 0);
 
-    for (int d = 1; d <= 10; ++d) {
-        auto &vec = groups[d];
-
-        sort(vec.begin(), vec.end(), [](const auto &a, const auto &b) {
-            if (a.first != b.first) return a.first > b.first;
-            return a.second < b.second;
-        });
-
-        cnt[d] = (int)vec.size();
-        pref[d].assign(cnt[d] + 1, 0);
-
-        for (int i = 0; i < cnt[d]; ++i) {
-            pref[d][i + 1] = pref[d][i] + vec[i].first;
+        for (int i = 0; i < m; ++i) {
+            prefAll[w][i + 1] = prefAll[w][i] + groups[w][i].full;
         }
     }
 
-    vector<vector<long long>> P(11), S(12);
+    int K = k;
 
-    P[0].assign(k + 1, NEG);
-    P[0][0] = 0;
+    // prefix[w][s] = best full bonus using weights 1..w with exact weight s.
+    vector<vector<ll>> prefix(11);
+    prefix[0].assign(K + 1, NEG);
+    prefix[0][0] = 0;
 
-    for (int d = 1; d <= 10; ++d) {
-        P[d].assign(k + 1, NEG);
-
-        if (cnt[d] == 0) {
-            P[d] = P[d - 1];
-        } else {
-            mergeDP(P[d - 1], P[d], d, pref[d], k);
-        }
+    for (int w = 1; w <= 10; ++w) {
+        add_class(prefix[w - 1], prefix[w], w, prefAll[w], K);
     }
 
-    S[11].assign(k + 1, NEG);
-    S[11][0] = 0;
+    // Case 1: no partial item; prefix sum exactly reaches k.
+    ll ans = prefix[10][k];
 
-    for (int d = 10; d >= 1; --d) {
-        S[d].assign(k + 1, NEG);
+    // Case 2: one item is partially upgraded while crossing k.
+    for (int p = 2; p <= 10; ++p) {
+        int m = (int)groups[p].size();
+        if (m == 0) continue;
 
-        if (cnt[d] == 0) {
-            S[d] = S[d + 1];
-        } else {
-            mergeDP(S[d + 1], S[d], d, pref[d], k);
+        int maxR = min(p - 1, k);
+        if (maxR < 1) continue;
+
+        /*
+            work = DP using all weight classes except p.
+            We start from classes 1..p-1 and add p+1..10.
+        */
+        vector<ll> work = prefix[p - 1];
+        vector<ll> tmp;
+
+        for (int w = p + 1; w <= 10; ++w) {
+            add_class(work, tmp, w, prefAll[w], K);
+            work.swap(tmp);
         }
-    }
-
-    long long ans = P[10][k];
-
-    vector<long long> cur(k + 1), nxt(k + 1);
-
-    for (int c = 2; c <= 10; ++c) {
-        if (cnt[c] == 0) continue;
-
-        int leftGroups = c - 1;
-        int rightGroups = 10 - c;
-
-        bool useLeft = (rightGroups <= leftGroups);
-
-        if (useLeft) {
-            cur = P[c - 1];
-
-            for (int d = c + 1; d <= 10; ++d) {
-                if (cnt[d] == 0) continue;
-
-                mergeDP(cur, nxt, d, pref[d], k);
-                cur.swap(nxt);
-            }
-        } else {
-            cur = S[c + 1];
-
-            for (int d = 1; d < c; ++d) {
-                if (cnt[d] == 0) continue;
-
-                mergeDP(cur, nxt, d, pref[d], k);
-                cur.swap(nxt);
-            }
-        }
-
-        // cur[t] = best full value using all groups except c, with exact cost t.
-        int maxR = min(c - 1, k);
-        int cntc = cnt[c];
-
-        auto &vec = groups[c];
 
         for (int r = 1; r <= maxR; ++r) {
-            int T = k - r;
-            int maxM = T / c;
+            int t = k - r; // total weight of fully upgraded items
 
-            int limitF = min(maxM, cntc);
-            int limitG = min(maxM, cntc - 1);
+            int L = min(t / p, m - 1);
 
-            vector<long long> prefF(limitF + 1, NEG);
+            vector<ll> G(L + 1);
+            vector<ll> prefA(L + 1, NEG);
+            vector<ll> suffixB(L + 2, NEG);
 
-            long long best = NEG;
-            for (int m = 0; m <= limitF; ++m) {
-                long long e = cur[T - m * c];
-                long long val = NEG;
+            for (int c = 0; c <= L; ++c) {
+                int s = t - c * p;
+                ll g = work[s];
+                G[c] = g;
 
-                if (e != NEG) {
-                    val = e + pref[c][m];
+                if (g != NEG) {
+                    ll cur = g + prefAll[p][c];
+                    ll prev = (c == 0 ? NEG : prefA[c - 1]);
+                    prefA[c] = max(prev, cur);
+                } else {
+                    if (c > 0) prefA[c] = prefA[c - 1];
                 }
-
-                if (val > best) best = val;
-                prefF[m] = best;
             }
 
-            vector<long long> suffG;
+            for (int c = L; c >= 0; --c) {
+                ll val = NEG;
+                if (G[c] != NEG) {
+                    val = G[c] + prefAll[p][c + 1];
+                }
+                suffixB[c] = max(suffixB[c + 1], val);
+            }
 
-            if (limitG >= 0) {
-                suffG.assign(limitG + 2, NEG);
+            for (int idx = 0; idx < m; ++idx) {
+                int rank = idx + 1; // 1-based rank by full bonus
+                ll fullValue = groups[p][idx].full;
 
-                best = NEG;
-                for (int m = limitG; m >= 0; --m) {
-                    long long e = cur[T - m * c];
-                    long long val = NEG;
+                ll bestFull = NEG;
 
-                    if (e != NEG) {
-                        val = e + pref[c][m + 1];
-                    }
+                // c < rank: item idx is not among the selected top c.
+                int ca = min(rank - 1, L);
+                if (ca >= 0) bestFull = max(bestFull, prefA[ca]);
 
-                    if (val > best) best = val;
-                    suffG[m] = best;
+                // c >= rank: selected top c excluding this item can be
+                // represented as pref[c + 1] - fullValue.
+                if (rank <= L && suffixB[rank] != NEG) {
+                    bestFull = max(bestFull, suffixB[rank] - fullValue);
                 }
 
-                for (int idx = 0; idx < cntc; ++idx) {
-                    int pos = idx + 1;
-                    long long v = vec[idx].first;
-                    int id = vec[idx].second;
-
-                    long long bestFull = NEG;
-
-                    int idxF = pos - 1;
-                    if (idxF > limitF) idxF = limitF;
-                    if (idxF >= 0) bestFull = prefF[idxF];
-
-                    if (pos <= limitG) {
-                        long long second = suffG[pos];
-
-                        if (second != NEG) {
-                            second -= v;
-                            if (second > bestFull) bestFull = second;
-                        }
-                    }
-
-                    if (bestFull != NEG) {
-                        long long total = bestFull + W[id][r];
-                        if (total > ans) ans = total;
-                    }
-                }
-            } else {
-                for (int idx = 0; idx < cntc; ++idx) {
-                    int pos = idx + 1;
-                    int id = vec[idx].second;
-
-                    long long bestFull = NEG;
-
-                    int idxF = pos - 1;
-                    if (idxF > limitF) idxF = limitF;
-                    if (idxF >= 0) bestFull = prefF[idxF];
-
-                    if (bestFull != NEG) {
-                        long long total = bestFull + W[id][r];
-                        if (total > ans) ans = total;
-                    }
+                if (bestFull != NEG) {
+                    ll cand = bestFull + groups[p][idx].b[r];
+                    ans = max(ans, cand);
                 }
             }
         }
     }
 
-    printf("%lld\n", ans);
+    if (ans == NEG) ans = 0;
+    cout << ans << '\n';
+
     return 0;
 }

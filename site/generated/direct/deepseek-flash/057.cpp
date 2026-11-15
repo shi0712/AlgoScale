@@ -4,220 +4,206 @@ using namespace std;
 static constexpr int MOD = 998244353;
 static constexpr int MAXN = 1000000;
 
-int fact[MAXN + 1], invfact[MAXN + 1];
-
-int mod_pow(long long a, long long e) {
-    long long r = 1;
-    while (e) {
-        if (e & 1) r = r * a % MOD;
-        a = a * a % MOD;
-        e >>= 1;
-    }
-    return (int)r;
-}
-
-void precompute() {
-    fact[0] = 1;
-    for (int i = 1; i <= MAXN; ++i) {
-        fact[i] = (long long)fact[i - 1] * i % MOD;
-    }
-
-    invfact[MAXN] = mod_pow(fact[MAXN], MOD - 2);
-    for (int i = MAXN; i >= 1; --i) {
-        invfact[i - 1] = (long long)invfact[i] * i % MOD;
-    }
-}
-
 struct FastScanner {
-    static constexpr int BUFSIZE = 1 << 20;
-    int idx = 0, size = 0;
-    char buf[BUFSIZE];
+    static constexpr int SZ = 1 << 20;
+    int idx = 0, sz = 0;
+    char buf[SZ];
 
-    inline char readChar() {
-        if (idx >= size) {
-            size = (int)fread(buf, 1, BUFSIZE, stdin);
+    inline char getChar() {
+        if (idx >= sz) {
+            sz = (int)fread(buf, 1, SZ, stdin);
             idx = 0;
-            if (size == 0) return 0;
+            if (sz == 0) return 0;
         }
         return buf[idx++];
     }
 
-    template <class T>
-    bool nextInt(T &out) {
-        char c = readChar();
-        if (!c) return false;
+    int nextInt() {
+        char c;
+        do {
+            c = getChar();
+        } while (c < '0' || c > '9');
 
-        while (c != '-' && (c < '0' || c > '9')) {
-            c = readChar();
-            if (!c) return false;
-        }
-
-        T sign = 1;
-        if (c == '-') {
-            sign = -1;
-            c = readChar();
-        }
-
-        T num = 0;
+        int x = 0;
         while (c >= '0' && c <= '9') {
-            num = num * 10 + (c - '0');
-            c = readChar();
+            x = x * 10 + (c - '0');
+            c = getChar();
         }
-
-        out = num * sign;
-        return true;
+        return x;
     }
 };
 
+long long modPow(long long a, long long e) {
+    long long r = 1;
+    while (e > 0) {
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
+        e >>= 1;
+    }
+    return r;
+}
+
 int main() {
-    precompute();
+    vector<int> fac(MAXN + 1), ifac(MAXN + 1);
+
+    fac[0] = 1;
+    for (int i = 1; i <= MAXN; ++i) {
+        fac[i] = (long long)fac[i - 1] * i % MOD;
+    }
+
+    ifac[MAXN] = (int)modPow(fac[MAXN], MOD - 2);
+    for (int i = MAXN; i >= 1; --i) {
+        ifac[i - 1] = (long long)ifac[i] * i % MOD;
+    }
 
     FastScanner fs;
-    int T;
-    fs.nextInt(T);
+    int T = fs.nextInt();
 
-    vector<int> answers;
-    answers.reserve(T);
+    string output;
+    output.reserve((size_t)T * 16);
+
+    vector<int> parent, childCnt, off, S, P, B, comb;
 
     while (T--) {
-        int n, k;
-        fs.nextInt(n);
-        fs.nextInt(k);
-
-        vector<int> parent(n + 1);
-        for (int i = 2; i <= n; ++i) {
-            fs.nextInt(parent[i]);
-        }
+        int n = fs.nextInt();
+        int k = fs.nextInt();
 
         if (k == 1) {
-            answers.push_back(n % MOD);
+            for (int i = 2; i <= n; ++i) fs.nextInt();
+            int ans = n % MOD;
+            output += to_string(ans);
+            output.push_back('\n');
             continue;
         }
 
         if (k == 2) {
+            for (int i = 2; i <= n; ++i) fs.nextInt();
             int ans = (long long)n * (n - 1) % MOD;
-            answers.push_back(ans);
+            output += to_string(ans);
+            output.push_back('\n');
             continue;
         }
 
-        int r = k - 1;
+        parent.assign(n + 1, 0);
+        childCnt.assign(n + 1, 0);
 
-        // height[v] = maximum distance from v to a node in its subtree
-        vector<int> height(n + 1, 0);
-        for (int i = n; i >= 2; --i) {
-            int p = parent[i];
-            int val = height[i] + 1;
-            if (val > height[p]) height[p] = val;
+        for (int i = 2; i <= n; ++i) {
+            int p = fs.nextInt();
+            parent[i] = p;
+            ++childCnt[p];
         }
 
-        // F[v][d] = number of nodes in subtree(v) at distance d from v
-        vector<int> offF(n + 1);
-        int totalF = 0;
-        for (int i = 1; i <= n; ++i) {
-            offF[i] = totalF;
-            totalF += height[i] + 1;
+        off.assign(n + 2, 0);
+        off[1] = 0;
+
+        for (int v = 1; v <= n; ++v) {
+            off[v + 1] = off[v] + childCnt[v] + 3;
         }
 
-        vector<int> F(totalF, 0);
-        for (int i = 1; i <= n; ++i) {
-            F[offF[i]] = 1;
+        int total = off[n + 1];
+
+        S.assign(total, 0);
+
+        for (int v = 1; v <= n; ++v) {
+            S[off[v]] = 1;
         }
 
-        for (int i = n; i >= 2; --i) {
-            int p = parent[i];
-            int oi = offF[i];
-            int op = offF[p];
-            int hi = height[i];
+        // Compute subtree distance profiles S[v].
+        for (int u = n; u >= 2; --u) {
+            int v = parent[u];
+            int len = childCnt[u] + 3;
 
-            for (int d = 0; d <= hi; ++d) {
-                F[op + d + 1] += F[oi + d];
+            int suOff = off[u];
+            int svOff = off[v];
+
+            for (int d = 0; d < len; ++d) {
+                S[svOff + d + 1] += S[suOff + d];
             }
         }
 
-        // comb[x] = C(x, r)
-        vector<int> comb(n + 1, 0);
-        int invR = invfact[r];
-        for (int x = r; x <= n; ++x) {
-            comb[x] = (long long)fact[x] * invR % MOD * invfact[x - r] % MOD;
+        int m = k - 1;
+
+        comb.assign(n + 1, 0);
+
+        int base = ifac[m];
+
+        for (int x = m; x <= n; ++x) {
+            comb[x] = (long long)fac[x] * base % MOD * ifac[x - m] % MOD;
         }
 
-        // A[v][d] is the number of nodes at distance d from v,
-        // stored only for d = 0 .. height[v] + 2.
-        vector<int> offA(n + 1);
-        int totalA = 0;
-        for (int i = 1; i <= n; ++i) {
-            offA[i] = totalA;
-            totalA += height[i] + 3;
+        P.assign(total, 0);
+        B.assign(n + 1, 0);
+
+        // Root.
+        int c1 = childCnt[1];
+
+        int *p1 = &P[off[1]];
+        int *s1 = &S[off[1]];
+
+        p1[0] = 1;
+
+        for (int d = 1; d <= c1 + 2; ++d) {
+            p1[d] = s1[d];
         }
 
-        vector<int> A(totalA, 0);
-        vector<int> score(n + 1, 0);
+        int b1 = 0;
 
-        int hRoot = height[1];
-        int offRootF = offF[1];
-
-        long long rootScore = 0;
-        for (int d = 1; d <= hRoot; ++d) {
-            rootScore += comb[F[offRootF + d]];
-            if (rootScore >= MOD) rootScore -= MOD;
+        for (int d = 1; d <= c1 + 2; ++d) {
+            b1 += comb[p1[d]];
+            if (b1 >= MOD) b1 -= MOD;
         }
 
-        score[1] = (int)rootScore;
-
-        int offRootA = offA[1];
-        int Lroot = hRoot + 2;
-        for (int d = 0; d <= Lroot; ++d) {
-            A[offRootA + d] = (d <= hRoot ? F[offRootF + d] : 0);
-        }
-
-        long long totalAnswer = score[1];
+        B[1] = b1;
+        int answer = b1;
 
         for (int v = 2; v <= n; ++v) {
             int u = parent[v];
-            int hv = height[v];
-            int Lv = hv + 2;
+            int cv = childCnt[v];
 
-            int offV = offA[v];
-            int offU = offA[u];
-            int offFv = offF[v];
+            int *pv = &P[off[v]];
+            int *sv = &S[off[v]];
+            int *pu = &P[off[u]];
 
-            long long delta = 0;
+            pv[0] = 1;
 
-            for (int d = 0; d <= Lv; ++d) {
-                int base = (d >= 1 ? A[offU + d - 1] : 0);
+            int sumV = 0;
 
-                int add = 0;
-                if (d <= hv) add = F[offFv + d];
+            for (int d = 1; d <= cv + 2; ++d) {
+                int val = pu[d - 1] + sv[d];
 
-                int sub = 0;
                 if (d >= 2) {
-                    int idx = d - 2;
-                    if (idx <= hv) sub = F[offFv + idx];
+                    val -= sv[d - 2];
                 }
 
-                int cur = base + add - sub;
-                A[offV + d] = cur;
+                pv[d] = val;
 
-                delta += comb[cur] - comb[base];
+                sumV += comb[val];
+                if (sumV >= MOD) sumV -= MOD;
             }
 
-            delta %= MOD;
-            if (delta < 0) delta += MOD;
+            int sumParent = 0;
 
-            int sv = score[u] + (int)delta;
-            if (sv >= MOD) sv -= MOD;
-            score[v] = sv;
+            for (int d = 1; d <= cv + 1; ++d) {
+                sumParent += comb[pu[d]];
+                if (sumParent >= MOD) sumParent -= MOD;
+            }
 
-            totalAnswer += sv;
-            if (totalAnswer >= MOD) totalAnswer -= MOD;
+            int bv = B[u] + sumV;
+            if (bv >= MOD) bv -= MOD;
+
+            bv -= sumParent;
+            if (bv < 0) bv += MOD;
+
+            B[v] = bv;
+
+            answer += bv;
+            if (answer >= MOD) answer -= MOD;
         }
 
-        answers.push_back((int)totalAnswer);
+        output += to_string(answer);
+        output.push_back('\n');
     }
 
-    for (int ans : answers) {
-        printf("%d\n", ans);
-    }
-
+    fwrite(output.c_str(), 1, output.size(), stdout);
     return 0;
 }

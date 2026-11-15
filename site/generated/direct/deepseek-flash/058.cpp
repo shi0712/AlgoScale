@@ -1,13 +1,16 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+using ll = long long;
+
 const int MAXA = 1000000 + 5;
 
-int freq[MAXA];
-long long F[MAXA];
+int freqA[MAXA];
+int prefA[MAXA];
+ll F[MAXA];
 
-struct FastInput {
-    static constexpr int SZ = 1 << 20;
+struct FastScanner {
+    static const int SZ = 1 << 20;
     int idx = 0, size = 0;
     char buf[SZ];
 
@@ -21,7 +24,7 @@ struct FastInput {
     }
 
     template <class T>
-    bool nextInt(T &out) {
+    inline bool nextInt(T &out) {
         char c = readChar();
         if (!c) return false;
 
@@ -30,66 +33,82 @@ struct FastInput {
             if (!c) return false;
         }
 
-        int sign = 1;
+        T sign = 1;
         if (c == '-') {
             sign = -1;
             c = readChar();
         }
 
-        T val = 0;
+        T num = 0;
         while (c >= '0' && c <= '9') {
-            val = val * 10 + (c - '0');
+            num = num * 10 + (c - '0');
             c = readChar();
         }
 
-        out = val * sign;
+        out = num * sign;
         return true;
     }
 };
 
 int main() {
-    FastInput in;
+    FastScanner fs;
 
     int N, Q;
-    in.nextInt(N);
-    in.nextInt(Q);
+    fs.nextInt(N);
+    fs.nextInt(Q);
 
     int M = 0;
+    ll S = 0;
+
     for (int i = 0; i < N; ++i) {
         int a;
-        in.nextInt(a);
-        ++freq[a];
-        if (a > M) M = a;
+        fs.nextInt(a);
+        ++freqA[a];
+        M = max(M, a);
+        S += a;
     }
 
-    int running = 0;
-    for (int t = M; t >= 1; --t) {
-        running += freq[t];
-        freq[t] = running;
+    for (int i = 1; i <= M; ++i) {
+        prefA[i] = prefA[i - 1] + freqA[i];
     }
 
-    for (int x = 1; x <= M; ++x) {
-        long long sum = 0;
-        for (int t = x; t <= M; t += x) {
-            sum += freq[t];
+    /*
+        F[t] = sum_i floor(a_i / t)
+
+        Using:
+        floor(x / t) = number of positive multiples of t not exceeding x.
+
+        So:
+        F[t] = sum_{m=t,2t,3t,...} count(a_i >= m)
+    */
+    for (int t = 1; t <= M; ++t) {
+        ll sum = 0;
+        for (int m = t; m <= M; m += t) {
+            sum += (ll)(N - prefA[m - 1]);
         }
-        F[x] = sum;
+        F[t] = sum;
     }
 
     string output;
     output.reserve((size_t)Q * 4);
 
-    for (int i = 0; i < Q; ++i) {
-        long long K;
-        in.nextInt(K);
+    for (int qi = 0; qi < Q; ++qi) {
+        ll K;
+        fs.nextInt(K);
 
-        long long L = (M + K - 1) / K;
+        bool ok;
 
-        if (F[(int)L] >= K) {
-            output += "YES\n";
+        if (K > M) {
+            // Tastiness 1 is possible iff all pieces can make K nonempty cakes.
+            ok = (K <= S);
         } else {
-            output += "NO\n";
+            int k = (int)K;
+            int T = (M + k - 1) / k; // ceil(M / K)
+            ok = (F[T] >= K);
         }
+
+        if (ok) output += "YES\n";
+        else output += "NO\n";
     }
 
     fwrite(output.c_str(), 1, output.size(), stdout);

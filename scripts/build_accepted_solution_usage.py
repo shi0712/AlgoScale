@@ -8,6 +8,7 @@ agent session files left by Docker-based Harbor runs.
 from __future__ import annotations
 
 import csv
+import argparse
 import hashlib
 import json
 import os
@@ -28,7 +29,7 @@ OLD_ORIGINS_PATH = WORKSPACE_ROOT / "output/uoj_reorder_20261012/problem-origins
 CURRENT_ORIGINS_PATH = WORKSPACE_ROOT / "uoj-local/problem-origins.csv"
 DEEPSEEK_DIRECT_SUMMARY = (
     WORKSPACE_ROOT
-    / "artifacts/local_uoj_llm_eval_deepseek_flash_direct_20261020/summary.csv"
+    / "artifacts/local_uoj_deepseek_flash_direct_128k_20261115/summary.csv"
 )
 
 
@@ -201,22 +202,53 @@ def deepseek_direct_usage() -> dict[int, dict[str, int]]:
     return usage
 
 
+def existing_usage() -> dict[tuple[str, str, int], dict[str, int]]:
+    if not OUTPUT_PATH.exists():
+        return {}
+    payload = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+    return {
+        (entry["track"], entry["modelKey"], int(entry["problemId"])): {
+            key: int(entry[key])
+            for key in ("inputTokens", "cachedInputTokens", "outputTokens")
+            if entry.get(key) is not None
+        }
+        for entry in payload.get("entries", [])
+    }
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--reuse-existing",
+        action="store_true",
+        help="Reuse token records for unchanged solutions and refresh DeepSeek Direct only.",
+    )
+    args = parser.parse_args()
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    direct_index = index_direct_runs()
-    harbor_index, deepseek_agent_by_old_id = index_harbor_runs()
-    kimi_records = kimi_source_records()
-    current_to_old = current_to_old_problem_ids()
-    deepseek_direct_by_old_id = deepseek_direct_usage()
+    preserved_usage = existing_usage() if args.reuse_existing else {}
+    direct_index = {} if args.reuse_existing else index_direct_runs()
+    if args.reuse_existing:
+        harbor_index, deepseek_agent_by_old_id = {}, {}
+        kimi_records: dict[int, str] = {}
+        current_to_old: dict[int, int] = {}
+    else:
+        harbor_index, deepseek_agent_by_old_id = index_harbor_runs()
+        kimi_records = kimi_source_records()
+        current_to_old = current_to_old_problem_ids()
+    deepseek_direct_by_problem_id = deepseek_direct_usage()
     entries: list[dict[str, Any]] = []
 
     for entry in manifest["entries"]:
         usage: dict[str, int] | None
-        if entry["track"] == "direct":
+        usage_key = (entry["track"], entry["modelKey"], int(entry["problemId"]))
+        if args.reuse_existing and not (
+            entry["track"] == "direct" and entry["modelKey"] == "deepseek-flash"
+        ):
+            usage = preserved_usage.get(usage_key)
+        elif entry["track"] == "direct":
             usage = direct_index.get(entry["sha256"])
             if usage is None and entry["modelKey"] == "deepseek-flash":
-                old_id = current_to_old.get(int(entry["problemId"]))
-                usage = deepseek_direct_by_old_id.get(old_id) if old_id else None
+                usage = deepseek_direct_by_problem_id.get(int(entry["problemId"]))
         else:
             usage = harbor_index.get(entry["sha256"])
             if usage is None and entry["modelKey"] == "kimi-k3-1-pro":
@@ -246,8 +278,8 @@ def main() -> None:
         entry for entry in entries
         if entry["track"] == "agent" and entry["modelKey"] == "deepseek-flash"
     ]
-    assert len(deepseek_direct_entries) == 19
-    assert sum(entry["outputTokens"] for entry in deepseek_direct_entries) == 1_061_792
+    assert len(deepseek_direct_entries) == 20
+    assert sum(entry["outputTokens"] for entry in deepseek_direct_entries) == 1_155_002
     assert len(deepseek_agent_entries) == 30
     assert sum(entry["inputTokens"] for entry in deepseek_agent_entries) == 142_825_142
     assert sum(entry["cachedInputTokens"] for entry in deepseek_agent_entries) == 248_448

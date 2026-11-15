@@ -71,4 +71,4 @@ The traveler may move in either direction along any edge, including leftward mov
 - Each output weight is an integer in $[1,2\times10^9]$ and must be at least its original value.
 - Horizontal weight arrays have dimensions $n\times(m-1)$; vertical arrays have dimensions $(n-1)\times m$.
 - The modified minimum distance between the first and last columns must increase by $k$.
-- Time limit: **1 second**. Memory limit: **256 MB**.
+- Time limit: **0.8 seconds**. Memory limit: **256 MB**.

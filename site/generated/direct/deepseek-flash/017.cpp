@@ -8,96 +8,89 @@ int main() {
     int n, m;
     cin >> n >> m;
 
-    vector<int> t(n);
-    for (int i = 0; i < n; ++i) cin >> t[i];
+    vector<int> trump(n);
+    for (int i = 0; i < n; ++i) cin >> trump[i];
 
-    vector<vector<long long>> a(n, vector<long long>(m));
-    vector<long long> totalRank(m, 0);
+    vector<vector<long long>> A(n, vector<long long>(m));
+    vector<vector<long long>> D(n, vector<long long>(m));
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < m; ++j) {
-            cin >> a[i][j];
-            totalRank[j] += a[i][j];
-        }
-    }
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            cin >> A[i][j];
 
-    vector<vector<long long>> b(n, vector<long long>(m));
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < m; ++j) {
-            cin >> b[i][j];
-        }
-    }
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            cin >> D[i][j];
 
-    int M = 1 << m;
-    vector<int> highest(M), lowerMask(M);
+    int N = 1 << m;
 
-    for (int mask = 1; mask < M; ++mask) {
+    vector<long long> regularNeed(N, 0);
+    vector<long long> trumpSurplus(N, 0);
+    vector<unsigned char> invalid(N, 0);
+
+    vector<unsigned char> high(N);
+    vector<unsigned int> low(N);
+
+    for (int mask = 1; mask < N; ++mask) {
         int h = 31 - __builtin_clz((unsigned)mask);
-        highest[mask] = h;
-        lowerMask[mask] = mask ^ (1 << h);
+        high[mask] = (unsigned char)h;
+        low[mask] = (unsigned int)mask ^ (1u << h);
     }
 
-    vector<long long> F(M), W(M);
-    vector<long long> needTrump(M, 0);
-    vector<long long> haveTrump(M, 0);
-    vector<unsigned char> bad(M, 0);
+    vector<long long> at(N), dt(N), def(N);
 
-    long long Aarr[20], Barr[20];
+    for (int i = 0; i < n; ++i) {
+        at[0] = dt[0] = def[0] = 0;
 
-    for (int s = 0; s < n; ++s) {
-        for (int j = 0; j < m; ++j) {
-            Aarr[j] = a[s][j];
-            Barr[j] = b[s][j];
-        }
+        if (trump[i]) {
+            for (int mask = 1; mask < N; ++mask) {
+                int h = high[mask];
+                int T = (int)low[mask];
 
-        F[0] = 0;
-        W[0] = 0;
+                long long ah = A[i][h];
+                long long dh = D[i][h];
 
-        if (t[s] == 1) {
-            for (int mask = 1; mask < M; ++mask) {
-                int h = highest[mask];
-                int low = lowerMask[mask];
+                at[mask] = at[T] + ah;
+                dt[mask] = dt[T] + dh;
 
-                long long ah = Aarr[h];
-                long long bh = Barr[h];
+                long long cur = def[T] + ah - dh;
+                if (cur < ah) cur = ah;
+                def[mask] = cur;
 
-                long long f = ah;
-                long long cand = ah - bh + F[low];
-                if (cand > f) f = cand;
-                F[mask] = f;
-
-                long long w = W[low] + bh - ah;
-                W[mask] = w;
-
-                if (f > 0) bad[mask] = 1;
-                haveTrump[mask] += w;
+                if (cur != 0) {
+                    invalid[mask] = 1;
+                } else {
+                    trumpSurplus[mask] += dt[mask] - at[mask];
+                }
             }
         } else {
-            for (int mask = 1; mask < M; ++mask) {
-                int h = highest[mask];
-                int low = lowerMask[mask];
+            for (int mask = 1; mask < N; ++mask) {
+                int h = high[mask];
+                int T = (int)low[mask];
 
-                long long ah = Aarr[h];
-                long long bh = Barr[h];
+                long long ah = A[i][h];
+                long long dh = D[i][h];
 
-                long long f = ah;
-                long long cand = ah - bh + F[low];
-                if (cand > f) f = cand;
-                F[mask] = f;
+                at[mask] = at[T] + ah;
+                dt[mask] = dt[T] + dh;
 
-                needTrump[mask] += f;
+                long long cur = def[T] + ah - dh;
+                if (cur < ah) cur = ah;
+                def[mask] = cur;
+
+                regularNeed[mask] += cur;
             }
         }
     }
 
-    vector<unsigned char> goodRank(m, 0);
+    vector<unsigned char> safe(m, 0);
 
-    for (int mask = 1; mask < M; ++mask) {
-        if (!bad[mask] && needTrump[mask] <= haveTrump[mask]) {
+    for (int mask = 0; mask < N; ++mask) {
+        if (!invalid[mask] && regularNeed[mask] <= trumpSurplus[mask]) {
             int bits = mask;
             while (bits) {
-                int bit = __builtin_ctz((unsigned)bits);
-                goodRank[bit] = 1;
+                int b = __builtin_ctz((unsigned)bits);
+                safe[b] = 1;
                 bits &= bits - 1;
             }
         }
@@ -105,9 +98,11 @@ int main() {
 
     long long answer = 0;
 
-    for (int r = 0; r < m; ++r) {
-        if (!goodRank[r]) {
-            answer += totalRank[r];
+    for (int rank = 0; rank < m; ++rank) {
+        if (!safe[rank]) {
+            for (int suit = 0; suit < n; ++suit) {
+                answer += A[suit][rank];
+            }
         }
     }
 

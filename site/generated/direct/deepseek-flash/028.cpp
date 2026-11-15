@@ -3,14 +3,22 @@ using namespace std;
 
 static const int MOD = 998244353;
 static const int MAXA = 6000;
+static const int K = 21;
+static const int N = 1 << 21;
+static const int R = 16;
+static const int FS = 1 << R;
 
-int cntLarge[MAXA + 1][76]; // cntLarge[p][s]
+int cntVal[MAXA + 1];
+int smallMaskArr[MAXA + 1];
+int largePrimeArr[MAXA + 1];
+int pow1p[MAXA + 1];
+int invNum[MAXA + 1];
 
-int modpow(int a, int e) {
-    long long r = 1, b = a;
+int modpow(long long a, int e) {
+    long long r = 1;
     while (e > 0) {
-        if (e & 1) r = r * b % MOD;
-        b = b * b % MOD;
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
         e >>= 1;
     }
     return (int)r;
@@ -23,265 +31,210 @@ int main() {
     int n;
     cin >> n;
 
-    // Small primes <= sqrt(6000) = 77
-    vector<int> smallPrimes;
-    for (int x = 2; x <= 77; ++x) {
-        bool ok = true;
-        for (int d = 2; d * d <= x; ++d) {
-            if (x % d == 0) {
-                ok = false;
-                break;
-            }
-        }
-        if (ok) smallPrimes.push_back(x);
-    }
-
-    int m = (int)smallPrimes.size();
-    int SZ = 1 << m;
-    int ALL = SZ - 1;
-
-    vector<int> inv(MAXA + 1);
-    inv[1] = 1;
-    for (int i = 2; i <= MAXA; ++i) {
-        inv[i] = MOD - 1LL * (MOD / i) * inv[MOD % i] % MOD;
-    }
-
-    // preMask[s] = set of small primes dividing s, for 1 <= s <= 75
-    int preMask[76] = {};
-    for (int s = 1; s <= 75; ++s) {
-        for (int i = 0; i < m; ++i) {
-            if (s % smallPrimes[i] == 0) {
-                preMask[s] |= (1 << i);
-            }
-        }
-    }
-
-    // small-only part
-    vector<int> W(SZ, 1);
-
     for (int i = 0; i < n; ++i) {
         int a;
         cin >> a;
+        ++cntVal[a];
+    }
 
-        int x = a;
+    vector<int> smallPrimes = {
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29,
+        31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73
+    };
+
+    invNum[1] = 1;
+    for (int i = 2; i <= MAXA; ++i) {
+        invNum[i] = MOD - (long long)(MOD / i) * invNum[MOD % i] % MOD;
+    }
+
+    for (int v = 1; v <= MAXA; ++v) {
+        int temp = v;
         int mask = 0;
 
-        for (int j = 0; j < m; ++j) {
-            int p = smallPrimes[j];
-            if (x % p == 0) {
-                mask |= (1 << j);
-                while (x % p == 0) x /= p;
+        for (int i = 0; i < K; ++i) {
+            int p = smallPrimes[i];
+            if (temp % p == 0) {
+                mask |= (1 << i);
+                while (temp % p == 0) temp /= p;
             }
         }
 
-        if (x > 1) {
-            // x is a large prime > 77
-            int p = x;
-            int s = a / p;
-            ++cntLarge[p][s];
-        } else {
-            int val = a + 1;
-            W[mask] = 1LL * W[mask] * val % MOD;
+        smallMaskArr[v] = mask;
+        largePrimeArr[v] = (temp > 1 ? temp : 0);
+    }
+
+    for (int v = 1; v <= MAXA; ++v) {
+        pow1p[v] = 1;
+        if (cntVal[v] > 0) {
+            pow1p[v] = modpow(v + 1, cntVal[v]);
         }
     }
 
-    // Subset product zeta for small-only numbers:
-    // W[X] = product over mask subset X.
-    for (int b = 0; b < m; ++b) {
-        int step = 1 << b;
-        for (int base = 0; base < SZ; base += step << 1) {
+    vector<int> Z(N, 1);
+
+    // Independent elements with no large prime factor.
+    for (int v = 1; v <= MAXA; ++v) {
+        if (cntVal[v] > 0 && largePrimeArr[v] == 0) {
+            int mask = smallMaskArr[v];
+            Z[mask] = (long long)Z[mask] * pow1p[v] % MOD;
+        }
+    }
+
+    // Subset product zeta transform over the 21 small primes.
+    for (int i = 0, step = 1; i < K; ++i, step <<= 1) {
+        int jump = step << 1;
+        for (int base = 0; base < N; base += jump) {
             for (int j = 0; j < step; ++j) {
-                int &v = W[base + step + j];
-                v = 1LL * v * W[base + j] % MOD;
+                int idx = base + step + j;
+                Z[idx] = (long long)Z[idx] * Z[base + j] % MOD;
             }
         }
     }
 
-    vector<vector<int>> pByIdx(m);
-    vector<int> constP;
-
-    for (int p = 79; p <= MAXA; ++p) {
-        bool any = false;
-        int D = 0;
-
-        for (int s = 1; s <= 75; ++s) {
-            if (cntLarge[p][s]) {
-                any = true;
-                D |= preMask[s];
-            }
-        }
-
-        if (!any) continue;
-
-        if (D == 0) {
-            constP.push_back(p);
-        } else {
-            int idx = 31 - __builtin_clz((unsigned)D);
-            pByIdx[idx].push_back(p);
+    bool presentLarge[6001] = {};
+    for (int v = 1; v <= MAXA; ++v) {
+        if (cntVal[v] > 0 && largePrimeArr[v] > 0) {
+            presentLarge[largePrimeArr[v]] = true;
         }
     }
 
-    // level[T] = product over processed large primes
-    vector<int> level(1, 1);
+    vector<int> groups[76];
 
-    // Large prime groups whose cofactor is always 1
-    for (int p : constP) {
-        int c1 = cntLarge[p][1];
-        int B = modpow((1 + p) % MOD, c1);
-        int cp = 1LL * (p - 1) * inv[p] % MOD;
-
-        int diff = B - 1;
-        if (diff < 0) diff += MOD;
-
-        int F = 1 + 1LL * cp * diff % MOD;
-        if (F >= MOD) F -= MOD;
-
-        level[0] = 1LL * level[0] * F % MOD;
+    for (int l = 1; l <= MAXA; ++l) {
+        if (presentLarge[l]) {
+            int B = MAXA / l;
+            if (1 <= B && B <= 75) {
+                groups[B].push_back(l);
+            }
+        }
     }
 
-    vector<int> proj;
-    proj.reserve(SZ);
+    int prefSmall[76];
+    int rcnt = 0;
+    for (int B = 0; B <= 75; ++B) {
+        while (rcnt < K && smallPrimes[rcnt] <= B) ++rcnt;
+        prefSmall[B] = rcnt;
+    }
 
-    for (int b = 0; b < m; ++b) {
-        // Introduce the new small prime bit b
-        int oldSize = (int)level.size();
-        level.resize(oldSize * 2);
-        for (int i = 0; i < oldSize; ++i) {
-            level[i + oldSize] = level[i];
-        }
+    vector<int> P(N), H(N);
+    vector<int> Fsmall(FS, 1);
 
-        int levelSize = (int)level.size();
-        proj.resize(levelSize);
+    for (int B = 1; B <= 75; ++B) {
+        if (groups[B].empty()) continue;
 
-        for (int p : pByIdx[b]) {
-            int D = 0;
-            for (int s = 1; s <= 75; ++s) {
-                if (cntLarge[p][s]) {
-                    D |= preMask[s];
+        int r = prefSmall[B];
+        int sizeH = 1 << r;
+        int m = (int)groups[B].size();
+
+        if (m == 1) {
+            int l = groups[B][0];
+
+            fill(P.begin(), P.begin() + sizeH, 1);
+
+            for (int b = 1; b <= B; ++b) {
+                int v = l * b;
+                if (v <= MAXA && cntVal[v] > 0) {
+                    int mask = smallMaskArr[b];
+                    P[mask] = (long long)P[mask] * pow1p[v] % MOD;
                 }
             }
 
-            int k = __builtin_popcount((unsigned)D);
-            int Fsize = 1 << k;
-
-            vector<int> arr(Fsize, 1);
-
-            int mapGlobal[21];
-            for (int i = 0; i < m; ++i) mapGlobal[i] = -1;
-
-            int loc = 0;
-            for (int gb = 0; gb < m; ++gb) {
-                if ((D >> gb) & 1) {
-                    mapGlobal[gb] = loc++;
-                }
-            }
-
-            for (int s = 1; s <= 75; ++s) {
-                int c = cntLarge[p][s];
-                if (c == 0) continue;
-
-                int gm = preMask[s];
-                int lm = 0;
-                int tmp = gm;
-
-                while (tmp) {
-                    int bit = __builtin_ctz((unsigned)tmp);
-                    lm |= (1 << mapGlobal[bit]);
-                    tmp &= tmp - 1;
-                }
-
-                int w = 1LL * p * s % MOD;
-                w++;
-                if (w >= MOD) w -= MOD;
-
-                int factor = modpow(w, c);
-                arr[lm] = 1LL * arr[lm] * factor % MOD;
-            }
-
-            // Subset product zeta over D
-            for (int bit = 0; bit < k; ++bit) {
-                int step = 1 << bit;
-                for (int base = 0; base < Fsize; base += step << 1) {
+            for (int i = 0, step = 1; i < r; ++i, step <<= 1) {
+                int jump = step << 1;
+                for (int base = 0; base < sizeH; base += jump) {
                     for (int j = 0; j < step; ++j) {
-                        int &v = arr[base + step + j];
-                        v = 1LL * v * arr[base + j] % MOD;
+                        int idx = base + step + j;
+                        P[idx] = (long long)P[idx] * P[base + j] % MOD;
                     }
                 }
             }
 
-            int Full = Fsize - 1;
-            int cp = 1LL * (p - 1) * inv[p] % MOD;
+            int invl = invNum[l];
+            int lm1 = l - 1;
 
-            vector<int> F(Fsize);
-
-            for (int U = 0; U < Fsize; ++U) {
-                int val = arr[Full ^ U];
-                int diff = val - 1;
-                if (diff < 0) diff += MOD;
-
-                int cur = 1 + 1LL * cp * diff % MOD;
-                if (cur >= MOD) cur -= MOD;
-                F[U] = cur;
+            for (int T = 0; T < sizeH; ++T) {
+                int term = (1 + (long long)lm1 * P[T]) % MOD;
+                term = (long long)term * invl % MOD;
+                H[T] = term;
             }
+        } else {
+            fill(H.begin(), H.begin() + sizeH, 1);
 
-            // Apply F(T ∩ D) to all current masks
-            proj[0] = 0;
-            level[0] = 1LL * level[0] * F[0] % MOD;
+            for (int l : groups[B]) {
+                fill(P.begin(), P.begin() + sizeH, 1);
 
-            for (int T = 1; T < levelSize; ++T) {
-                int lb = T & -T;
-                int gb = __builtin_ctz((unsigned)lb);
-                int prev = T ^ lb;
-
-                int pv = proj[prev];
-                int ml = mapGlobal[gb];
-
-                if (ml >= 0) {
-                    pv |= (1 << ml);
+                for (int b = 1; b <= B; ++b) {
+                    int v = l * b;
+                    if (v <= MAXA && cntVal[v] > 0) {
+                        int mask = smallMaskArr[b];
+                        P[mask] = (long long)P[mask] * pow1p[v] % MOD;
+                    }
                 }
 
-                proj[T] = pv;
-                level[T] = 1LL * level[T] * F[pv] % MOD;
+                for (int i = 0, step = 1; i < r; ++i, step <<= 1) {
+                    int jump = step << 1;
+                    for (int base = 0; base < sizeH; base += jump) {
+                        for (int j = 0; j < step; ++j) {
+                            int idx = base + step + j;
+                            P[idx] = (long long)P[idx] * P[base + j] % MOD;
+                        }
+                    }
+                }
+
+                int invl = invNum[l];
+                int lm1 = l - 1;
+
+                for (int T = 0; T < sizeH; ++T) {
+                    int term = (1 + (long long)lm1 * P[T]) % MOD;
+                    term = (long long)term * invl % MOD;
+                    H[T] = (long long)H[T] * term % MOD;
+                }
+            }
+        }
+
+        if (r <= R) {
+            int maskH = sizeH - 1;
+            for (int idx = 0; idx < FS; ++idx) {
+                Fsmall[idx] = (long long)Fsmall[idx] * H[idx & maskH] % MOD;
+            }
+        } else {
+            for (int base = 0; base < N; base += sizeH) {
+                for (int low = 0; low < sizeH; ++low) {
+                    Z[base + low] = (long long)Z[base + low] * H[low] % MOD;
+                }
             }
         }
     }
 
-    // C[T] = product over small primes:
-    // if prime in T: 1/p
-    // else: (p-1)/p
-    int baseC = 1;
-    vector<int> ratio(m);
-
-    for (int i = 0; i < m; ++i) {
-        int q = smallPrimes[i];
-
-        int c = 1LL * (q - 1) * inv[q] % MOD;
-        baseC = 1LL * baseC * c % MOD;
-
-        ratio[i] = inv[q - 1];
+    int invProdSmall = 1;
+    for (int p : smallPrimes) {
+        invProdSmall = (long long)invProdSmall * invNum[p] % MOD;
     }
 
-    vector<int> C(SZ);
-    C[0] = baseC;
+    int maskF = FS - 1;
+    int ans = (long long)Z[0] * Fsmall[0] % MOD;
 
-    for (int T = 1; T < SZ; ++T) {
-        int lb = T & -T;
+    // Reuse Z to store pred[S] = product_{i in S} (p_i - 1).
+    Z[0] = 1;
+
+    for (int S = 1; S < N; ++S) {
+        int lb = S & -S;
         int bit = __builtin_ctz((unsigned)lb);
-        C[T] = 1LL * C[T ^ lb] * ratio[bit] % MOD;
-    }
 
-    int ans = 0;
+        int predS = (long long)Z[S ^ lb] * (smallPrimes[bit] - 1) % MOD;
 
-    for (int T = 0; T < SZ; ++T) {
-        int H = W[ALL ^ T];
-        int L = level[T];
-
-        int term = 1LL * C[T] * H % MOD * L % MOD;
+        int curZ = Z[S];
+        int z = (long long)curZ * Fsmall[S & maskF] % MOD;
+        int term = (long long)z * predS % MOD;
 
         ans += term;
         if (ans >= MOD) ans -= MOD;
+
+        Z[S] = predS;
     }
 
+    ans = (long long)ans * invProdSmall % MOD;
     cout << ans << '\n';
+
     return 0;
 }
