@@ -1,105 +1,120 @@
-#include <algorithm>
-#include <cstdint>
-#include <iostream>
-#include <vector>
-
+#include <bits/stdc++.h>
 using namespace std;
+
+int n;
+int queries = 0;
+
+int ask(int l, int r, int internalParity, int suffixLength) {
+    cout << "? " << l << ' ' << r << '\n';
+    cout.flush();
+    ++queries;
+    int response;
+    if (!(cin >> response) || response == -1) exit(0);
+    return response ^ internalParity ^ (suffixLength & 1);
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int n;
     if (!(cin >> n)) return 0;
 
-    auto query = [&](int l, int r) {
-        cout << "? " << l << ' ' << r << '\n' << flush;
-        int response;
-        if (!(cin >> response) || response == -1) exit(0);
-        return response;
-    };
+    vector<vector<unsigned char>> inv(n + 2, vector<unsigned char>(n + 2, 0));
+    vector<int> rankAt(n + 2, 0);
+    vector<int> sortedPositions;
+    sortedPositions.reserve(n);
 
-    vector<int> p(n + 1), sorted;
-    vector<vector<unsigned char>> inv(n + 1, vector<unsigned char>(n + 1));
-    p[1] = 1;
-    sorted.push_back(1);
+    for (int k = 0; k < n; ++k) {
+        int newPosition = k + 1;
+        int newRank = 0;
 
-    for (int i = 2; i <= n; ++i) {
-        int m = i - 1;
-        int full = query(1, i);
-        int total = full ^ inv[1][m];
+        if (k > 0) {
+            vector<int> reversedRanks(k);
+            for (int m = 1; m <= k; ++m)
+                reversedRanks[m - 1] = rankAt[k - m + 1];
 
-        int words = (m + 64) / 64;
-        vector<vector<uint64_t>> parity(m + 1, vector<uint64_t>(words));
-        for (int t = 1; t <= m; ++t) {
-            parity[t] = parity[t - 1];
-            int rank = lower_bound(sorted.begin(), sorted.end(), p[t]) - sorted.begin();
-            int last_word = rank >> 6;
-            if (last_word == 0) {
-                parity[t][0] ^= (2ULL << (rank & 63)) - 1;
-            } else {
-                parity[t][0] ^= ~0ULL;
-                for (int w = 1; w < last_word; ++w) parity[t][w] ^= ~0ULL;
-                parity[t][last_word] ^= (2ULL << (rank & 63)) - 1;
-            }
-        }
+            vector<int> candidates(k + 1);
+            iota(candidates.begin(), candidates.end(), 0);
 
-        vector<uint64_t> candidates(words, 0);
-        for (int k = 0; k <= m; ++k) {
-            if (((m - k) & 1) == total) candidates[k >> 6] |= 1ULL << (k & 63);
-        }
+            while (candidates.size() > 1) {
+                int s = (int)candidates.size();
+                int words = (s + 63) >> 6;
+                unsigned long long lastMask = (s & 63)
+                    ? ((1ULL << (s & 63)) - 1)
+                    : ~0ULL;
 
-        auto contains = [&](const vector<uint64_t>& bits, int k) {
-            return (bits[k >> 6] >> (k & 63)) & 1;
-        };
+                vector<int> flipStart(k);
+                int ptr = 0;
+                for (int rank = 0; rank < k; ++rank) {
+                    while (ptr < s && candidates[ptr] <= rank) ++ptr;
+                    flipStart[rank] = ptr;
+                }
 
-        int candidate_count = (m + 2) / 2;
-        while (candidate_count > 1) {
-            int best_t = 1, best_worst = candidate_count + 1;
-            for (int t = 1; t < m; ++t) {
+                vector<unsigned long long> signature(words, 0), bestSignature;
+                int bestBalance = s + 1;
+                int bestM = 0;
                 int ones = 0;
-                for (int w = 0; w < words; ++w) {
-                    ones += __builtin_popcountll(parity[t][w] & candidates[w]);
+
+                for (int m = 1; m <= k; ++m) {
+                    int first = flipStart[reversedRanks[m - 1]];
+                    if (first < s) {
+                        int firstWord = first >> 6;
+                        int offset = first & 63;
+                        for (int w = firstWord; w < words; ++w) {
+                            unsigned long long mask = ~0ULL;
+                            if (w == firstWord) mask <<= offset;
+                            if (w == words - 1) mask &= lastMask;
+                            unsigned long long oldWord = signature[w];
+                            unsigned long long newWord = oldWord ^ mask;
+                            signature[w] = newWord;
+                            ones += __builtin_popcountll(newWord)
+                                  - __builtin_popcountll(oldWord);
+                        }
+                    }
+
+                    int balance = max(ones, s - ones);
+                    if (balance < bestBalance) {
+                        bestBalance = balance;
+                        bestM = m;
+                        bestSignature = signature;
+                    }
                 }
-                int worst = max(ones, candidate_count - ones);
-                if (worst < best_worst) {
-                    best_worst = worst;
-                    best_t = t;
+
+                int l = k - bestM + 1;
+                int response = ask(l, newPosition, inv[l][k], bestM);
+
+                vector<int> nextCandidates;
+                nextCandidates.reserve(bestBalance);
+                for (int i = 0; i < s; ++i) {
+                    int bit = (bestSignature[i >> 6] >> (i & 63)) & 1ULL;
+                    if (bit == response) nextCandidates.push_back(candidates[i]);
                 }
+                candidates.swap(nextCandidates);
             }
-
-            int response = query(best_t + 1, i);
-            int prefix_parity = response ^ inv[best_t + 1][m] ^ total;
-            for (int w = 0; w < words; ++w) {
-                if (prefix_parity) candidates[w] &= parity[best_t][w];
-                else candidates[w] &= ~parity[best_t][w];
-            }
-            candidate_count = 0;
-            for (uint64_t word : candidates) candidate_count += __builtin_popcountll(word);
+            newRank = candidates[0];
         }
 
-        int k = 0;
-        while (!contains(candidates, k)) ++k;
-        int value = k + 1;
-        for (int j = 1; j <= m; ++j) {
-            if (p[j] >= value) ++p[j];
+        sortedPositions.insert(sortedPositions.begin() + newRank, newPosition);
+        for (int pos = 1; pos < newPosition; ++pos) {
+            if (rankAt[pos] >= newRank) ++rankAt[pos];
         }
-        p[i] = value;
-        for (int& old_value : sorted) {
-            if (old_value >= value) ++old_value;
-        }
-        sorted.insert(sorted.begin() + k, value);
+        rankAt[newPosition] = newRank;
 
-        int greater_parity = 0;
-        inv[i][i] = 0;
-        for (int l = m; l >= 1; --l) {
-            greater_parity ^= (p[l] > p[i]);
-            inv[l][i] = inv[l][m] ^ greater_parity;
+        int greaterParity = 0;
+        inv[newPosition][newPosition] = 0;
+        for (int l = newPosition - 1; l >= 1; --l) {
+            if (rankAt[l] > newRank) greaterParity ^= 1;
+            inv[l][newPosition] = inv[l][newPosition - 1] ^ greaterParity;
         }
     }
 
+    vector<int> answer(n + 1);
+    for (int value = 0; value < n; ++value)
+        answer[sortedPositions[value]] = value + 1;
+
     cout << '!';
-    for (int i = 1; i <= n; ++i) cout << ' ' << p[i];
-    cout << '\n' << flush;
+    for (int pos = 1; pos <= n; ++pos) cout << ' ' << answer[pos];
+    cout << '\n';
+    cout.flush();
     return 0;
 }

@@ -1,105 +1,159 @@
 #include <algorithm>
 #include <cmath>
-#include <complex>
 #include <iomanip>
 #include <iostream>
 #include <vector>
 
-using namespace std;
+using ld = long double;
 
-static void fft(vector<complex<double>>& a, bool inverse = false) {
-    const int n = static_cast<int>(a.size());
+struct Complex {
+    ld x = 0, y = 0;
+
+    Complex() = default;
+    Complex(ld x, ld y) : x(x), y(y) {}
+
+    Complex operator+(const Complex& other) const {
+        return {x + other.x, y + other.y};
+    }
+    Complex operator-(const Complex& other) const {
+        return {x - other.x, y - other.y};
+    }
+    Complex operator*(const Complex& other) const {
+        return {x * other.x - y * other.y, x * other.y + y * other.x};
+    }
+    Complex& operator*=(const Complex& other) {
+        *this = *this * other;
+        return *this;
+    }
+    Complex& operator+=(const Complex& other) {
+        x += other.x;
+        y += other.y;
+        return *this;
+    }
+    Complex& operator-=(const Complex& other) {
+        x -= other.x;
+        y -= other.y;
+        return *this;
+    }
+};
+
+static const ld PI = acosl(-1.0L);
+
+void fft(std::vector<Complex>& a, bool inverse) {
+    int n = static_cast<int>(a.size());
     for (int i = 1, j = 0; i < n; ++i) {
         int bit = n >> 1;
         for (; j & bit; bit >>= 1) j ^= bit;
         j ^= bit;
-        if (i < j) swap(a[i], a[j]);
+        if (i < j) std::swap(a[i], a[j]);
     }
 
-    const double pi = acos(-1.0);
     for (int len = 2; len <= n; len <<= 1) {
-        double angle = (inverse ? 2.0 : -2.0) * pi / len;
-        complex<double> step(cos(angle), sin(angle));
+        ld angle = (inverse ? 2 : -2) * PI / len;
+        Complex root(cosl(angle), sinl(angle));
         for (int i = 0; i < n; i += len) {
-            complex<double> w(1.0, 0.0);
+            Complex w(1, 0);
             for (int j = 0; j < len / 2; ++j) {
-                complex<double> u = a[i + j];
-                complex<double> v = a[i + j + len / 2] * w;
+                Complex u = a[i + j];
+                Complex v = a[i + j + len / 2] * w;
                 a[i + j] = u + v;
                 a[i + j + len / 2] = u - v;
-                w *= step;
+                w *= root;
             }
         }
     }
+
     if (inverse) {
-        for (complex<double>& value : a) value /= n;
+        for (Complex& value : a) {
+            value.x /= n;
+            value.y /= n;
+        }
     }
 }
 
+std::vector<Complex> transformed_values(const std::vector<int>& f, int k) {
+    int n = static_cast<int>(f.size());
+    int m = 1;
+    while (m < 2 * n - 1) m <<= 1;
+
+    std::vector<Complex> a(m), b(m);
+    int period = 2 * n;
+    for (int i = 0; i < n; ++i) {
+        long long square_mod = (1LL * i * i) % period;
+        ld angle = PI * square_mod / n;
+        Complex chirp(cosl(angle), sinl(angle));
+        if (i != k) a[i] = Complex(f[i], 0) * Complex(chirp.x, -chirp.y);
+        b[i] = chirp;
+        if (i != 0) b[m - i] = chirp;
+    }
+
+    fft(a, false);
+    fft(b, false);
+    for (int i = 0; i < m; ++i) a[i] *= b[i];
+    fft(a, true);
+
+    std::vector<Complex> result(n);
+    for (int t = 0; t < n; ++t) {
+        long long square_mod = (1LL * t * t) % period;
+        long long rotation_mod = (1LL * k * t) % n;
+        ld angle = -PI * square_mod / n + 2 * PI * rotation_mod / n;
+        Complex phase(cosl(angle), sinl(angle));
+        result[t] = a[t] * phase;
+    }
+    return result;
+}
+
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
 
     int n, k;
-    cin >> n >> k;
+    std::cin >> n >> k;
+    std::vector<int> f(n);
+    for (int& value : f) std::cin >> value;
 
-    vector<int> f(n);
-    for (int& value : f) cin >> value;
-    f[k] = 0;
-
-    int size = 1;
-    while (size < 2 * n - 1) size <<= 1;
-    vector<complex<double>> a(size), b(size);
-    const double pi = acos(-1.0);
-    for (int i = 0; i < n; ++i) {
-        double angle = pi * (1LL * i * i % (2 * n)) / n;
-        complex<double> chirp(cos(angle), sin(angle));
-        a[i] = static_cast<double>(f[i]) * conj(chirp);
-        b[n - 1 + i] = chirp;
-        b[n - 1 - i] = chirp;
-    }
-    fft(a);
-    fft(b);
-    for (int i = 0; i < size; ++i) a[i] *= b[i];
-    fft(a, true);
-    for (int t = 0; t < n; ++t) {
-        double angle = pi * (1LL * t * t % (2 * n)) / n;
-        a[t] = a[t + n - 1] * conj(complex<double>(cos(angle), sin(angle)));
-    }
-    a.resize(n);
-
-    vector<double> ux(n), uy(n);
-    for (int t = 0; t < n; ++t) {
-        long long index = 1LL * k * t % n;
-        double angle = -2.0 * pi * index / n;
-        ux[t] = cos(angle);
-        uy[t] = sin(angle);
+    if (n == 1) {
+        std::cout << "0\n";
+        return 0;
     }
 
-    auto objective = [&](long long x) {
-        double result = 0.0;
+    std::vector<Complex> b = transformed_values(f, k);
+
+    auto best_at = [&](ld x, bool need_direction) {
+        ld maximum = -1;
+        int index = 0;
         for (int t = 0; t < n; ++t) {
-            double re = a[t].real() + x * ux[t];
-            double im = a[t].imag() + x * uy[t];
-            result = max(result, re * re + im * im);
+            ld re = b[t].x + x;
+            ld squared = re * re + b[t].y * b[t].y;
+            if (squared > maximum) {
+                maximum = squared;
+                index = t;
+            }
         }
-        return result;
+        return std::pair<ld, int>{maximum, need_direction ? index : 0};
     };
 
-    long long bound = ceil(sqrt(objective(0)));
-    long long lo = -bound, hi = bound;
-    while (hi - lo > 3) {
-        long long m1 = lo + (hi - lo) / 3;
-        long long m2 = hi - (hi - lo) / 3;
-        if (objective(m1) <= objective(m2))
-            hi = m2;
+    ld low = -200000000.0L, high = 200000000.0L;
+    for (int iteration = 0; iteration < 80; ++iteration) {
+        ld middle = (low + high) / 2;
+        auto [maximum, index] = best_at(middle, true);
+        if (maximum == 0 || middle + b[index].x == 0) {
+            low = high = middle;
+            break;
+        }
+        if (middle + b[index].x > 0)
+            high = middle;
         else
-            lo = m1;
+            low = middle;
     }
 
-    double answer = objective(lo);
-    for (long long x = lo + 1; x <= hi; ++x)
-        answer = min(answer, objective(x));
-    cout << setprecision(17) << sqrt(answer) << '\n';
+    long long center = floorl((low + high) / 2);
+    ld answer = -1;
+    for (long long x = center - 3; x <= center + 3; ++x) {
+        ld maximum = best_at(x, false).first;
+        if (answer < 0 || maximum < answer) answer = maximum;
+    }
+
+    std::cout << std::setprecision(18) << sqrtl(answer) << '\n';
     return 0;
 }

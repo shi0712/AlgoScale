@@ -1,80 +1,17 @@
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <array>
+#include <iostream>
+#include <limits>
+#include <vector>
+
 using namespace std;
 
 using int64 = long long;
-constexpr int MAX_P = 10;
-constexpr int64 NEG = -(1LL << 60);
-constexpr int64 INVALID = -(1LL << 61);
 
-template <class Value>
-vector<int> row_maxima(const vector<int>& rows, const vector<int>& cols,
-                       Value& value) {
-    if (rows.empty()) return {};
-
-    vector<int> reduced;
-    for (int c : cols) {
-        while (!reduced.empty()) {
-            int r = rows[(int)reduced.size() - 1];
-            if (value(r, reduced.back()) > value(r, c)) break;
-            reduced.pop_back();
-        }
-        if ((int)reduced.size() < (int)rows.size()) reduced.push_back(c);
-    }
-
-    vector<int> odd_rows;
-    for (int i = 1; i < (int)rows.size(); i += 2) {
-        odd_rows.push_back(rows[i]);
-    }
-    vector<int> odd_answer = row_maxima(odd_rows, reduced, value);
-    vector<int> answer(rows.size());
-
-    for (int i = 0; i < (int)rows.size(); i += 2) {
-        int lo = i == 0 ? 0 : (int)(lower_bound(reduced.begin(), reduced.end(),
-                                                odd_answer[i / 2 - 1]) - reduced.begin());
-        int hi = i + 1 == (int)rows.size()
-                     ? (int)reduced.size() - 1
-                     : (int)(lower_bound(reduced.begin(), reduced.end(),
-                                         odd_answer[i / 2]) - reduced.begin());
-        int best = reduced[lo];
-        for (int z = lo + 1; z <= hi; ++z) {
-            if (value(rows[i], reduced[z]) >= value(rows[i], best)) {
-                best = reduced[z];
-            }
-        }
-        answer[i] = best;
-    }
-    for (int i = 1; i < (int)rows.size(); i += 2) {
-        answer[i] = odd_answer[i / 2];
-    }
-    return answer;
-}
-
-vector<int64> apply_group(const vector<int64>& dp, int p,
-                          const vector<int64>& pref, int m, int k) {
-    if (m == 0) return dp;
-    vector<int64> next(k + 1, NEG);
-
-    for (int r = 0; r < p && r <= k; ++r) {
-        int len = (k - r) / p + 1;
-        vector<int64> d(len);
-        vector<int> indices(len);
-        for (int j = 0; j < len; ++j) {
-            d[j] = dp[r + p * j];
-            indices[j] = j;
-        }
-
-        auto value = [&](int j, int u) -> int64 {
-            if (u > j) return INVALID;
-            if (j - u > m || d[u] == NEG) return NEG;
-            return d[u] + pref[j - u];
-        };
-        vector<int> best = row_maxima(indices, indices, value);
-        for (int j = 0; j < len; ++j) {
-            next[r + p * j] = value(j, best[j]);
-        }
-    }
-    return next;
-}
+struct Item {
+    int p;
+    array<int, 10> w;
+};
 
 int main() {
     ios::sync_with_stdio(false);
@@ -83,75 +20,150 @@ int main() {
     int n, k;
     cin >> n >> k;
 
-    vector<array<int, MAX_P + 1>> bonus(n);
-    vector<vector<pair<int, int>>> items(MAX_P + 1);
-    for (int id = 0; id < n; ++id) {
-        int p;
-        cin >> p;
-        for (int x = 1; x <= p; ++x) {
-            cin >> bonus[id][x];
+    vector<Item> items(n);
+    array<vector<int>, 11> byPower;
+    int totalPower = 0;
+    int64 totalValue = 0;
+
+    for (int i = 0; i < n; ++i) {
+        cin >> items[i].p;
+        for (int j = 0; j < items[i].p; ++j) {
+            cin >> items[i].w[j];
         }
-        items[p].push_back({bonus[id][p], id});
+        byPower[items[i].p].push_back(i);
+        totalPower += items[i].p;
+        totalValue += items[i].w[items[i].p - 1];
     }
 
-    for (int p = 1; p <= MAX_P; ++p) {
-        sort(items[p].begin(), items[p].end(), greater<pair<int, int>>());
+    if (k == 0) {
+        cout << 0 << '\n';
+        return 0;
+    }
+    if (totalPower <= k) {
+        cout << totalValue << '\n';
+        return 0;
     }
 
-    vector<vector<int64>> pref(MAX_P + 1);
-    for (int p = 1; p <= MAX_P; ++p) {
-        pref[p].resize(items[p].size() + 1, 0);
-        for (int i = 0; i < (int)items[p].size(); ++i) {
-            pref[p][i + 1] = pref[p][i] + items[p][i].first;
+    for (int p = 1; p <= 10; ++p) {
+        sort(byPower[p].begin(), byPower[p].end(), [&](int a, int b) {
+            const Item &x = items[a];
+            const Item &y = items[b];
+            int vx = x.w[x.p - 1];
+            int vy = y.w[y.p - 1];
+            if (vx != vy) return vx > vy;
+            return a < b;
+        });
+    }
+
+    vector<int> rank(n);
+    for (int p = 1; p <= 10; ++p) {
+        for (int r = 0; r < static_cast<int>(byPower[p].size()); ++r) {
+            rank[byPower[p][r]] = r;
         }
     }
 
-    auto knapsack_without = [&](int excluded) {
-        vector<int64> dp(k + 1, NEG);
-        dp[0] = 0;
-        for (int p = 1; p <= MAX_P; ++p) {
-            if (p == excluded) continue;
-            int m = min((int)items[p].size(), k / p);
-            dp = apply_group(dp, p, pref[p], m, k);
-        }
-        return dp;
-    };
+    constexpr int RANGE = 10;
+    constexpr int64 NEG = numeric_limits<int64>::min() / 4;
 
-    vector<int64> full = knapsack_without(0);
-    int64 answer = max(0LL, *max_element(full.begin(), full.end()));
-
-    for (int p = 2; p <= MAX_P; ++p) {
-        if (items[p].empty()) continue;
-        vector<int64> other = knapsack_without(p);
-        int m = items[p].size();
-
-        for (int x = 1; x < p && x <= k; ++x) {
-            int c = k - x;
-            int limit = min(m, c / p);
-
-            vector<int64> before(limit + 2, NEG);
-            vector<int64> after(limit + 2, NEG);
-            before[1] = other[c];
-            for (int t = 1; t <= limit; ++t) {
-                before[t + 1] = max(before[t], other[c - p * t] + pref[p][t]);
+    array<int, 11> greedyCount{};
+    int greedyWeight = 0;
+    while (true) {
+        int bestPower = 0;
+        for (int p = 1; p <= 10; ++p) {
+            int r = greedyCount[p];
+            if (r == static_cast<int>(byPower[p].size()) || greedyWeight + p > k) {
+                continue;
             }
-            for (int t = limit; t >= 0; --t) {
-                after[t] = after[t + 1];
-                if (t < m) {
-                    after[t] = max(after[t], other[c - p * t] + pref[p][t + 1]);
+            if (bestPower == 0) {
+                bestPower = p;
+                continue;
+            }
+            int id = byPower[p][r];
+            int bestId = byPower[bestPower][greedyCount[bestPower]];
+            int value = items[id].w[p - 1];
+            int bestValue = items[bestId].w[bestPower - 1];
+            if (value * bestPower > bestValue * p) {
+                bestPower = p;
+            }
+        }
+        if (bestPower == 0) break;
+        ++greedyCount[bestPower];
+        greedyWeight += bestPower;
+    }
+
+    array<int, 11> baseCount{}, upperCount{};
+    int baseWeight = 0;
+    int64 baseValue = 0;
+    for (int p = 1; p <= 10; ++p) {
+        baseCount[p] = max(0, greedyCount[p] - RANGE);
+        upperCount[p] = min(static_cast<int>(byPower[p].size()), greedyCount[p] + RANGE);
+        baseWeight += p * baseCount[p];
+        for (int r = 0; r < baseCount[p]; ++r) {
+            int id = byPower[p][r];
+            baseValue += items[id].w[p - 1];
+        }
+    }
+
+    int capacity = k - baseWeight + 10;
+    vector<int64> dp(capacity + 1, NEG);
+    dp[0] = 0;
+    for (int p = 1; p <= 10; ++p) {
+        for (int r = baseCount[p]; r < upperCount[p]; ++r) {
+            int id = byPower[p][r];
+            int value = items[id].w[p - 1];
+            for (int s = capacity; s >= p; --s) {
+                if (dp[s - p] != NEG) {
+                    dp[s] = max(dp[s], dp[s - p] + value);
                 }
             }
+        }
+    }
 
-            for (int r = 1; r <= limit; ++r) {
-                int id = items[p][r - 1].second;
-                int64 best = before[r];
-                best = max(best, after[r] - items[p][r - 1].first);
-                answer = max(answer, best + bonus[id][x]);
+    int64 answer = baseValue;
+    for (int s = 0; s <= k - baseWeight; ++s) {
+        if (dp[s] != NEG) {
+            answer = max(answer, baseValue + dp[s]);
+        }
+    }
+
+    vector<int64> excludedDp;
+    for (int i = 0; i < n; ++i) {
+        int p = items[i].p;
+        int r = rank[i];
+        const vector<int64> *currentDp = &dp;
+
+        if (r >= baseCount[p] && r < upperCount[p]) {
+            excludedDp.assign(capacity + 1, NEG);
+            excludedDp[0] = 0;
+            for (int q = 1; q <= 10; ++q) {
+                for (int t = baseCount[q]; t < upperCount[q]; ++t) {
+                    if (q == p && t == r) continue;
+                    int id = byPower[q][t];
+                    int value = items[id].w[q - 1];
+                    for (int s = capacity; s >= q; --s) {
+                        if (excludedDp[s - q] != NEG) {
+                            excludedDp[s] = max(excludedDp[s], excludedDp[s - q] + value);
+                        }
+                    }
+                }
             }
-            for (int r = limit + 1; r <= m; ++r) {
-                int id = items[p][r - 1].second;
-                answer = max(answer, full[c] + bonus[id][x]);
-            }
+            currentDp = &excludedDp;
+        }
+
+        int adjustedBaseWeight = baseWeight;
+        int64 adjustedBaseValue = baseValue;
+        if (r < baseCount[p]) {
+            adjustedBaseWeight -= p;
+            adjustedBaseValue -= items[i].w[p - 1];
+        }
+
+        int firstSum = max(0, k - p + 1);
+        for (int s = firstSum; s < k; ++s) {
+            int coreWeight = s - adjustedBaseWeight;
+            if (coreWeight < 0 || coreWeight > capacity) continue;
+            int64 value = (*currentDp)[coreWeight];
+            if (value == NEG) continue;
+            answer = max(answer, adjustedBaseValue + value + items[i].w[k - s - 1]);
         }
     }
 

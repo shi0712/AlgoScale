@@ -1,50 +1,41 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-using int64 = long long;
+static constexpr int MOD = 998244353;
+static constexpr int MAXN = 4000;
 
-const int MOD = 998244353;
-const int MAX_N = 4000;
-
-int addmod(int a, int b) {
-    int s = a + b;
-    return s >= MOD ? s - MOD : s;
-}
-
-int submod(int a, int b) {
-    int s = a - b;
-    return s < 0 ? s + MOD : s;
-}
-
-int mulmod(int a, int b) {
-    return int(int64(a) * b % MOD);
-}
-
-int power(int a, int e) {
-    int result = 1;
-    while (e > 0) {
-        if (e & 1) result = mulmod(result, a);
-        a = mulmod(a, a);
+long long modpow(long long a, long long e) {
+    long long r = 1;
+    while (e) {
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
         e >>= 1;
     }
-    return result;
+    return r;
 }
 
-int fact[MAX_N + 1];
-int invfact[MAX_N + 1];
-int dfact[MAX_N + 1];
+long long fact[MAXN + 1], invfact[MAXN + 1], inv[MAXN + 1];
+long long dfact[MAXN + 1];
+
+void precompute() {
+    fact[0] = 1;
+    for (int i = 1; i <= MAXN; ++i) fact[i] = fact[i - 1] * i % MOD;
+    invfact[MAXN] = modpow(fact[MAXN], MOD - 2);
+    for (int i = MAXN; i >= 1; --i) invfact[i - 1] = invfact[i] * i % MOD;
+    inv[1] = 1;
+    for (int i = 2; i <= MAXN; ++i) inv[i] = MOD - MOD / i * inv[MOD % i] % MOD;
+    dfact[0] = 1;
+    for (int i = 2; i <= MAXN; i += 2) dfact[i] = dfact[i - 2] * (i - 1) % MOD;
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
+    precompute();
 
-    fact[0] = 1;
-    for (int i = 1; i <= MAX_N; ++i) fact[i] = mulmod(fact[i - 1], i);
-    invfact[MAX_N] = power(fact[MAX_N], MOD - 2);
-    for (int i = MAX_N; i > 0; --i) invfact[i - 1] = mulmod(invfact[i], i);
-
-    dfact[0] = dfact[1] = 1;
-    for (int i = 2; i <= MAX_N; ++i) dfact[i] = mulmod(dfact[i - 2], i);
+    auto comb = [](int n, int k) -> long long {
+        return fact[n] * invfact[k] % MOD * invfact[n - k] % MOD;
+    };
 
     int T;
     cin >> T;
@@ -55,50 +46,36 @@ int main() {
         vector<int> a(n);
         for (int &x : a) cin >> x;
 
-        int inv_total_matchings = power(dfact[N - 1], MOD - 2);
-        auto pair_probability = [&](int r, int j) {
-            int remaining = N - 2 * r + 2 * j;
-            if (remaining < 0) return 0;
-
-            int result = fact[r];
-            result = mulmod(result, invfact[2 * j]);
-            result = mulmod(result, invfact[r - 2 * j]);
-            if (j > 0) result = mulmod(result, dfact[2 * j - 1]);
-            result = mulmod(result, fact[N - r]);
-            result = mulmod(result, invfact[remaining]);
-            if (remaining > 0) result = mulmod(result, dfact[remaining - 1]);
-            return mulmod(result, inv_total_matchings);
-        };
-
-        vector<int> visits(N + 1, 0);
-        visits[N] = 1;
-        for (int r = N - 1; r >= 2; --r) {
-            int entries = 0;
-            for (int previous = r + 1; previous <= min(2 * r, N); ++previous) {
-                int term = mulmod(visits[previous], pair_probability(previous, previous - r));
-                entries = addmod(entries, term);
+        vector<long long> mono(N + 1, 0);
+        for (int x : a) {
+            long long term = x * inv[N] % MOD;
+            for (int k = 1; k <= x; ++k) {
+                if (k > 1) term = term * (x - k + 1) % MOD * inv[N - k + 1] % MOD;
+                mono[k] += term;
+                if (mono[k] >= MOD) mono[k] -= MOD;
             }
-            int leaves = submod(1, pair_probability(r, 0));
-            visits[r] = mulmod(entries, power(leaves, MOD - 2));
         }
 
-        int inv_fact_N = invfact[N];
-        int answer = 0;
-        for (int r = 2; r <= N; ++r) {
-            int fixed_probability_sum = 0;
-            int remaining_factor = fact[N - r];
-            for (int size : a) {
-                if (size < r) continue;
-                int ratio = fact[size];
-                ratio = mulmod(ratio, invfact[size - r]);
-                ratio = mulmod(ratio, remaining_factor);
-                ratio = mulmod(ratio, inv_fact_N);
-                fixed_probability_sum = addmod(fixed_probability_sum, ratio);
+        vector<long long> dp(N + 1, 0);
+        long long invTotalMatchings = modpow(dfact[N], MOD - 2);
+        for (int k = 2; k <= N; ++k) {
+            long long rhs = (1 - mono[k] + MOD) % MOD;
+            long long p0 = 0;
+            int jmin = max(0, k - m);
+            for (int j = jmin; j <= k / 2; ++j) {
+                int activeInactive = k - 2 * j;
+                int remaining = N - 2 * k + 2 * j;
+                long long ways = comb(k, 2 * j) * dfact[2 * j] % MOD;
+                ways = ways * comb(N - k, activeInactive) % MOD;
+                ways = ways * fact[activeInactive] % MOD;
+                ways = ways * dfact[remaining] % MOD;
+                long long prob = ways * invTotalMatchings % MOD;
+                if (j == 0) p0 = prob;
+                else rhs = (rhs + prob * dp[k - j]) % MOD;
             }
-            int term = mulmod(visits[r], submod(1, fixed_probability_sum));
-            answer = addmod(answer, term);
+            dp[k] = rhs * modpow((1 - p0 + MOD) % MOD, MOD - 2) % MOD;
         }
-        cout << answer << '\n';
+        cout << dp[N] << '\n';
     }
     return 0;
 }

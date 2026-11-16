@@ -1,130 +1,74 @@
-#include <algorithm>
-#include <cmath>
-#include <cstdint>
-#include <iostream>
+#include <bits/stdc++.h>
+using namespace std;
 
-using int64 = long long;
+using u64 = unsigned long long;
 using i128 = __int128_t;
+using u128 = __uint128_t;
 
-struct Solver {
-    int64 h, w, s;
-    int64 best;
+static u64 ceil_div(u64 a, u64 b) {
+    return a / b + (a % b != 0);
+}
 
-    int64 ceilDiv(int64 a, int64 b) const {
-        return a / b + (a % b != 0);
+struct Feasibility {
+    u64 h, w, s, k;
+
+    bool search(u64 left, u64 right) const {
+        u128 lower = u128(ceil_div(h, right)) * ceil_div(w, k - left);
+        if (lower > s) return false;
+        if (left == right) return true;
+
+        u64 middle = left + (right - left) / 2;
+        if (u128(ceil_div(h, middle)) * ceil_div(w, k - middle) <= s)
+            return true;
+        return search(left, middle) || search(middle + 1, right);
     }
 
-    void tryA(int64 a) {
-        if (a < 1 || a > h) return;
-        int64 x = ceilDiv(h, a);
-        if (x > s) return;
-        int64 y = s / x;
-        int64 b = ceilDiv(w, y);
-        if (b <= w) best = std::min(best, a + b);
-    }
+    bool check() const {
+        i128 required = (i128(h) * w + s - 1) / s;
+        i128 discriminant = i128(k) * k - 4 * required;
+        if (discriminant < 0) return false;
 
-    void tryB(int64 b) {
-        if (b < 1 || b > w) return;
-        int64 y = ceilDiv(w, b);
-        if (y > s) return;
-        int64 x = s / y;
-        int64 a = ceilDiv(h, x);
-        if (a <= h) best = std::min(best, a + b);
-    }
+        u64 root = sqrt((long double)discriminant);
+        while (i128(root + 1) * (root + 1) <= discriminant) ++root;
+        while (i128(root) * root > discriminant) --root;
 
-    i128 maxProduct(int64 k) const {
-        return i128(k / 2) * ((k + 1) / 2);
-    }
-
-    int64 lowerBound(i128 need) const {
-        int64 k = static_cast<int64>(2 * std::sqrt(static_cast<long double>(need)));
-        if (k < 2) k = 2;
-        while (maxProduct(k) < need) ++k;
-        while (k > 2 && maxProduct(k - 1) >= need) --k;
-        return k;
-    }
-
-    void scanA(int64 limit) {
-        limit = std::min({limit, h, best - 1});
-        for (int64 a = 1; a <= limit; ++a) tryA(a);
-    }
-
-    void scanX(int64 k, long double q, bool horizontal) {
-        int64 dimension = horizontal ? h : w;
-        int64 other = horizontal ? w : h;
-        int64 hi = std::min(dimension, s);
-
-        long double center = static_cast<long double>(k) * s / (2.0L * other);
-        long double radius = std::sqrt(std::max(0.0L,
-            (static_cast<long double>(k) - 2 * q) *
-            (static_cast<long double>(k) + 2 * q))) * s / (2.0L * other);
-        long double left = std::max(1.0L, center - radius);
-        long double right = std::min(static_cast<long double>(hi), center + radius);
-        if (left > right) return;
-
-        int64 lo = std::max<int64>(1, static_cast<int64>(std::ceil(left)) - 8);
-        int64 end = std::min<int64>(hi, static_cast<int64>(std::floor(right)) + 8);
-        for (int64 x = lo; x <= end; ++x) {
-            if (horizontal) {
-                int64 a = ceilDiv(h, x);
-                int64 y = std::min(w, s / x);
-                int64 b = ceilDiv(w, y);
-                best = std::min(best, a + b);
-            } else {
-                int64 b = ceilDiv(w, x);
-                int64 y = std::min(h, s / x);
-                int64 a = ceilDiv(h, y);
-                best = std::min(best, a + b);
-            }
-        }
-    }
-
-    int64 run() {
-        if (i128(h) * w <= s) return 0;
-
-        best = h + w;
-        long double q = std::sqrt(static_cast<long double>(h) * w / s);
-        int64 center = static_cast<int64>(q);
-        for (int d = -4; d <= 4; ++d) {
-            int64 a = std::max<int64>(1, std::min<int64>(h, center + d));
-            int64 b = std::max<int64>(1, std::min<int64>(w, center + d));
-            tryA(a);
-            tryB(b);
-        }
-        tryA(1);
-        tryA(h);
-        tryB(1);
-        tryB(w);
-
-        i128 need = (i128(h) * w + s - 1) / s;
-        int64 lower = lowerBound(need);
-        if (best == lower) return best - 2;
-
-        if (best <= 100000) {
-            scanA(best - 1);
-            return best - 2;
-        }
-
-        int64 k = best - 1;
-        long double common = std::sqrt(std::max(0.0L,
-            (static_cast<long double>(k) - 2 * q) *
-            (static_cast<long double>(k) + 2 * q))) * s;
-        long double widthX = common / w;
-        long double widthY = common / h;
-        scanX(k, q, widthX <= widthY);
-        return best - 2;
+        u64 left = k > root ? (k - root) / 2 : 0;
+        left = left > 2 ? left - 2 : 1;
+        u64 right = (k + root) / 2 + 2;
+        left = max(left, 1ULL);
+        if (k > w) left = max(left, k - w);
+        right = min(right, k - 1);
+        right = min(right, h);
+        if (left > right) return false;
+        return search(left, right);
     }
 };
 
+static bool feasible(u64 h, u64 w, u64 s, u64 k) {
+    return Feasibility{h, w, s, k}.check();
+}
+
 int main() {
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
     int t;
-    std::cin >> t;
+    cin >> t;
     while (t--) {
-        Solver solver;
-        std::cin >> solver.h >> solver.w >> solver.s;
-        std::cout << solver.run() << '\n';
+        u64 h, w, s;
+        cin >> h >> w >> s;
+        if (u128(h) * w <= s) {
+            cout << 0 << '\n';
+            continue;
+        }
+
+        u64 low = 2, high = h + w;
+        while (low < high) {
+            u64 middle = low + (high - low) / 2;
+            if (feasible(h, w, s, middle)) high = middle;
+            else low = middle + 1;
+        }
+        cout << low - 2 << '\n';
     }
+    return 0;
 }

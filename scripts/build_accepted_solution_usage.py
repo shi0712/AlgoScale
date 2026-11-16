@@ -23,8 +23,9 @@ MANIFEST_PATH = REPO_ROOT / "site/data/accepted-solutions.json"
 OUTPUT_PATH = REPO_ROOT / "site/data/accepted-solution-usage.json"
 KIMI_MANIFEST_PATH = (
     WORKSPACE_ROOT
-    / "deliverables/AlgoScale_leaderboard_passed_cpp_Opus_Kimi_Terra_20261114/manifest.csv"
+    / "deliverables/AlgoScale_Kimi_K3.1_Pro_Offline_AC_31_20261116/manifest.csv"
 )
+KIMI_OFFLINE_JOBS_ROOT = Path("/home/sjw/harbor-kimi-offline-jobs")
 OLD_ORIGINS_PATH = WORKSPACE_ROOT / "output/uoj_reorder_20261012/problem-origins.csv"
 CURRENT_ORIGINS_PATH = WORKSPACE_ROOT / "uoj-local/problem-origins.csv"
 DEEPSEEK_DIRECT_SUMMARY = (
@@ -228,20 +229,29 @@ def deepseek_harness_usage() -> dict[int, dict[str, int]]:
     return usage_by_problem
 
 
-def kimi_source_records() -> dict[int, str]:
-    records: dict[int, str] = {}
+def kimi_source_records() -> dict[int, dict[str, str | int]]:
+    records: dict[int, dict[str, str | int]] = {}
     with KIMI_MANIFEST_PATH.open(encoding="utf-8-sig", newline="") as handle:
         for row in csv.DictReader(handle):
-            if row["mode"] == "agent" and row["model_key"] == "kimi-k3-1-pro":
-                records[int(row["problem_id"])] = row["source_record"]
+            records[int(row["problem_id"])] = {
+                "sourceJob": row["source_job"],
+                "sourceTrial": row["source_trial"],
+                "rounds": int(row["agent_rounds"]),
+            }
     return records
 
 
-def kimi_usage(problem_id: int, records: dict[int, str]) -> dict[str, int] | None:
-    source_record = records.get(problem_id)
-    if not source_record:
+def kimi_usage(
+    problem_id: int, records: dict[int, dict[str, str | int]]
+) -> dict[str, int] | None:
+    source = records.get(problem_id)
+    if not source:
         return None
-    trial_root = Path("/home/sjw/harbor-kimi-jobs") / source_record
+    trial_root = (
+        KIMI_OFFLINE_JOBS_ROOT
+        / str(source["sourceJob"])
+        / str(source["sourceTrial"])
+    )
     wire_files = list(trial_root.glob("agent/.kimi-code/sessions/**/agents/main/wire.jsonl"))
     if not wire_files:
         return None
@@ -273,6 +283,7 @@ def kimi_usage(problem_id: int, records: dict[int, str]) -> dict[str, int] | Non
         "inputTokens": input_tokens,
         "cachedInputTokens": cached_input_tokens,
         "outputTokens": output_tokens,
+        "rounds": int(source["rounds"]),
     }
 
 
@@ -348,7 +359,7 @@ def main() -> None:
     if args.reuse_existing:
         harbor_index, rounds_by_digest, deepseek_agent_by_old_id = {}, {}, {}
         deepseek_agent_by_current_id = deepseek_harness_usage()
-        kimi_records: dict[int, str] = {}
+        kimi_records: dict[int, dict[str, str | int]] = {}
         current_to_old: dict[int, int] = {}
     else:
         harbor_index, rounds_by_digest, deepseek_agent_by_old_id = index_harbor_runs(

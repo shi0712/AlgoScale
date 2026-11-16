@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261116-agent-rounds";
+const SITE_RELEASE = "20261116-kimi-offline-audit";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",

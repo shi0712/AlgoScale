@@ -111,13 +111,14 @@ $deepSeekPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_DeepSeek_Fla
 $deepSeekAgentPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_DeepSeek_Agent_Offline_AC38_20261115"
 $gptSolPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_GPT-6.1-Sol_Accepted_Direct62_Agent72_20261115"
 $claudeOpusDirectPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_Claude_Opus_5.5_Direct_AC34_20261116"
+$kimiOfflineAgentPackage = Join-Path $workspaceRoot "deliverables\AlgoScale_Kimi_K3.1_Pro_Offline_AC_31_20261116\cpp"
 
 Copy-PackageModel "direct" "kimi-k3-1-pro" (Join-Path $multiPackage "direct\kimi-k3-1-pro")
 Copy-PackageModel "direct" "deepseek-flash" (Join-Path $deepSeekPackage "direct")
 Copy-PackageModel "direct" "gpt-6-1-sol" (Join-Path $gptSolPackage "direct")
 Copy-PackageModel "direct" "claude-opus-5-5" $claudeOpusDirectPackage
 Copy-PackageModel "agent" "claude-opus-5-5" (Join-Path $multiPackage "agent\claude-opus-5-5")
-Copy-PackageModel "agent" "kimi-k3-1-pro" (Join-Path $multiPackage "agent\kimi-k3-1-pro")
+Copy-PackageModel "agent" "kimi-k3-1-pro" $kimiOfflineAgentPackage
 Copy-PackageModel "agent" "gpt-6-1-terra" (Join-Path $multiPackage "agent\gpt-6-1-terra")
 Copy-PackageModel "agent" "deepseek-flash" (Join-Path $deepSeekAgentPackage "agent\deepseek-flash")
 

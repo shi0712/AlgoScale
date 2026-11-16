@@ -1,188 +1,273 @@
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <array>
+#include <iostream>
+#include <set>
+#include <utility>
+#include <vector>
+
 using namespace std;
 
 using Edge = pair<int, int>;
 using Path = array<int, 4>;
+using Edges3 = array<Edge, 3>;
 
 struct Operation {
     Path path;
-    Path inversePath;
-    array<Edge, 3> oldEdges;
-    array<Edge, 3> newEdges;
+    Edges3 edges;
+    int kind = 0;
 };
-
-Edge edge(int a, int b) {
-    if (a > b) swap(a, b);
-    return {a, b};
-}
 
 struct Tree {
     int n;
-    set<Edge> edges;
+    bool adj[105][105]{};
 
-    bool has(int a, int b) const {
-        return edges.count(edge(a, b));
-    }
+    explicit Tree(int size = 0) : n(size) {}
 
-    vector<int> neighbors(int v) const {
-        vector<int> result;
-        for (auto [a, b] : edges) {
-            if (a == v) result.push_back(b);
-            if (b == v) result.push_back(a);
-        }
+    int degree(int v) const {
+        int result = 0;
+        for (int u = 1; u <= n; ++u) result += adj[v][u];
         return result;
     }
 
-    Operation apply(Path p, array<Edge, 3> replacement, Path inversePath) {
-        Operation op;
-        op.path = p;
-        op.inversePath = inversePath;
-        op.oldEdges = {edge(p[0], p[1]), edge(p[1], p[2]), edge(p[2], p[3])};
-        op.newEdges = replacement;
-        for (Edge e : op.oldEdges) edges.erase(e);
-        for (Edge e : replacement) edges.insert(e);
-        return op;
+    bool hasPath(const Path &p) const {
+        return adj[p[0]][p[1]] && adj[p[1]][p[2]] && adj[p[2]][p[3]];
+    }
+
+    void apply(const Path &p, const Edges3 &edges) {
+        for (int i = 0; i < 3; ++i) {
+            adj[p[i]][p[i + 1]] = false;
+            adj[p[i + 1]][p[i]] = false;
+        }
+        for (auto [a, b] : edges) {
+            adj[a][b] = true;
+            adj[b][a] = true;
+        }
+    }
+
+    set<Edge> edgeSet() const {
+        set<Edge> result;
+        for (int a = 1; a <= n; ++a) {
+            for (int b = a + 1; b <= n; ++b) {
+                if (adj[a][b]) result.insert({a, b});
+            }
+        }
+        return result;
     }
 };
 
-vector<Operation> reduceToNearStar(Tree &tree, int c) {
-    vector<Operation> ops;
-    int n = tree.n;
+static Edges3 pathEdges(const Path &p) {
+    return {Edge{p[0], p[1]}, Edge{p[1], p[2]}, Edge{p[2], p[3]}};
+}
 
-    while (true) {
-        vector<Edge> outer;
-        for (Edge e : tree.edges) {
-            if (e.first != c && e.second != c) outer.push_back(e);
-        }
-        if (outer.size() <= 1) break;
-
-        vector<int> parent(n + 1, -1), depth(n + 1, -1);
-        queue<int> q;
-        q.push(c);
-        depth[c] = 0;
-        while (!q.empty()) {
-            int v = q.front();
-            q.pop();
-            for (int u : tree.neighbors(v)) {
-                if (depth[u] == -1) {
-                    depth[u] = depth[v] + 1;
-                    parent[u] = v;
-                    q.push(u);
-                }
+static bool centerPath(const Tree &tree, int center, Path &path) {
+    for (int y = 1; y <= tree.n; ++y) {
+        if (!tree.adj[center][y]) continue;
+        for (int z = 1; z <= tree.n; ++z) {
+            if (z == center || !tree.adj[y][z]) continue;
+            for (int w = 1; w <= tree.n; ++w) {
+                if (w == center || w == y || !tree.adj[z][w]) continue;
+                path = {center, y, z, w};
+                return true;
             }
         }
+    }
+    return false;
+}
 
-        int d = -1;
-        for (int v = 1; v <= n; ++v) {
-            if (depth[v] == 3) {
-                d = v;
+static vector<pair<int, int>> centerTails(const Tree &tree, int center) {
+    vector<pair<int, int>> tails;
+    for (int a = 1; a <= tree.n; ++a) {
+        if (!tree.adj[center][a]) continue;
+        for (int b = 1; b <= tree.n; ++b) {
+            if (b != center && tree.adj[a][b]) tails.push_back({a, b});
+        }
+    }
+    return tails;
+}
+
+static void addOperation(Tree &tree, vector<Operation> &operations,
+                         const Path &path, const Edges3 &edges, int kind = 0) {
+    tree.apply(path, edges);
+    operations.push_back({path, edges, kind});
+}
+
+static vector<Operation> toStar(Tree &tree, int center) {
+    vector<Operation> operations;
+    Path path;
+    while (centerPath(tree, center, path)) {
+        auto [c, y, z, w] = path;
+        addOperation(tree, operations, path,
+                     {Edge{c, y}, Edge{c, z}, Edge{c, w}});
+    }
+
+    while (true) {
+        auto tails = centerTails(tree, center);
+        if (tails.empty()) break;
+        int leaf = 0;
+        for (int v = 1; v <= tree.n; ++v) {
+            if (tree.adj[center][v] && tree.degree(v) == 1) {
+                leaf = v;
+                break;
+            }
+        }
+        if (leaf != 0) {
+            auto [a, b] = tails[0];
+            addOperation(tree, operations, {leaf, center, a, b},
+                         {Edge{center, leaf}, Edge{center, a}, Edge{center, b}});
+        } else {
+            auto [a, b] = tails[0];
+            int d = 0;
+            for (auto [other, tail] : tails) {
+                if (other != a) {
+                    d = other;
+                    break;
+                }
+            }
+            addOperation(tree, operations, {b, a, center, d},
+                         {Edge{center, b}, Edge{center, a}, Edge{center, d}});
+        }
+    }
+    return operations;
+}
+
+static vector<Operation> canonicalize(Tree &tree) {
+    const int center = 1;
+    vector<Operation> operations;
+    Path path;
+
+    while (centerPath(tree, center, path)) {
+        auto [c, y, z, w] = path;
+        addOperation(tree, operations, path,
+                     {Edge{c, y}, Edge{c, z}, Edge{z, w}});
+    }
+
+    while (true) {
+        auto tails = centerTails(tree, center);
+        if (tails.size() <= 1) break;
+
+        int leaf = 0;
+        for (int v = 1; v <= tree.n; ++v) {
+            if (tree.adj[center][v] && tree.degree(v) == 1) {
+                leaf = v;
                 break;
             }
         }
 
-        if (d != -1) {
-            int b = parent[d], a = parent[b];
-            ops.push_back(tree.apply(
-                {c, a, b, d},
-                {edge(c, a), edge(c, b), edge(b, d)},
-                {a, c, b, d}
-            ));
-            continue;
-        }
-
-        auto oriented = [&](Edge e) {
-            if (depth[e.first] == 2) swap(e.first, e.second);
-            return e;
-        };
-        Edge e1 = oriented(outer[0]), e2 = oriented(outer[1]);
-        int b = e1.first, leaf = e1.second;
-
-        if (e1.first != e2.first) {
-            int qv = e2.first, e = e2.second;
-            ops.push_back(tree.apply(
-                {qv, c, b, leaf},
-                {edge(qv, leaf), edge(leaf, c), edge(c, b)},
-                {qv, leaf, c, b}
-            ));
-            ops.push_back(tree.apply(
-                {c, leaf, qv, e},
-                {edge(c, leaf), edge(c, qv), edge(qv, e)},
-                {leaf, c, qv, e}
-            ));
+        if (leaf != 0) {
+            auto [a, b] = tails[0];
+            addOperation(tree, operations, {leaf, center, a, b},
+                         {Edge{center, leaf}, Edge{center, a}, Edge{center, b}}, 1);
         } else {
-            int e = e2.second;
-            int qv = -1;
-            for (int v : tree.neighbors(c)) {
-                if (v != b) {
-                    qv = v;
+            auto [a, b] = tails[0];
+            int d = 0;
+            for (auto [other, tail] : tails) {
+                if (other != a) {
+                    d = other;
                     break;
                 }
             }
-            ops.push_back(tree.apply(
-                {qv, c, b, leaf},
-                {edge(qv, c), edge(c, leaf), edge(leaf, b)},
-                {qv, c, leaf, b}
-            ));
-            ops.push_back(tree.apply(
-                {c, leaf, b, e},
-                {edge(c, leaf), edge(c, b), edge(b, e)},
-                {leaf, c, b, e}
-            ));
+            addOperation(tree, operations, {b, a, center, d},
+                         {Edge{center, b}, Edge{center, a}, Edge{center, d}}, 2);
         }
     }
-    return ops;
-}
 
-Operation changeNearStar(Tree &tree, int c, int a, int b, int q, int z, int w) {
-    int r = -1;
-    for (int v : {q, a, b}) {
-        if (v != z && v != w) r = v;
-    }
-    array<Edge, 3> replacement = {edge(z, w), edge(c, w), edge(c, r)};
-    return tree.apply({q, c, a, b}, replacement, {r, c, w, z});
-}
+    auto tails = centerTails(tree, center);
+    int a = tails[0].first;
+    int b = tails[0].second;
 
-vector<Operation> normalize(Tree &tree, int c, int z, int w) {
-    vector<Operation> ops = reduceToNearStar(tree, c);
-    Edge last;
-    for (Edge e : tree.edges) {
-        if (e.first != c && e.second != c) last = e;
-    }
-    int a = last.first, b = last.second;
-    if (!tree.has(c, a)) swap(a, b);
-
-    auto otherVertex = [&](int x, int y) {
-        for (int v = 1; v <= tree.n; ++v) {
-            if (v != c && v != x && v != y) return v;
-        }
-        return -1;
+    auto swapIntermediate = [&](int leaf) {
+        addOperation(tree, operations, {leaf, center, a, b},
+                     {Edge{center, leaf}, Edge{leaf, b}, Edge{center, a}});
+        a = leaf;
+    };
+    auto swapTail = [&](int leaf) {
+        addOperation(tree, operations, {leaf, center, a, b},
+                     {Edge{center, a}, Edge{a, leaf}, Edge{center, b}});
+        b = leaf;
     };
 
-    if (edge(a, b) == edge(z, w) && !tree.has(c, z)) return ops;
-
-    if (edge(a, b) == edge(z, w)) {
-        int q = otherVertex(a, b);
-        ops.push_back(changeNearStar(tree, c, a, b, q, z, w));
-        return ops;
+    if (a != 2) {
+        if (b == 2) {
+            int leaf = 0;
+            for (int v = 1; v <= tree.n; ++v) {
+                if (tree.adj[center][v] && tree.degree(v) == 1) {
+                    leaf = v;
+                    break;
+                }
+            }
+            swapTail(leaf);
+        }
+        swapIntermediate(2);
     }
+    if (b != 3) swapTail(3);
 
-    if (a != z && a != w && b != z && b != w) {
-        int q = z;
-        ops.push_back(changeNearStar(tree, c, a, b, q, z, a));
-        b = z;
-    }
-    int q = (a == z || b == z) ? w : z;
-    ops.push_back(changeNearStar(tree, c, a, b, q, z, w));
-    return ops;
+    return operations;
 }
 
-void printOperation(const Operation &op, bool reverse) {
-    const Path &p = reverse ? op.inversePath : op.path;
-    const auto &es = reverse ? op.oldEdges : op.newEdges;
-    cout << p[0] << ' ' << p[1] << ' ' << p[2] << ' ' << p[3] << '\n';
-    cout << es[0].first << ' ' << es[0].second << ' '
-         << es[1].first << ' ' << es[1].second << ' '
-         << es[2].first << ' ' << es[2].second << '\n';
+static Path inducedPath(const Tree &tree, Path vertices) {
+    sort(vertices.begin(), vertices.end());
+    do {
+        if (tree.hasPath(vertices)) return vertices;
+    } while (next_permutation(vertices.begin(), vertices.end()));
+    return {0, 0, 0, 0};
+}
+
+static void undoOperation(Tree &tree, const Operation &operation,
+                          vector<Operation> &output) {
+    const auto &p = operation.path;
+
+    if (operation.kind == 0) {
+        Path current = inducedPath(tree, p);
+        addOperation(tree, output, current, pathEdges(p));
+        return;
+    }
+
+    if (operation.kind == 2) {
+        auto [b, a, c, d] = p;
+        int e = 0;
+        for (int v = 1; v <= tree.n; ++v) {
+            if (v != c && tree.adj[d][v]) {
+                e = v;
+                break;
+            }
+        }
+        addOperation(tree, output, {b, c, d, e},
+                     {Edge{c, b}, Edge{b, d}, Edge{d, e}});
+        addOperation(tree, output, {a, c, b, d},
+                     {Edge{c, a}, Edge{a, b}, Edge{c, d}});
+        return;
+    }
+
+    auto [leaf, c, a, b] = p;
+    int tail = 0;
+    for (int v = 1; v <= tree.n; ++v) {
+        if (v != c && tree.adj[a][v]) {
+            tail = v;
+            break;
+        }
+    }
+    if (tail != 0) {
+        addOperation(tree, output, {b, c, a, tail},
+                     {Edge{a, b}, Edge{c, a}, Edge{a, tail}});
+        return;
+    }
+
+    int intermediate = 0;
+    tail = 0;
+    for (int v = 1; v <= tree.n && intermediate == 0; ++v) {
+        if (!tree.adj[c][v]) continue;
+        for (int u = 1; u <= tree.n; ++u) {
+            if (u != c && tree.adj[v][u]) {
+                intermediate = v;
+                tail = u;
+                break;
+            }
+        }
+    }
+    addOperation(tree, output, {a, c, intermediate, tail},
+                 {Edge{intermediate, tail}, Edge{c, a}, Edge{a, intermediate}});
+    addOperation(tree, output, {b, c, a, intermediate},
+                 {Edge{a, b}, Edge{c, a}, Edge{c, intermediate}});
 }
 
 int main() {
@@ -191,67 +276,58 @@ int main() {
 
     int n;
     cin >> n;
-    Tree source{n, {}}, target{n, {}};
+    Tree source(n), target(n);
     for (int i = 0; i < n - 1; ++i) {
         int a, b;
         cin >> a >> b;
-        source.edges.insert(edge(a, b));
+        source.adj[a][b] = source.adj[b][a] = true;
     }
     for (int i = 0; i < n - 1; ++i) {
         int a, b;
         cin >> a >> b;
-        target.edges.insert(edge(a, b));
+        target.adj[a][b] = target.adj[b][a] = true;
     }
 
-    if (source.edges == target.edges) {
+    if (source.edgeSet() == target.edgeSet()) {
         cout << "YES\n0\n";
         return 0;
     }
 
-    auto starCenter = [&](const Tree &tree) {
-        for (int v = 1; v <= n; ++v) {
-            if ((int)tree.neighbors(v).size() == n - 1) return v;
-        }
-        return -1;
-    };
-
-    int sourceStar = starCenter(source);
-    if (sourceStar != -1) {
+    int sourceCenter = 0, targetCenter = 0;
+    for (int v = 1; v <= n; ++v) {
+        if (source.degree(v) == n - 1) sourceCenter = v;
+        if (target.degree(v) == n - 1) targetCenter = v;
+    }
+    if (sourceCenter != 0) {
         cout << "NO\n";
         return 0;
     }
 
-    vector<Operation> sourceOps, targetOps;
-    int targetStar = starCenter(target);
-    if (targetStar != -1) {
-        int c = targetStar;
-        sourceOps = reduceToNearStar(source, c);
-        Edge last;
-        for (Edge e : source.edges) {
-            if (e.first != c && e.second != c) last = e;
-        }
-        int a = last.first, b = last.second, q = -1;
-        if (!source.has(c, a)) swap(a, b);
-        for (int v = 1; v <= n; ++v) {
-            if (v != c && v != a && v != b) {
-                q = v;
-                break;
-            }
-        }
-        sourceOps.push_back(source.apply(
-            {q, c, a, b},
-            {edge(q, c), edge(c, a), edge(c, b)},
-            {0, 0, 0, 0}
-        ));
+    vector<Operation> answer;
+    if (targetCenter != 0) {
+        answer = toStar(source, targetCenter);
     } else {
-        sourceOps = normalize(source, 1, 2, 3);
-        targetOps = normalize(target, 1, 2, 3);
+        Tree work = source;
+        auto forward = canonicalize(work);
+        answer.insert(answer.end(), forward.begin(), forward.end());
+        source = work;
+
+        work = target;
+        auto backward = canonicalize(work);
+        for (auto it = backward.rbegin(); it != backward.rend(); ++it) {
+            undoOperation(source, *it, answer);
+        }
     }
 
-    cout << "YES\n" << sourceOps.size() + targetOps.size() << '\n';
-    for (const Operation &op : sourceOps) printOperation(op, false);
-    for (int i = (int)targetOps.size() - 1; i >= 0; --i) {
-        printOperation(targetOps[i], true);
+    cout << "YES\n" << answer.size() << '\n';
+    for (const auto &operation : answer) {
+        const auto &p = operation.path;
+        cout << p[0] << ' ' << p[1] << ' ' << p[2] << ' ' << p[3] << '\n';
+        for (int i = 0; i < 3; ++i) {
+            if (i) cout << ' ';
+            cout << operation.edges[i].first << ' ' << operation.edges[i].second;
+        }
+        cout << '\n';
     }
     return 0;
 }

@@ -1,274 +1,178 @@
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <queue>
+#include <vector>
+
 using namespace std;
+
+using Real = long double;
+const Real INF = numeric_limits<Real>::infinity();
 
 struct Edge {
     int from, to, weight;
 };
 
-struct CycleLine {
-    int length;
-    long long weight, square;
+int n, m;
+vector<Edge> edges;
+vector<char> useful;
 
-    long double mean() const {
-        return (long double)weight / length;
-    }
+Real valueAt(Real mu) {
+    vector<Real> previous(n, INF), current(n);
+    previous[0] = 0;
+    Real answer = INF;
 
-    long double intercept() const {
-        return (long double)square / length;
-    }
-
-    long double value(long double mu) const {
-        return intercept() - 2.0L * mu * mean();
-    }
-
-    long double variance() const {
-        long double m = mean();
-        return intercept() - m * m;
-    }
-
-    bool operator==(const CycleLine &other) const {
-        return length == other.length && weight == other.weight && square == other.square;
-    }
-};
-
-class Solver {
-public:
-    int n, m;
-    vector<Edge> edges;
-    vector<vector<int>> outgoing;
-    vector<char> active;
-    vector<int> vertices;
-    long double answer = numeric_limits<long double>::infinity();
-
-    CycleLine minimumMeanCycle(long double mu) {
-        const int sz = n;
-        const long double inf = numeric_limits<long double>::infinity();
-        vector<vector<long double>> dp(sz + 1, vector<long double>(sz, inf));
-        vector<vector<int>> parent(sz + 1, vector<int>(sz, -1));
-        vector<vector<int>> parentEdge(sz + 1, vector<int>(sz, -1));
-
-        for (int v = 0; v < sz; ++v) dp[0][v] = 0.0L;
-        for (int len = 1; len <= sz; ++len) {
-            for (int i = 0; i < m; ++i) {
-                const Edge &e = edges[i];
-                if (dp[len - 1][e.from] == inf) continue;
-                long double w = e.weight;
-                long double candidate = dp[len - 1][e.from] + w * w - 2.0L * mu * w;
-                if (candidate < dp[len][e.to]) {
-                    dp[len][e.to] = candidate;
-                    parent[len][e.to] = e.from;
-                    parentEdge[len][e.to] = i;
-                }
-            }
+    for (int length = 1; length < n; ++length) {
+        fill(current.begin(), current.end(), INF);
+        for (const Edge &edge : edges) {
+            int x = edge.from;
+            int y = edge.to;
+            if (!useful[x] || !useful[y] || previous[x] == INF) continue;
+            Real difference = edge.weight - mu;
+            Real candidate = previous[x] + difference * difference;
+            current[y] = min(current[y], candidate);
         }
-
-        long double bestRatio = inf;
-        int bestVertex = -1;
-        for (int v = 0; v < sz; ++v) {
-            if (dp[sz][v] == inf) continue;
-            long double worst = -inf;
-            for (int len = 0; len < sz; ++len) {
-                if (dp[len][v] == inf) continue;
-                long double ratio = (dp[sz][v] - dp[len][v]) / (sz - len);
-                if (ratio > worst) {
-                    worst = ratio;
-                }
-            }
-            if (worst < bestRatio) {
-                bestRatio = worst;
-                bestVertex = v;
-            }
+        if (current[n - 1] != INF) {
+            answer = min(answer, current[n - 1] / length);
         }
-
-        vector<int> walkVertices(sz + 1);
-        vector<int> walkEdges(sz);
-        int current = bestVertex;
-        for (int len = sz; len >= 0; --len) {
-            walkVertices[len] = current;
-            if (len > 0) {
-                walkEdges[len - 1] = parentEdge[len][current];
-                current = parent[len][current];
-            }
-        }
-
-        int left = 0, right = 1;
-        for (int i = 0; i <= sz; ++i) {
-            bool found = false;
-            for (int j = i + 1; j <= sz; ++j) {
-                if (walkVertices[i] == walkVertices[j]) {
-                    left = i;
-                    right = j;
-                    found = true;
-                    break;
-                }
-            }
-            if (found) break;
-        }
-
-        CycleLine result{right - left, 0, 0};
-        for (int i = left; i < right; ++i) {
-            int w = edges[walkEdges[i]].weight;
-            result.weight += w;
-            result.square += (long long)w * w;
-        }
-        answer = min(answer, max(0.0L, result.variance()));
-        return result;
+        previous.swap(current);
     }
 
-    void findEnvelope(long double left, const CycleLine &leftLine,
-                      long double right, const CycleLine &rightLine) {
-        if (leftLine == rightLine) return;
-
-        long double denominator = 2.0L * (leftLine.mean() - rightLine.mean());
-        if (denominator == 0.0L) return;
-        long double middle = (leftLine.intercept() - rightLine.intercept()) / denominator;
-        if (!(middle > left && middle < right)) return;
-
-        CycleLine middleLine = minimumMeanCycle(middle);
-        long double difference = middleLine.value(middle) - leftLine.value(middle);
-        if (fabsl(difference) <= 1e-12L) return;
-
-        findEnvelope(left, leftLine, middle, middleLine);
-        findEnvelope(middle, middleLine, right, rightLine);
+    vector<vector<Real>> dp(n + 1, vector<Real>(n, INF));
+    for (int vertex = 0; vertex < n; ++vertex) {
+        if (useful[vertex]) dp[0][vertex] = 0;
     }
-
-    void solveCyclic() {
-        CycleLine left = minimumMeanCycle(0.0L);
-        if (answer == 0.0L) return;
-        CycleLine right = minimumMeanCycle(20.0L);
-        findEnvelope(0.0L, left, 20.0L, right);
-    }
-
-    void solveShortWalks() {
-        const int maxWeight = 20 * (n - 1);
-        const int inf = numeric_limits<int>::max() / 4;
-        vector<vector<int>> current(n, vector<int>(maxWeight + 1, inf));
-        vector<vector<int>> next(n, vector<int>(maxWeight + 1, inf));
-        current[0][0] = 0;
-
-        for (int length = 1; length < n; ++length) {
-            for (int v = 0; v < n; ++v) {
-                fill(next[v].begin(), next[v].end(), inf);
-            }
-            int previousLimit = 20 * (length - 1);
-            for (int u = 0; u < n; ++u) {
-                if (!active[u]) continue;
-                for (int sum = 0; sum <= previousLimit; ++sum) {
-                    int square = current[u][sum];
-                    if (square == inf) continue;
-                    for (int edgeIndex : outgoing[u]) {
-                        const Edge &e = edges[edgeIndex];
-                        int newSum = sum + e.weight;
-                        int newSquare = square + e.weight * e.weight;
-                        int &target = next[e.to][newSum];
-                        target = min(target, newSquare);
-                    }
-                }
-            }
-            for (int sum = 0; sum <= 20 * length; ++sum) {
-                if (next[n - 1][sum] == inf) continue;
-                long double mean = (long double)sum / length;
-                long double variance = (long double)next[n - 1][sum] / length - mean * mean;
-                answer = min(answer, max(0.0L, variance));
-            }
-            if (answer == 0.0L) return;
-            current.swap(next);
+    for (int length = 1; length <= n; ++length) {
+        for (const Edge &edge : edges) {
+            int x = edge.from;
+            int y = edge.to;
+            if (!useful[x] || !useful[y] || dp[length - 1][x] == INF) continue;
+            Real difference = edge.weight - mu;
+            Real candidate = dp[length - 1][x] + difference * difference;
+            dp[length][y] = min(dp[length][y], candidate);
         }
     }
 
-    void run() {
-        cin >> n >> m;
-        edges.resize(m);
-        outgoing.assign(n, {});
-        vector<vector<int>> reverseGraph(n);
-        for (int i = 0; i < m; ++i) {
-            cin >> edges[i].from >> edges[i].to >> edges[i].weight;
-            --edges[i].from;
-            --edges[i].to;
-            outgoing[edges[i].from].push_back(i);
-            reverseGraph[edges[i].to].push_back(edges[i].from);
+    Real cycleAnswer = INF;
+    for (int vertex = 0; vertex < n; ++vertex) {
+        if (dp[n][vertex] == INF) continue;
+        Real maximum = -INF;
+        for (int length = 0; length < n; ++length) {
+            if (dp[length][vertex] == INF) continue;
+            maximum = max(maximum,
+                          (dp[n][vertex] - dp[length][vertex]) / (n - length));
         }
+        cycleAnswer = min(cycleAnswer, maximum);
+    }
+    answer = min(answer, cycleAnswer);
+    return max<Real>(0, answer);
+}
 
-        vector<char> fromSource(n, false), toSink(n, false);
-        queue<int> q;
-        q.push(0);
-        fromSource[0] = true;
-        while (!q.empty()) {
-            int u = q.front();
-            q.pop();
-            for (int edgeIndex : outgoing[u]) {
-                int v = edges[edgeIndex].to;
-                if (!fromSource[v]) {
-                    fromSource[v] = true;
-                    q.push(v);
-                }
-            }
-        }
-        if (!fromSource[n - 1]) {
-            cout << -1 << '\n';
-            return;
-        }
+struct Interval {
+    Real left, right, middle;
+    Real leftValue, rightValue, middleValue, lowerBound;
 
-        q.push(n - 1);
-        toSink[n - 1] = true;
-        while (!q.empty()) {
-            int u = q.front();
-            q.pop();
-            for (int v : reverseGraph[u]) {
-                if (!toSink[v]) {
-                    toSink[v] = true;
-                    q.push(v);
-                }
-            }
-        }
-
-        active.assign(n, false);
-        for (int v = 0; v < n; ++v) active[v] = fromSource[v] && toSink[v];
-
-        vector<Edge> allEdges = move(edges);
-        vector<vector<int>> allOutgoing = move(outgoing);
-        edges.clear();
-        outgoing.assign(n, {});
-        for (const Edge &e : allEdges) {
-            if (!active[e.from] || !active[e.to]) continue;
-            int index = edges.size();
-            edges.push_back(e);
-            outgoing[e.from].push_back(index);
-        }
-        m = edges.size();
-
-        vector<int> indegree(n, 0);
-        for (const Edge &e : edges) ++indegree[e.to];
-        queue<int> topologicalQueue;
-        for (int v = 0; v < n; ++v) {
-            if (active[v] && indegree[v] == 0) topologicalQueue.push(v);
-        }
-        vector<int> topological;
-        while (!topologicalQueue.empty()) {
-            int u = topologicalQueue.front();
-            topologicalQueue.pop();
-            topological.push_back(u);
-            for (int edgeIndex : outgoing[u]) {
-                int v = edges[edgeIndex].to;
-                if (--indegree[v] == 0) topologicalQueue.push(v);
-            }
-        }
-
-        solveShortWalks();
-        if (answer > 0.0L &&
-            (int)topological.size() < count(active.begin(), active.end(), true)) {
-            solveCyclic();
-        }
-
-        cout << fixed << setprecision(15) << (double)answer << '\n';
+    bool operator<(const Interval &other) const {
+        return lowerBound > other.lowerBound;
     }
 };
+
+Real intervalLowerBound(Real left, Real right, Real leftValue,
+                        Real rightValue) {
+    Real leftLinear = leftValue - left * left;
+    Real rightLinear = rightValue - right * right;
+    Real slope = (rightLinear - leftLinear) / (right - left);
+    Real point = clamp(-slope / 2, left, right);
+    Real linearValue = leftLinear + slope * (point - left);
+    return point * point + linearValue;
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    Solver solver;
-    solver.run();
+    cin >> n >> m;
+    edges.resize(m);
+    vector<vector<int>> reverseGraph(n);
+    for (Edge &edge : edges) {
+        cin >> edge.from >> edge.to >> edge.weight;
+        --edge.from;
+        --edge.to;
+        reverseGraph[edge.to].push_back(edge.from);
+    }
+
+    vector<char> reachable(n, false), canFinish(n, false);
+    vector<int> stack = {0};
+    reachable[0] = true;
+    while (!stack.empty()) {
+        int vertex = stack.back();
+        stack.pop_back();
+        for (const Edge &edge : edges) {
+            if (edge.from == vertex && !reachable[edge.to]) {
+                reachable[edge.to] = true;
+                stack.push_back(edge.to);
+            }
+        }
+    }
+    stack = {n - 1};
+    canFinish[n - 1] = true;
+    while (!stack.empty()) {
+        int vertex = stack.back();
+        stack.pop_back();
+        for (int previous : reverseGraph[vertex]) {
+            if (!canFinish[previous]) {
+                canFinish[previous] = true;
+                stack.push_back(previous);
+            }
+        }
+    }
+    if (!reachable[n - 1]) {
+        cout << -1 << '\n';
+        return 0;
+    }
+    useful.resize(n);
+    for (int vertex = 0; vertex < n; ++vertex) {
+        useful[vertex] = reachable[vertex] && canFinish[vertex];
+    }
+
+    const Real left = 0;
+    const Real right = 20;
+    const Real middle = 10;
+    Real leftValue = valueAt(left);
+    Real rightValue = valueAt(right);
+    Real middleValue = valueAt(middle);
+    Real answer = min({leftValue, rightValue, middleValue});
+
+    priority_queue<Interval> intervals;
+    intervals.push({left, right, middle, leftValue, rightValue, middleValue,
+                    intervalLowerBound(left, right, leftValue, rightValue)});
+
+    const Real tolerance = 2e-11L;
+    while (!intervals.empty()) {
+        Interval interval = intervals.top();
+        if (interval.lowerBound >= answer - tolerance) break;
+        intervals.pop();
+
+        Real firstMiddle = (interval.left + interval.middle) / 2;
+        Real secondMiddle = (interval.middle + interval.right) / 2;
+        Real firstValue = valueAt(firstMiddle);
+        Real secondValue = valueAt(secondMiddle);
+        answer = min({answer, firstValue, secondValue});
+
+        intervals.push({interval.left, interval.middle, firstMiddle,
+                        interval.leftValue, interval.middleValue, firstValue,
+                        intervalLowerBound(interval.left, interval.middle,
+                                           interval.leftValue,
+                                           interval.middleValue)});
+        intervals.push({interval.middle, interval.right, secondMiddle,
+                        interval.middleValue, interval.rightValue, secondValue,
+                        intervalLowerBound(interval.middle, interval.right,
+                                           interval.middleValue,
+                                           interval.rightValue)});
+    }
+
+    cout << fixed << setprecision(15) << answer << '\n';
     return 0;
 }
