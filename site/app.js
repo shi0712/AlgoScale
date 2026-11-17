@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261116-kimi-offline-audit";
+const SITE_RELEASE = "20261117-direct-eval-config";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",
@@ -24,6 +24,7 @@ const els = {
   leaderboardBody: document.querySelector("#leaderboard-body"),
   leaderboardHead: document.querySelector("#leaderboard-head"),
   leaderboardDate: document.querySelector("#leaderboard-date"),
+  evaluationConfig: document.querySelector("#evaluation-config"),
   problemBody: document.querySelector("#problem-body"),
   visibleCount: document.querySelector("#visible-count"),
   search: document.querySelector("#problem-search"),
@@ -124,6 +125,7 @@ function modelKey(entry) {
 }
 
 function renderLeaderboard(data) {
+  els.evaluationConfig.hidden = state.track !== "direct";
   const scopes = Object.fromEntries(DOMAIN_ORDER.map((domain) => [
     domain,
     state.problems.filter((problem) => problemDomains(problem).includes(domain)),

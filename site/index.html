@@ -26,7 +26,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
     />
-    <link rel="stylesheet" href="./styles.css?v=20261113-kimi-k31" />
+    <link rel="stylesheet" href="./styles.css?v=20261117-direct-eval-config" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -190,6 +190,11 @@
               Agent mode
             </button>
           </div>
+          <div class="evaluation-config" id="evaluation-config" aria-label="Direct evaluation configuration">
+            <span class="evaluation-config-label">Direct evaluation protocol</span>
+            <span class="evaluation-config-item"><strong>High</strong> reasoning</span>
+            <span class="evaluation-config-item"><strong>128K tokens</strong> max output</span>
+          </div>
           <div class="table-wrap">
             <table class="leaderboard-table leaderboard-matrix">
               <thead>
@@ -302,6 +307,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" defer></script>
-    <script src="./app.js?v=20261116-agent-rounds" defer></script>
+    <script src="./app.js?v=20261117-direct-eval-config" defer></script>
   </body>
 </html>
