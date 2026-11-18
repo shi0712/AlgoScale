@@ -48,5 +48,5 @@ No primality assumption is made about $n$. When $n=1$, the constraints force $m=
 - $0\le m<n$.
 - The counted pair coordinates satisfy the strict upper bounds $a<n$ and $b<n$.
 - Output modulus: $998244353$.
-- Time limit: 5 seconds.
+- Time limit: 2 seconds.
 - Memory limit: 256 MB.

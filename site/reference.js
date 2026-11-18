@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261113-solutions";
+const SITE_RELEASE = "20261118-problem-40-time-limit";
 
 const MATH_DELIMITERS = [
   { left: "$$", right: "$$", display: true },
