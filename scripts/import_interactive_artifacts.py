@@ -93,8 +93,16 @@ def load_submission(
     judgement_path: Path,
     source: SourceSpec,
     problem_versions: dict[int, str],
+    accepted_only: bool,
 ) -> dict[str, Any] | None:
     judgement = json.loads(judgement_path.read_text(encoding="utf-8"))
+    if accepted_only:
+        try:
+            overall_score = float(judgement.get("result", {}).get("score"))
+        except (TypeError, ValueError):
+            return None
+        if overall_score != 100.0:
+            return None
     submission_id = str(judgement["id"])
     problem_id = int(judgement["problem_id"])
     if problem_id not in problem_versions:
@@ -150,6 +158,12 @@ def main() -> None:
         required=True,
         help="MODEL_KEY|MODEL|MODE|HARNESS|DIRECTORY; may be repeated",
     )
+    parser.add_argument(
+        "--accepted-only-model-key",
+        action="append",
+        default=[],
+        help="only import UOJ score-100 submissions for this model key",
+    )
     args = parser.parse_args()
 
     payload = json.loads(args.input.read_text(encoding="utf-8"))
@@ -161,12 +175,18 @@ def main() -> None:
     source_competitors = {
         (source.model_key, source.mode, source.harness) for source in args.source
     }
+    accepted_only_model_keys = set(args.accepted_only_model_key)
     imported: dict[str, dict[str, Any]] = {}
     for source in args.source:
         if not source.directory.is_dir():
             raise ImportError(f"artifact directory does not exist: {source.directory}")
         for judgement_path in sorted(source.directory.rglob("judgement.json")):
-            submission = load_submission(judgement_path, source, problem_versions)
+            submission = load_submission(
+                judgement_path,
+                source,
+                problem_versions,
+                source.model_key in accepted_only_model_keys,
+            )
             if submission is None:
                 continue
             submission_id = submission["submissionId"]
