@@ -71,6 +71,11 @@ Point-level Interactive source data lives in
 point threshold, and every submission's point verdict, protocol validity, and
 interaction count. Rebuild the three Interactive views with:
 
+Every Interactive package must follow the
+[`Interactive judge contract`](docs/INTERACTOR_CONTRACT.md); the score formula
+and record-sharing rules are specified in
+[`Interactive leaderboard scoring`](docs/INTERACTIVE_SCORING.md).
+
 ```powershell
 python scripts/build_interactive_leaderboard.py
 ```

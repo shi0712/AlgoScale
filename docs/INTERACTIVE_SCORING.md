@@ -1,5 +1,10 @@
 # Interactive leaderboard scoring
 
+Interactor behavior, metric counting, threshold derivation, and the
+machine-readable UOJ result contract are defined in
+[`INTERACTOR_CONTRACT.md`](INTERACTOR_CONTRACT.md). Every scored point contains
+exactly one interactive instance.
+
 AlgoScale publishes three Interactive leaderboard views:
 
 - **Direct** uses records established by Direct submissions only.
