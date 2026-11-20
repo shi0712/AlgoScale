@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261120-split-catalogs";
+const SITE_RELEASE = "20261120-interactive-title";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",
@@ -450,7 +450,7 @@ function renderStandardProblem(problem) {
 function renderInteractiveProblem(problem) {
   const row = document.createElement("tr");
   row.append(catalogCell("problem-id", "ID", `#${String(problem.id).padStart(2, "0")}`));
-  row.append(catalogCell("problem-name", "AlgoScale problem", problem.title));
+  row.append(catalogCell("problem-name", "Title", problem.title));
 
   const originalCell = catalogCell("", "Original problem");
   appendOriginalLinks(originalCell, problem);
@@ -486,7 +486,7 @@ function renderProblems() {
   els.catalogTable.dataset.kind = interactive ? "interactive" : "standard";
   els.problemHead.replaceChildren();
   const headings = interactive
-    ? ["ID", "AlgoScale problem", "Original problem", "New statement", "Zero-score line"]
+    ? ["ID", "Title", "Original problem", "New statement", "Zero-score line"]
     : ["ID", "AlgoScale problem", "Original problem", "Complexity shift", "Classification", "Mode", "Reference"];
   headings.forEach((heading, index) => {
     els.problemHead.append(element("th", index === 0 ? "problem-id" : "", heading));
