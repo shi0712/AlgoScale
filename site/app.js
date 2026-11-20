@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261120-interactive-title";
+const SITE_RELEASE = "20261120-interactive-scores";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",
