@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261117-direct-eval-config";
+const SITE_RELEASE = "20261120-split-leaderboards";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",
@@ -17,6 +17,7 @@ const state = {
   query: "",
   filter: "All",
   expanded: false,
+  leaderboardKind: "standard",
   track: "direct",
 };
 
@@ -24,6 +25,12 @@ const els = {
   leaderboardBody: document.querySelector("#leaderboard-body"),
   leaderboardHead: document.querySelector("#leaderboard-head"),
   leaderboardDate: document.querySelector("#leaderboard-date"),
+  leaderboardStatus: document.querySelector("#leaderboard-status"),
+  leaderboardDescription: document.querySelector("#leaderboard-description"),
+  leaderboardTableWrap: document.querySelector("#leaderboard-table-wrap"),
+  leaderboardEmpty: document.querySelector("#leaderboard-empty"),
+  interactiveMethod: document.querySelector("#interactive-method"),
+  interactiveFormula: document.querySelector("#interactive-formula"),
   evaluationConfig: document.querySelector("#evaluation-config"),
   problemBody: document.querySelector("#problem-body"),
   visibleCount: document.querySelector("#visible-count"),
@@ -124,11 +131,43 @@ function modelKey(entry) {
     .replace(/^-|-$/g, "");
 }
 
-function renderLeaderboard(data) {
-  els.evaluationConfig.hidden = state.track !== "direct";
+function competitionRanks(rows, scoreSelector) {
+  let previousScore = null;
+  let previousRank = 0;
+  rows.forEach((row, index) => {
+    const score = scoreSelector(row);
+    if (previousScore === null || score !== previousScore) {
+      previousRank = index + 1;
+      previousScore = score;
+    }
+    row.rank = previousRank;
+  });
+  return rows;
+}
+
+function entriesForTrack(data) {
+  if (state.track === "combined") {
+    return [
+      ...(data.tracks.direct || []).map((entry) => ({ ...entry, mode: "direct", harness: null })),
+      ...(data.tracks.agent || []).map((entry) => ({
+        ...entry,
+        mode: "agent",
+        harness: entry.framework || entry.harness || null,
+      })),
+    ];
+  }
+  return (data.tracks[state.track] || []).map((entry) => ({
+    ...entry,
+    mode: state.track,
+    harness: state.track === "agent" ? entry.framework || entry.harness || null : null,
+  }));
+}
+
+function renderStandardLeaderboard(data) {
+  const standardProblems = state.problems.filter((problem) => problem.track === "Standard");
   const scopes = Object.fromEntries(DOMAIN_ORDER.map((domain) => [
     domain,
-    state.problems.filter((problem) => problemDomains(problem).includes(domain)),
+    standardProblems.filter((problem) => problemDomains(problem).includes(domain)),
   ]));
   const score = (entry, track, scope) => {
     const key = modelKey(entry);
@@ -142,25 +181,32 @@ function renderLeaderboard(data) {
     )).length;
     return { solved, total: scope.length, passRate: scope.length ? (solved * 100) / scope.length : 0 };
   };
-  const rows = (data.tracks[state.track] || []).map((entry) => ({
+  const rows = entriesForTrack(data).map((entry) => ({
     ...entry,
-    overall: score(entry, state.track, state.problems),
+    overall: score(entry, entry.mode, standardProblems),
     domains: Object.fromEntries(
-      DOMAIN_ORDER.map((domain) => [domain, score(entry, state.track, scopes[domain])]),
+      DOMAIN_ORDER.map((domain) => [domain, score(entry, entry.mode, scopes[domain])]),
     ),
   })).sort((left, right) => (
     right.overall.solved - left.overall.solved
-    || right.overall.passRate - left.overall.passRate
+    || left.model.localeCompare(right.model)
+    || left.mode.localeCompare(right.mode)
+    || String(left.harness || "").localeCompare(String(right.harness || ""))
   ));
+  competitionRanks(rows, (entry) => entry.overall.solved);
 
   const baseHeadings = [
     element("th", "leaderboard-rank-heading", "Rank"),
     element("th", "leaderboard-model-heading", "Model"),
   ];
-  if (state.track === "agent") {
+  if (state.track === "combined") {
+    baseHeadings.push(element("th", "leaderboard-mode-heading", "Mode"));
+  }
+  if (state.track === "agent" || state.track === "combined") {
     baseHeadings.push(element("th", "leaderboard-harness-heading", "Harness"));
   }
   els.leaderboardHead.closest("table").dataset.track = state.track;
+  els.leaderboardHead.closest("table").dataset.kind = "standard";
   els.leaderboardHead.replaceChildren(...baseHeadings);
   DOMAIN_ORDER.forEach((domain) => {
     const heading = element("th", "domain-heading");
@@ -172,13 +218,16 @@ function renderLeaderboard(data) {
   els.leaderboardHead.append(overallHeading);
 
   els.leaderboardBody.replaceChildren();
-  rows.forEach((entry, index) => {
+  rows.forEach((entry) => {
     const row = document.createElement("tr");
     const model = element("td", "leaderboard-model");
     model.append(element("strong", "leaderboard-model-name", entry.model));
-    row.append(element("td", "rank", String(index + 1).padStart(2, "0")), model);
-    if (state.track === "agent") {
-      row.append(element("td", "leaderboard-harness", entry.framework));
+    row.append(element("td", "rank", String(entry.rank).padStart(2, "0")), model);
+    if (state.track === "combined") {
+      row.append(element("td", "leaderboard-mode", entry.mode));
+    }
+    if (state.track === "agent" || state.track === "combined") {
+      row.append(element("td", "leaderboard-harness", entry.harness || "—"));
     }
     DOMAIN_ORDER.forEach((domain) => {
       const result = entry.domains[domain];
@@ -191,7 +240,74 @@ function renderLeaderboard(data) {
     row.append(overall);
     els.leaderboardBody.append(row);
   });
-  els.leaderboardDate.textContent = `Updated ${data.updated}`;
+  els.leaderboardDescription.textContent = `${standardProblems.length} standard problems. Interactive tasks are excluded from every domain and Overall denominator.`;
+  return rows.length;
+}
+
+function renderInteractiveLeaderboard(data) {
+  const board = data.boards[state.track] || { problemCount: 0, pointCount: 0, rows: [] };
+  const rows = board.rows || [];
+  const headings = [
+    element("th", "leaderboard-rank-heading", "Rank"),
+    element("th", "leaderboard-model-heading", "Model"),
+  ];
+  if (state.track === "combined") {
+    headings.push(element("th", "leaderboard-mode-heading", "Mode"));
+  }
+  if (state.track === "agent" || state.track === "combined") {
+    headings.push(element("th", "leaderboard-harness-heading", "Harness"));
+  }
+  headings.push(
+    element("th", "interactive-score-heading", "Score"),
+    element("th", "interactive-records-heading", "Records"),
+    element("th", "interactive-valid-heading", "Valid points"),
+  );
+  const table = els.leaderboardHead.closest("table");
+  table.dataset.track = state.track;
+  table.dataset.kind = "interactive";
+  els.leaderboardHead.replaceChildren(...headings);
+  els.leaderboardBody.replaceChildren();
+
+  rows.forEach((entry) => {
+    const row = document.createElement("tr");
+    const model = element("td", "leaderboard-model");
+    model.append(element("strong", "leaderboard-model-name", entry.model));
+    row.append(element("td", "rank", String(entry.rank).padStart(2, "0")), model);
+    if (state.track === "combined") {
+      row.append(element("td", "leaderboard-mode", entry.mode));
+    }
+    if (state.track === "agent" || state.track === "combined") {
+      row.append(element("td", "leaderboard-harness", entry.harness || "—"));
+    }
+    row.append(
+      element("td", "interactive-score", Number(entry.score).toFixed(4)),
+      element("td", "interactive-stat", String(entry.records)),
+      element("td", "interactive-stat", `${entry.validPoints}/${entry.totalPoints}`),
+    );
+    els.leaderboardBody.append(row);
+  });
+
+  const recordScope = state.track === "combined"
+    ? "Direct and Agent submissions share each point record."
+    : `Point records are calculated from ${state.track === "direct" ? "Direct" : "Agent"} submissions only.`;
+  els.leaderboardDescription.textContent = board.problemCount
+    ? `${board.problemCount} interactive problems and ${board.pointCount} scored points. ${recordScope}`
+    : `Point-level interaction results have not been imported yet. ${recordScope}`;
+  return rows.length;
+}
+
+function renderLeaderboard(standardData, interactiveData) {
+  const interactive = state.leaderboardKind === "interactive";
+  els.evaluationConfig.hidden = state.track !== "direct";
+  els.interactiveMethod.hidden = !interactive;
+  const rowCount = interactive
+    ? renderInteractiveLeaderboard(interactiveData)
+    : renderStandardLeaderboard(standardData);
+  const activeData = interactive ? interactiveData : standardData;
+  els.leaderboardDate.textContent = `Updated ${activeData.updated}`;
+  els.leaderboardStatus.textContent = activeData.status || "Preliminary";
+  els.leaderboardTableWrap.hidden = rowCount === 0;
+  els.leaderboardEmpty.hidden = rowCount !== 0;
 }
 
 function matchesProblem(problem) {
@@ -330,33 +446,53 @@ function renderProblems() {
 }
 
 async function loadData() {
-  const [problemResponse, leaderboardResponse] = await Promise.all([
+  const [problemResponse, leaderboardResponse, interactiveResponse] = await Promise.all([
     fetch(`./data/problems.json?v=${SITE_RELEASE}`, { cache: "no-store" }),
     fetch(`./data/leaderboard.json?v=${SITE_RELEASE}`, { cache: "no-store" }),
+    fetch(`./data/interactive-leaderboard.json?v=${SITE_RELEASE}`, { cache: "no-store" }),
   ]);
-  if (!problemResponse.ok || !leaderboardResponse.ok) {
+  if (!problemResponse.ok || !leaderboardResponse.ok || !interactiveResponse.ok) {
     throw new Error("Unable to load benchmark data.");
   }
   state.problems = await problemResponse.json();
   const leaderboard = await leaderboardResponse.json();
+  const interactiveLeaderboard = await interactiveResponse.json();
   const interactiveCount = state.problems.filter((problem) => problem.track === "Interactive").length;
   [els.heroProblemCount, els.statProblemCount].filter(Boolean).forEach((node) => {
     node.textContent = String(state.problems.length);
   });
   els.statInteractiveCount.textContent = String(interactiveCount);
 
-  document.querySelectorAll(".tab").forEach((tab) => {
+  document.querySelectorAll(".leaderboard-kind-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
-      state.track = tab.dataset.track;
-      document.querySelectorAll(".tab").forEach((item) => {
+      state.leaderboardKind = tab.dataset.leaderboardKind;
+      document.querySelectorAll(".leaderboard-kind-tab").forEach((item) => {
         const active = item === tab;
         item.classList.toggle("is-active", active);
         item.setAttribute("aria-selected", String(active));
       });
-      renderLeaderboard(leaderboard);
+      renderLeaderboard(leaderboard, interactiveLeaderboard);
     });
   });
-  renderLeaderboard(leaderboard);
+  document.querySelectorAll(".mode-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      state.track = tab.dataset.track;
+      document.querySelectorAll(".mode-tab").forEach((item) => {
+        const active = item === tab;
+        item.classList.toggle("is-active", active);
+        item.setAttribute("aria-selected", String(active));
+      });
+      renderLeaderboard(leaderboard, interactiveLeaderboard);
+    });
+  });
+  if (window.katex && els.interactiveFormula) {
+    window.katex.render(
+      "s_i(x)=\\begin{cases}0,&\\text{invalid or }x\\ge T_i,\\\\100\\left(\\frac{T_i-x}{T_i-P_i}\\right)^2,&P_i<x<T_i,\\\\100,&x=P_i<T_i.\\end{cases}",
+      els.interactiveFormula,
+      { throwOnError: false, strict: false, output: "htmlAndMathml" },
+    );
+  }
+  renderLeaderboard(leaderboard, interactiveLeaderboard);
   renderProblems();
 }
 

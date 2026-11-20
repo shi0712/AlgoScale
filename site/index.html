@@ -26,7 +26,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
     />
-    <link rel="stylesheet" href="./styles.css?v=20261117-direct-eval-config" />
+    <link rel="stylesheet" href="./styles.css?v=20261120-split-leaderboards" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -176,26 +176,56 @@
             <h2>Leaderboard</h2>
           </div>
           <div class="result-meta">
-            <span class="status-pill">Preliminary</span>
+            <span class="status-pill" id="leaderboard-status">Preliminary</span>
             <span id="leaderboard-date">Updated —</span>
           </div>
         </div>
 
         <div class="leaderboard-shell">
-          <div class="tabs" role="tablist" aria-label="Evaluation modes">
-            <button class="tab is-active" type="button" role="tab" aria-selected="true" data-track="direct">
-              Direct generation
+          <div class="leaderboard-kind-tabs" role="tablist" aria-label="Benchmark types">
+            <button class="leaderboard-kind-tab is-active" type="button" role="tab" aria-selected="true" data-leaderboard-kind="standard">
+              Standard
             </button>
-            <button class="tab" type="button" role="tab" aria-selected="false" data-track="agent">
-              Agent mode
+            <button class="leaderboard-kind-tab" type="button" role="tab" aria-selected="false" data-leaderboard-kind="interactive">
+              Interactive
             </button>
           </div>
+          <div class="leaderboard-mode-row">
+            <div class="tabs" role="tablist" aria-label="Evaluation modes">
+              <button class="tab mode-tab is-active" type="button" role="tab" aria-selected="true" data-track="direct">
+                Direct
+              </button>
+              <button class="tab mode-tab" type="button" role="tab" aria-selected="false" data-track="agent">
+                Agent
+              </button>
+              <button class="tab mode-tab" type="button" role="tab" aria-selected="false" data-track="combined">
+                Combined
+              </button>
+            </div>
+          </div>
+          <p class="leaderboard-description" id="leaderboard-description"></p>
           <div class="evaluation-config" id="evaluation-config" aria-label="Direct evaluation configuration">
             <span class="evaluation-config-label">Direct evaluation protocol</span>
             <span class="evaluation-config-item"><strong>High</strong> reasoning</span>
             <span class="evaluation-config-item"><strong>128K tokens</strong> max output</span>
           </div>
-          <div class="table-wrap">
+          <div class="interactive-method" id="interactive-method" hidden>
+            <div>
+              <span class="interactive-method-label">Point score</span>
+              <div class="interactive-formula" id="interactive-formula"></div>
+            </div>
+            <p>
+              Every point is scored from 0 to 100. Points are averaged within each problem,
+              then problem scores are averaged across the suite. Repeated runs of the same
+              model, mode, and harness are combined pointwise by their best valid result.
+              Standard solutions validate the judge and do not set records.
+            </p>
+          </div>
+          <div class="leaderboard-empty" id="leaderboard-empty" hidden>
+            No point-level interactive results are available yet. Import per-point verdicts,
+            protocol validity, interaction counts, and thresholds to publish this board.
+          </div>
+          <div class="table-wrap" id="leaderboard-table-wrap">
             <table class="leaderboard-table leaderboard-matrix">
               <thead>
                 <tr id="leaderboard-head"></tr>
@@ -307,6 +337,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" defer></script>
-    <script src="./app.js?v=20261117-direct-eval-config" defer></script>
+    <script src="./app.js?v=20261120-split-leaderboards" defer></script>
   </body>
 </html>

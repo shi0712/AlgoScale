@@ -55,21 +55,27 @@ class TaxonomyTest(unittest.TestCase):
         leaderboard = json.loads(
             (ROOT / "site/data/leaderboard.json").read_text(encoding="utf-8")
         )
+        standard_ids = {
+            problem["id"]
+            for problem in self.problems
+            if problem.get("track") == "Standard"
+        }
         for track, entries in leaderboard["tracks"].items():
             for entry in entries:
                 explicit_ids = entry.get("solvedProblemIds")
                 if explicit_ids is not None:
                     self.assertEqual(len(explicit_ids), len(set(explicit_ids)))
-                    self.assertTrue(set(explicit_ids) <= {p["id"] for p in self.problems})
+                    self.assertTrue(set(explicit_ids) <= standard_ids)
                     solved = len(explicit_ids)
                 else:
                     solved = sum(
                         entry["modelKey"]
                         in problem.get("generatedCode", {}).get(track, {})
                         for problem in self.problems
+                        if problem.get("track") == "Standard"
                     )
                 self.assertEqual(solved, entry["solved"], (track, entry["model"]))
-                self.assertEqual(len(self.problems), entry["total"])
+                self.assertEqual(len(standard_ids), entry["total"])
 
 
 if __name__ == "__main__":

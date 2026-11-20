@@ -2,12 +2,25 @@
 
 AlgoScale is a competitive-programming benchmark for a specific form of algorithmic reasoning: a source problem is preserved, but its input scale is increased so that the original expected complexity no longer passes. Models must discover and implement the stronger algorithm.
 
-The current release contains **74 UOJ-judged problems** and two evaluation tracks:
+The current release contains **74 UOJ-judged problems**, split into Standard and
+Interactive benchmark types, and two evaluation modes:
 
 - **Direct generation** — one problem statement in, one C++20 solution out, without tools or feedback.
 - **Agent mode** — a coding agent may edit, compile, test, and iterate inside a Harbor sandbox before final judging.
 
 The project page publishes each problem's source link, source title, original expected complexity, and AlgoScale target complexity. Unknown metadata is explicitly marked `pending`.
+
+Both benchmark types publish Direct, Agent, and Combined leaderboards. Standard
+results are ranked by pass rate and exclude every Interactive task from their
+numerators and denominators. The Combined view places Direct and Agent
+configurations in one table without merging them.
+
+Interactive tasks use point-level dynamic scoring. Every point receives a score
+from 0 to 100 based on its interaction threshold and the best participating
+model record. Point scores are averaged within a problem, then problem scores
+are averaged across the suite. Direct and Agent views maintain separate point
+records; Combined uses records shared across both modes. Repeated runs of the
+same model, mode, and harness are combined pointwise by their best valid result.
 
 For accepted benchmark submissions, the catalog links directly to the exact
 `.cpp` source received by the UOJ judge. Failed, partial-score, and unjudged
@@ -44,6 +57,27 @@ python scripts/build_problem_catalog.py `
 The generator requires positive, unique problem IDs and sorts the catalog by ID. It
 joins complexity metadata by the maintained local title, preventing stale IDs in
 older workbooks from silently misaligning rows.
+
+## Rebuild leaderboards
+
+Remove Interactive tasks from the Standard leaderboard after updating results:
+
+```powershell
+python scripts/build_standard_leaderboard.py
+```
+
+Point-level Interactive source data lives in
+`site/data/interactive-results.json`. It records problem data versions, every
+point threshold, and every submission's point verdict, protocol validity, and
+interaction count. Rebuild the three Interactive views with:
+
+```powershell
+python scripts/build_interactive_leaderboard.py
+```
+
+The generated `site/data/interactive-leaderboard.json` contains Direct, Agent,
+and Combined boards. Reference solutions validate judge packages but are not
+entered as record-setting submissions.
 
 ## Local metadata admin
 
@@ -112,8 +146,12 @@ model and track are removed.
 ```text
 site/                         Static GitHub Pages site
   data/problems.json          Public 74-problem catalog
-  data/leaderboard.json       Preliminary evaluation results
+  data/leaderboard.json       Standard-only preliminary evaluation results
+  data/interactive-results.json  Point-level Interactive source results
+  data/interactive-leaderboard.json  Generated Interactive leaderboards
 scripts/build_problem_catalog.py
+scripts/build_standard_leaderboard.py
+scripts/build_interactive_leaderboard.py
 scripts/export_generated_cpp.py  Export exact UOJ-submitted model sources
 .github/workflows/pages.yml   GitHub Pages deployment
 ```
