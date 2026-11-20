@@ -155,11 +155,9 @@ public:
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int T;
-    if (!(cin >> T)) return 0;
-    while (T--) {
+    {
         int n;
-        cin >> n;
+        if (!(cin >> n)) return 0;
         vector<int> fa(n + 1, 0);
         for (int v = 2; v <= n; ++v) cin >> fa[v];
         Solver solver(n, fa);

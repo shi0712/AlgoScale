@@ -71,35 +71,35 @@ The hidden tree in this example has $N=7$, $M=4$, and $P=[4,6,5,5,6,6]$. Only $M
 | `4` | |
 | | `? 1 0 0` |
 | `1` | |
-| | `? 1 3 2` |
+| | `? 1 3 20` |
 | `1` | |
-| | `? 1 1 1` |
+| | `? 1 1 10` |
 | `1` | |
-| | `? 1 2 3` |
+| | `? 1 2 30` |
 | `1` | |
-| | `? 1 1 3` |
+| | `? 1 1 25` |
 | `0` | |
-| | `? 1 0 2` |
+| | `? 1 0 20` |
 | `1` | |
 | | `? 2` |
-| `5 0 1 2 3 2` | |
-| | `? 1 2 3` |
+| `5 0 10 20 30 20` | |
+| | `? 1 2 25` |
 | `1` | |
 | | `? 2` |
-| `1 3` | |
+| `1 25` | |
 | | `! 7 4 6 5 5 6 6` |
 
 ## Explanation / Notes
 
 The first ball rises from leaf 0 through vertex 4 to root 6. The next ball stops at vertex 5 because its parent is occupied. The fifth insertion query fails because leaf 1 already contains a ball.
 
-Before the first collection, root 6 has child ball values 2 at vertex 4, 1 at vertex 1, and 2 at vertex 5. Visiting these children in order $[1,5,4]$ yields the displayed sequence. The order $[1,4,5]$ is also permitted by the equal-value rule. Each collection empties the machine.
+Before the first collection, root 6 has child ball values 20 at vertex 4, 10 at vertex 1, and 20 at vertex 5. Visiting these children in order $[1,5,4]$ yields the displayed sequence. The order $[1,4,5]$ is also permitted by the equal-value rule. Each collection empties the machine.
 
-There are two collection queries, and the largest value used in an insertion query is 3. Thus $K=2$, $B=3$, and $C=5\le27$. The machine is empty when the final answer is printed.
+There are two collection queries, and the largest inserted value is 30. Thus $K=2$, $B=30$, and $C=32$. The machine is empty when the final answer is printed.
 
 The hidden tree is fixed before interaction starts. The judge is deterministic: identical sequences of queries produce identical response sequences, including the order used for equal-valued children.
 
-Resource usage counts every insertion query, including failed insertions, and every collection query. Let $K$ be the number of collection queries and $B$ the largest value $X$ used in any insertion query. If no insertion query has been made, define $B=0$. Failed insertions still count when determining $B$, and collecting an empty machine still increases $K$. At every moment, the resource cost must satisfy $C=K+B\le27$.
+Resource usage counts every insertion query, including failed insertions, and every collection query. Let $K$ be the number of collections and $B$ the largest value $X$ used in any insertion query. If no insertion has been attempted, take $B=0$. Failed insertions also affect $B$, and collecting an empty machine increases $K$. The score is higher when the resource cost $C=K+B$ is lower.
 
 ## Constraints
 
@@ -108,7 +108,6 @@ Resource usage counts every insertion query, including failed insertions, and ev
 - The leaves are exactly $0,1,\ldots,M-1$.
 - Root: $N-1$; hidden parents satisfy $u<P[u]<N$.
 - Each insertion query must satisfy $0\le U<M$ and $0\le X\le1000$.
-- At most $500000$ insertion queries are allowed, including failed insertions.
-- $K$ is the number of collections; $B$ is the largest ball value appearing in any insertion query; $C=K+B$ must never exceed 27.
+- An insertion attempt counts even when the leaf is occupied.
 - The machine must contain no balls when the final answer is submitted.
-- Time limit: 1.5 seconds; memory limit: 256 MB.
+- Time limit: **1.5 seconds**; memory limit: **256 MB**.

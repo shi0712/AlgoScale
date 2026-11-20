@@ -2,7 +2,7 @@
 
 This is an interactive problem.
 
-You are given a map made of unit squares. Every square is either open or occupied by a wall. Initially, you are placed in an unknown open square and face an unknown cardinal direction.
+You are given a map made of unit squares. Every square is either open or occupied by a wall. Your initial open square and cardinal direction are fixed before the interaction begins and are unknown to you.
 
 At every step, you observe the distance to the next wall in the direction you currently face. This distance is the number of open squares strictly between your current square and that wall. Squares outside the map are considered walls.
 
@@ -35,6 +35,8 @@ After reading the observation for a round, print exactly one of the following co
 Never use `step` when the square directly ahead is a wall. End every command with a newline and flush the output immediately. After printing `yes i j` or `no`, the interaction ends and the program must terminate. Otherwise, begin the next round by reading another observation. If the communication channel closes, terminate immediately without printing anything else.
 
 A declaration `yes i j` is valid only if every state consistent with the complete interaction history has current square $(i,j)$; guessing the hidden state is not sufficient. A declaration `no` is valid only when, for every state still consistent with the complete history, no continuation strategy can eventually identify the current square reliably.
+
+Fewer rounds earn a higher score. Count one round for every command, including the final report.
 
 ## Examples
 
@@ -94,6 +96,5 @@ Each table is one complete interaction in chronological order. A blank cell mean
 - The initial state is an open square paired with one of the four cardinal directions.
 - Every observation satisfies $0\le d\le99$.
 - Every reported coordinate satisfies $1\le i\le r$ and $1\le j\le c$.
-- At most $50000$ interaction rounds may be used, including the final round containing `yes i j` or `no`.
 - The program must never step into a wall.
-- Time limit: **1 second**. Memory limit: **256 MB**.
+- Time limit: **10 seconds**. Memory limit: **256 MB**.

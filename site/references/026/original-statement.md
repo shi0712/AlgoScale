@@ -112,3 +112,18 @@ Resource usage counts every insertion query, including failed insertions, and ev
 - $K$ is the number of collections; $B$ is the largest ball value appearing in any insertion query; $C=K+B$ must never exceed 1000.
 - The machine must contain no balls when the final answer is submitted.
 - Time limit: 3.5 seconds; memory limit: 2048 MB.
+
+## Original IOI scoring
+
+Subtask 1 awards 5 points on trees whose root has exactly M children. Subtask 2 awards 10 points when M is at most 3. Only subtasks 3 and 4 have additional cost-dependent scoring.
+
+| Subtask | Domain | Cost C | Points |
+| --- | --- | --- | ---: |
+| 3 | N ≤ 200 and M ≤ 45 | C ≤ 45 | 25 |
+| 3 | N ≤ 200 and M ≤ 45 | 45 < C ≤ 1000 | 13 |
+| 4 | Unrestricted | C ≤ 44 | 60 |
+| 4 | Unrestricted | 44 < C ≤ 71 | 104 − C |
+| 4 | Unrestricted | 71 < C ≤ 200 | 47 − C/5 |
+| 4 | Unrestricted | 200 < C ≤ 1000 | 7 |
+
+Exceeding C = 1000 is a hard-limit violation. The official English statement specifies this limit on pages 3–4 and gives both cost tables on pages 4–5. [IOI 2026 Day 1, Ball Machine](https://ioinformatics.org/files/ioi2026problem1.pdf#page=4)

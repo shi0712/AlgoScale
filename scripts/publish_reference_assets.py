@@ -213,7 +213,10 @@ def extract_text(archive: zipfile.ZipFile, entry: str, destination: Path) -> Non
 def main() -> None:
     args = parse_args()
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
-    titles = {int(problem["id"]): problem["title"] for problem in catalog}
+    dataset_ids = {int(p["id"]) for p in catalog
+                   if p.get("datasetProblem", "").startswith("InteractBench/") or p.get("interactivePointCount")}
+    titles = {int(problem["id"]): problem["title"] for problem in catalog if int(problem["id"]) not in dataset_ids}
+    previous = {int(item["id"]): item for item in json.loads(args.report.read_text(encoding="utf-8"))} if args.report.exists() else {}
     original_statements = {
         int(problem["id"]): problem.get("referenceAssets", {}).get("originalStatement")
         for problem in catalog
@@ -233,6 +236,11 @@ def main() -> None:
     report: list[dict] = []
 
     try:
+        for pid in sorted(dataset_ids):
+            if pid not in previous:
+                raise ValueError(f"missing interactive release manifest for #{pid}")
+            shutil.copytree(args.output / f"{pid:03d}", staging / f"{pid:03d}")
+            report.append(previous[pid])
         for source in selected_sources:
             archive_path = select_archive(index, source.archive)
             problem_dir = staging / f"{source.problem_id:03d}"
@@ -253,17 +261,23 @@ def main() -> None:
                     )
                 shutil.copy2(existing_statement, problem_dir / "original-statement.md")
                 assets["originalStatement"] = original_statement
+            previous_row = previous.get(source.problem_id, {})
+            enhanced = previous_row.get("assets", {}).get("algoscaleStatement")
+            if enhanced:
+                shutil.copy2(args.output / f"{source.problem_id:03d}" / "algoscale-statement.md", problem_dir)
+                assets["algoscaleStatement"] = enhanced
             if editorial:
                 assets["solution"] = f"./references/{source.problem_id:03d}/solution.md"
             if program:
                 assets["standardSolution"] = f"./references/{source.problem_id:03d}/std.cpp"
             report.append(
                 {
+                    **previous_row,
                     "id": source.problem_id,
                     "title": titles[source.problem_id],
                     "assets": assets,
                     "sourceArchive": source.archive,
-                    "sourceEntries": {"solution": editorial, "standardSolution": program},
+                    "sourceEntries": {**previous_row.get("sourceEntries", {}), "solution": editorial, "standardSolution": program},
                 }
             )
         if args.output.exists():
@@ -274,6 +288,7 @@ def main() -> None:
         raise
 
     args.report.parent.mkdir(parents=True, exist_ok=True)
+    report.sort(key=lambda item: int(item["id"]))
     args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     report_by_id = {int(item["id"]): item["assets"] for item in report}
     for problem in catalog:
@@ -283,7 +298,7 @@ def main() -> None:
     solutions = sum("solution" in item["assets"] for item in report)
     programs = sum("standardSolution" in item["assets"] for item in report)
     statements = sum("originalStatement" in item["assets"] for item in report)
-    total = len(selected_sources)
+    total = len(report)
     print(
         f"published {statements}/{total} original statements, "
         f"{solutions}/{total} editorials and {programs}/{total} reference programs"

@@ -44,6 +44,8 @@ The final answer must contain exactly $n$ integers and does not count as a query
 
 Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, `flush(output)` in Pascal, and `sys.stdout.flush()` in Python. Failing to flush a query may cause an idleness or time-limit verdict.
 
+Fewer queries earn a higher score. After the final answer, exit without additional output.
+
 ## Examples
 
 The table shows one possible complete interaction in chronological order. A blank cell means that the other side sends the next message.
@@ -70,7 +72,6 @@ The transcript above is only an example. The judge responses depend on the hidde
 - $1\le n\le2000$.
 - $(p_1,p_2,\ldots,p_n)$ is a permutation of $(1,2,\ldots,n)$.
 - Every query satisfies $1\le l\le r\le n$.
-- At most $35000$ queries may be issued.
 - Every query response is either $0$ or $1$.
 - The interactor is non-adaptive.
 - Time limit: **1 second**. Memory limit: **256 MB**.

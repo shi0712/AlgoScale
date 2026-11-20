@@ -1,126 +1,15 @@
-# Slot Machine 题解
+## Strategy
 
-## 1. 用一个辅助轮认识符号集合
+Work modulo n and call the initial value of wheel 1 zero. Use wheel 1 as a probe. Hold the other wheels fixed and call the set of values they display U. When the probe is at z the response is |U|+1−[z∈U]. Its free initial reading and a sweep through positions 1,…,n−2 identify U. If all n−1 readings are equal, all visited positions belong to U (reply n−1) or all lie outside it (reply 2). For n=3 only, inspect the last position if these cases are indistinguishable. The last membership bit then follows from |U|.
 
-把符号沿共同旋转方向编号为 $\mathbb Z_n$，规定一号轮初始符号为零。一号轮作为辅助轮，其余 $n-1$ 个为普通轮。
+Choose a target h in U. Keep the probe at h or at a symbol outside U so that the set S of all occupied symbols has no nonzero translation period. This is always possible. A set A and A∪{z} cannot both have nonzero periods: a period q of the larger set either fixes the smaller set too, which would fix z, or the difference A∖(A+q) is a singleton. A period of A must preserve that singleton, which forces it to be zero.
 
-暂时固定普通轮，记它们占据的符号集合为 $U$，大小为 $c$。辅助轮位于 $x$ 时，反馈为
+## Locating one wheel
 
-$$
-K(x)=c+1-[x\in U].
-$$
+At a stage let K=|S|. A candidate (x,s) specifies the wheel's original symbol x∈U and whether it alone displays x among all wheels. At nonzero cumulative displacement d its predicted reply is K−s+1−[x+d∈S]. Emit the difference between successive cumulative displacements. If two candidates share s but have different x, a shift distinguishes them by aperiodicity of S. If they differ in s, summing over all nonzero shifts distinguishes them because each candidate has exactly |S|−1 hits on occupied symbols. The reference chooses a displacement minimizing the largest remaining answer class. Once the candidate is unique, move the wheel to h.
 
-因此让辅助轮依次访问不同符号，就能认识 $U$，即使不知道每个符号的重复次数。
+With m unprocessed wheels and b=|U|, discard infeasible candidates using the previously fixed wheels and the minimum multiplicities needed for all b symbols. When b=m+1 the non-target wheels must all be singletons, giving at most m candidates. When b<m, a first probe leaves at most one candidate per symbol and b≤m−1. If b=m initially, the m wheels have distinct values. Later, when b=m, the candidate x=h must be non-singleton. For any different symbol u, aperiodicity supplies a displacement with h+d outside S and u+d inside S. These two symbols cannot survive the same reply, leaving at most m−1 candidates after the first probe. Subsequent probes remove at least one candidate each. Thus locating and aligning this wheel takes at most m actions.
 
-初始零位置已有免费反馈，再访问 $1,\ldots,n-2$，共花 $n-2$ 次动作。若出现两种反馈，较小值就是 $c$；若所有反馈相同，那么观察过的 $n-1$ 个位置要么全在 $U$ 中，此时反馈为 $n-1$；要么全不在 $U$ 中，此时 $c=1$、反馈为二。
+## Bound and termination
 
-$n\ge4$ 时这两种情况可区分。$n=3$ 时可能混淆，额外访问最后一个位置即可。最后一个尚未观察位置的归属，由 $|U|=c$ 补出。
-
-## 2. 为什么要消除集合的循环周期
-
-选一个目标符号 $h\in U$，以后逐个把普通轮固定到 $h$。记辅助轮位置为 $p$，全体轮占据的符号集合为
-
-$$
-T=U\cup\{p\}.
-$$
-
-维护：辅助轮要么在 $h$，要么独占 $U$ 外的一个符号，并且 $T$ 没有非零循环周期，即不存在非零 $d$ 使 $T+d=T$。
-
-这个性质保证不同符号可以通过后续探测区分。
-
-### 一个辅助轮就能破坏周期
-
-若 $B=A\cup\{z\}$、$z\notin A$，则 $A,B$ 不可能都存在非零周期。
-
-否则设 $A$ 的周期为 $p\ne0$，$B$ 的周期为 $q\ne0$。有 $A+q=B\setminus\{z+q\}$，从而 $A\setminus(A+q)=\{z+q\}$。但 $A$ 与 $A+q$ 都对平移 $p$ 不变，它们的差集也应不变，与单点集合没有非零周期矛盾。
-
-因此，若 $U$ 无周期，就把辅助轮放到 $h$；若 $U$ 有周期，就把辅助轮放到 $U$ 外。初始化至多再花一次动作。以后若 $T$ 出现周期，也只需在这两种状态之间切换一次。
-
-## 3. 如何定位一个普通轮
-
-固定一个处理阶段，记阶段开始时的不同符号数为 $K=|T|$。用二元组 $(x,s)$ 描述待处理轮：
-
-- $x$ 是它在本阶段开始时的符号；
-- $s=1$ 表示当时只有它显示 $x$，否则 $s=0$。
-
-把这个轮相对于阶段起点旋转非零偏移 $d$，反馈满足
-
-$$
-\boxed{K'=K+1-s-[x+d\in T]}.
-$$
-
-离开旧符号时，只有 $s=1$ 才减少一种；到达新符号时，只有它原来不在 $T$ 中才增加一种。
-
-整个阶段中 $T,K,x,s$ 都固定指阶段起点。若上次累计偏移为 $d_0$，这次要探测 $d$，实际输出的增量是 $(d-d_0)\bmod n$。
-
-### 候选一定可以区分
-
-若两个候选的 $s$ 相同，而且对所有非零偏移反馈相同，则 $T$ 对两候选符号之差平移不变，与无周期矛盾；偏移零处两者都在 $T$ 中，所以这个推理也覆盖全部坐标。
-
-若两候选的 $s$ 不同，将全部非零偏移的预测反馈求和。对任何 $x\in T$，
-
-$$
-\sum_{d=1}^{n-1}[x+d\in T]=|T|-1,
-$$
-
-这一部分相同，而 $s$ 的差异会产生非零的 $n-1$，所以仍不可能全部相同。
-
-因此只要候选不唯一，就存在能排除候选的偏移。程序枚举所有偏移，选择最大反馈分支最小的一个，并按真实回复过滤。确定 $(x,s)$ 后，将该轮直接旋转到 $h$。
-
-## 4. 利用剩余轮数缩小初始候选
-
-设尚未处理的普通轮有 $m$ 个，$b=|U|$。
-
-处理第一个普通轮时，$U$ 中每种符号都至少需要一个普通轮。若 $x=p$，辅助轮也显示它，所以只有 $s=0$；否则 $s=1$ 可能，只有 $m>b$ 时 $s=0$ 才可能。
-
-从第二个普通轮开始，已经有固定在 $h$ 的普通轮。
-
-- 若当前轮也为 $h$，只有 $s=0$，且必须 $m\ge b$，才能让其余 $b-1$ 种符号都有轮占据。
-- 若 $x\ne h$，$s=1$ 可能；若 $s=0$，需要两个未处理轮显示 $x$，所以也要求 $m\ge b$。
-
-这些条件保证真实状态不会被排除，同时为严格动作预算提供了更紧的候选数。
-
-## 5. 一个阶段最多使用 $m$ 次普通轮动作
-
-先证明定位最多 $m-1$ 次，再加至多一次旋转到目标的动作。
-
-**若 $b=m+1$：** 除 $h$ 外的 $m$ 种符号各恰有一个未处理轮，一开始就只有 $m$ 个候选。每次至少排除一个，最多 $m-1$ 次。
-
-**若 $b\le m-1$：** 同一个 $x$ 对应的 $s=0,1$ 在一次探测中反馈不同。所以第一问后，每个符号至多保留一个候选，候选数不超过 $b$；之后最多再问 $b-1$ 次，总计不超过 $b\le m-1$。
-
-**若 $b=m$，且已有固定轮：** $x=h$ 只对应 $s=0$。任选 $u\in U\setminus\{h\}$，由无周期性，存在非零偏移 $d$ 使 $h+d\notin T$ 而 $u+d\in T$。于是 $x=h$ 的反馈为 $K+1$，$x=u$ 的反馈只能为 $K$ 或 $K-1$。每个反馈至少排除一个符号，且每个符号最多保留一个候选，第一问后至多 $m-1$ 个，总定位次数至多 $m-1$。程序选择最均衡的偏移，只会更好。$m=1$ 时候选已唯一。
-
-**若 $b=m$，且是第一个普通轮：** 普通轮符号各不相同，唯一性只由辅助轮是否也显示该符号决定，一开始只有 $m$ 个候选，仍至多 $m-1$ 次。
-
-所有情况都保证普通轮在本阶段最多动作 $m$ 次。
-
-## 6. 修复集合与总动作上界
-
-当前轮固定到 $h$ 后，如果原符号是唯一的，就从 $U$ 删除它；$h$ 保留。因此 $U$ 只会缩小。
-
-只有删除符号后，$T$ 才可能新出现周期。必要时移动一次辅助轮，使其从 $h$ 移到集合外，或从集合外移回 $h$。由第二节引理，这样即可恢复无周期性。
-
-最初 $|U|\le n-1$，最终 $|U|=1$，所以后续辅助动作至多 $n-2$ 次，包括最后必要的辅助轮对齐。若初始化时 $U$ 已为单点，初始化对齐辅助轮就会直接成功。
-
-对 $n\ge4$，总动作数至多
-
-$$
-(n-1)+\sum_{m=1}^{n-1}m+(n-2)
-=\frac{n(n-1)}2+2n-3.
-$$
-
-$n=3$ 时，所有非空真子集都没有非零周期，初始化最多三次，之后普通轮最多 $2+1$ 次，也符合这一公式。
-
-因此在 $n\le50$ 时，
-
-$$
-\boxed{Q\le1322<1333}.
-$$
-
-每次过滤保留真实状态，每个阶段正确固定一个普通轮，最后辅助轮也对齐，所以算法保证成功。
-
-## 7. 计算复杂度与交互协议
-
-候选最多 $2n$ 个，选择一次探测需要枚举 $n-1$ 个偏移，耗时 $O(n^2)$；总探测数为 $O(n^2)$，故参考程序本地时间的保守上界为 $O(n^4)$，空间为 $O(n)$。查询次数和本地时间是不同概念。
-
-每次输出动作后先刷新，再读取回复。任何时刻收到 $K=1$，必须立即退出，不输出最终答案标记。模 $n$ 为零的旋转不改变状态，应直接省去；如果实际输出，仍然占用一次动作。
+Only removing a symbol can create a new period. Move the probe between h and an outside position when needed to restore aperiodicity. These repairs and the final alignment require at most n−2 actions as U shrinks. Initialization uses at most n−1 actions for n≥4. The n=3 sweep may need three, but all its nonempty proper subsets are already aperiodic. The uniform bound is n(n−1)/2+2n−3, at most **1,322 actions**. Stop on the first reply of 1, including after an intermediate probe. There is no separate answer command. Local time is O(n⁴), and auxiliary space is O(n).

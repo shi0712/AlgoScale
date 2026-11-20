@@ -214,7 +214,8 @@ def main() -> None:
     args = parse_args()
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
     taxonomy = read_taxonomy(args.workbook)
-    catalog_ids = {int(problem["id"]) for problem in catalog}
+    workbook_problems = [p for p in catalog if not p.get("datasetProblem", "").startswith("InteractBench/")]
+    catalog_ids = {int(problem["id"]) for problem in workbook_problems}
     if catalog_ids != set(taxonomy):
         raise ValueError(
             f"ID mismatch: catalog-only={sorted(catalog_ids - set(taxonomy))}, "
@@ -222,7 +223,7 @@ def main() -> None:
         )
 
     title_warnings = []
-    for problem in catalog:
+    for problem in workbook_problems:
         values = taxonomy[int(problem["id"])]
         workbook_title = values.pop("workbookTitle")
         if workbook_title != problem["title"]:
@@ -232,7 +233,7 @@ def main() -> None:
         problem["taxonomy"] = values
 
     counts = {domain: 0 for domain in DOMAIN_NAMES.values()}
-    for problem in catalog:
+    for problem in workbook_problems:
         domains = {problem["taxonomy"]["primaryDomain"], *problem["taxonomy"]["relatedDomains"]}
         for domain in domains:
             counts[domain] += 1

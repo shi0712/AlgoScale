@@ -1,149 +1,23 @@
-# Exchanging Kubic 题解
+## Learn positive entries and gaps
 
-## 1. 只恢复影响区间最大子段和的信息
+A singleton query returns $\max(a_i,0)$. A string of nonpositive entries between positive blocks matters through its total cost when a subarray crosses the gap. At the edge of a subarray these nonpositive entries can be discarded.
 
-由于允许空子段，单点询问只能得到 $p_i=\max(a_i,0)$。正数必须准确恢复，负数则不一定：一段连续非正元素若位于两个正数块之间，连接两侧时只关心它的总和；作为子段边缘时，又可以直接丢掉。
+Scan from left to right. After a positive singleton, skip the next position if the position following it still exists. A skipped position $j$ has a known positive left neighbor. If the right neighbor is nonpositive, the query over $[j-1,j+1]$ minus the left neighbor gives $\max(a_j,0)$. If the right neighbor is positive, leave $j$ unresolved. With $s$ such positions the scan has used $n-s$ queries.
 
-所以目标不是恢复原数组，而是构造一个在每个区间上具有相同最大子段和的表示。算法分为“节省单点询问”和“单调栈处理正块之间的连接”两部分。
+## Merge positive blocks
 
-## 2. 跳点采样
+Combine adjacent known positive entries into initial blocks. A block has positive total equal to its maximum subarray sum, hence all prefixes and suffixes of the entire block are nonnegative. Within a suffix, any component can be extended rightwards to the block's right endpoint without losing weight. The analogous property holds for prefixes on the left. These endpoint facts allow the same gap analysis for intervals starting or ending inside a block.
 
-从左向右询问单点。如果当前位置的回答为正，且后面还有至少两个位置，就跳过紧接着的一格，去询问后第二格；否则正常前进一格。
+Keep active blocks on a stack in strictly decreasing order of total. Between a left block of sum $x$ and a right block of sum $y$ maintain a lower bound $g$ on the crossing cost and an output position that can absorb extra cost. An all-nonpositive gap starts with bound zero and zero entries. An unresolved singleton starts at the upper bound $10^9$, giving cost bound $-10^9$.
 
-每个被跳过的位置 $j$ 都有已询问的左右邻居，且 $p_{j-1}>0$。
+If $g<\min(x,y)$, query the complete two-block interval. Its answer is $\max(x,y,x+y-c)$, where $c$ is the true gap cost. An answer exceeding both block sums identifies $c=x+y-q$ exactly. Decrease the designated output entry by $c-g$, merge the blocks and continue. Otherwise raise the bound to at least $\min(x,y)$ and make the same corresponding adjustment to the output. A preexisting bound this high needs no query. If $x>y$, push the smaller right block and stop. Otherwise pop the left block and absorb it between its protecting gaps.
 
-- 若 $p_{j+1}=0$，询问 $[j-1,j+1]$。因为左端为正、右端非正，结果恰好是 $p_{j-1}+\max(a_j,0)$，减去左端即可得到 $p_j$。
-- 若 $p_{j+1}>0$，暂时保留 $j$ 为未知位置。第二阶段的一次连接询问将同时确定它的正部和连接作用。
+For the last step, a block of mass $x$ protected by costs $c_L,c_R\ge x$ cannot profitably be crossed from only one side. A subarray crossing both sides uses it in full and has net cost $c_L+c_R-x$. Shifting excess cost between its protecting gaps changes no interval maximum while both bounds stay at least $x$. This also holds for endpoints inside earlier blocks by the prefix/suffix property. By induction, decreases to the designated output entries preserve every interval maximum already determined, and each strict crossing fixes the exact net cost needed by all future merges. The computed array may have different negative entries from the hidden array.
 
-设最后保留了 $s$ 个未知位置，则第一阶段恰好使用 $n-s$ 次询问。把已经知道的连续正数合并，得到 $R$ 个初始正块。相邻正块之间是全非正间隔，或一个保留的未知位置。
+## Query and local complexity
 
-## 3. 正块和间隔代价
+For $R\ge2$ initial positive blocks the stack makes at most $2R-3$ comparisons, since each comparison pops a block or stops the processing of the current right block. Of the $R-1$ gaps, the $R-1-s$ gaps that are not unresolved singletons each require one additional position, either a second gap element or an additional element of the preceding positive block. Thus $n\ge3R-2-s$ and
 
-称一个区间为正块，如果其整段和等于其最大子段和，而且为正。记其块和为 $x$。
+$$3Q\le3(n-s+2R-3)\le5n-5.$$
 
-正块的所有前缀和、后缀和均非负，否则删去一个负前缀或负后缀，就能得到比整段和更大的子段。因此，对于正块的任意后缀，其中的最优子段可以延伸到块的右端；对于任意前缀，则可以延伸到块的左端。这保证了区间端点截在块内部时，仍能正确分析它与外部的连接。
-
-设相邻正块和为 $x,y$，中间间隔总和为 $-c$。在下面的保护条件下，询问整个区间得到
-
-$$
-q=\max(x,y,x+y-c).
-$$
-
-若 $q>\max(x,y)$，最优子段必须连接两侧，得到精确代价
-
-$$
-c=x+y-q.
-$$
-
-此时整个区间成为一个新正块，块和为 $q$。若间隔是一个实际为正的未知元素，$c$ 可以为负。
-
-若 $q=\max(x,y)$，只需知道
-
-$$
-c\ge\min(x,y).
-$$
-
-因为左右任意截断部分的贡献分别不超过 $x,y$，连接代价至少为较小一侧时，跨过间隔不会优于只选一侧。无需继续追问更大的真实代价。
-
-## 4. 为什么可以消去被两侧隔开的较小正块
-
-考虑三个正块，中间块和为 $x$，其两侧间隔代价分别为 $c_L,c_R$，且
-
-$$
-c_L\ge x,\qquad c_R\ge x.
-$$
-
-中间块的任何子段贡献都不超过 $x$，所以只跨一侧间隔，不足以通过中间块获得净收益。若同时跨过两侧，则可以取完整中间块，整体连接代价为
-
-$$
-c_L+c_R-x.
-$$
-
-因此可以把“间隔—小正块—间隔”作为一个复合间隔继续处理，但原来的输出元素仍保留，不能真的删去中间块。
-
-只要保持两侧代价都至少为 $x$，在两侧转移多余负代价不会改变任何区间的最大子段和：端点落在中间块内时，单侧跨越没有收益；端点在外部块内时，使用正块前后缀的延伸性质；端点位于非正间隔内时，丢弃非正边缘。若间隔中已经包含更小的被消去块，对其保护关系递归应用同一论证。
-
-这就是后续单调栈能够合并间隔、只保留一个可调整位置的依据。
-
-## 5. 单调栈的具体维护
-
-栈中活动正块的块和严格递减。每个块保存：左右端点、块和、左侧间隔代价下界 $g$，以及该间隔中一个可调整的输出位置 `slot`。
-
-输出数组初始取已知正部。全非正间隔暂时全部置零，代价下界为零。保留的单个未知位置暂时取 $A=10^9$，代价下界为 $-A$；真实值不会超过这个上界。
-
-将新块作为右块 `cur`，反复与栈顶左块比较。
-
-### 能连接成更大的正块
-
-若已知下界 $g<\min(x,y)$，发送区间询问。若回答 $q>\max(x,y)$，真实代价确定为 $c=x+y-q$。
-
-当前输出间隔总和为 $-g$，将 `slot` 减少 $c-g$，使总和变为 $-c$。然后弹出左块，把整个区间合并为块和 $q$ 的正块，并继承左块更左侧的间隔信息。
-
-### 不能连接成更大的正块
-
-若回答为 $\max(x,y)$，将下界更新到 $g'=\max(g,\min(x,y))$，并把 `slot` 减少 $g'-g$。
-
-若原本就有 $g\ge\min(x,y)$，无需询问，直接知道属于这一情况。
-
-- 若 $x>y$，栈的递减关系已满足，结束比较，将右块入栈。
-- 若 $x\le y$，弹出左块，把它吸收到复合间隔中。
-
-后一种情况中，左块右侧代价已经至少为 $x$；如果它左边还有栈元素，先前的停止条件保证左侧代价也至少为 $x$，符合保护性消元条件。新的间隔下界为
-
-$$
-g_{\mathrm{new}}=g_L+g_R-x,
-$$
-
-并继承更左侧的 `slot`。若栈已空，就不再需要记录向左连接的代价。
-
-所有输出修改都只减少某个 `slot`。未知单点在第一次连接两侧正块时一定会被处理，不会把临时的 $10^9$ 留作未经验证的答案。
-
-## 6. 正确性证明
-
-初始已知正数块的内部区间显然正确。处理过程中，活动正块的整段和与最大子段和准确，内部区间的信息保留在输出数组中；间隔保存不超过真实代价的下界，已经消去的小块则由两侧代价保护。
-
-询问得到严格跨界答案时，连接代价被精确恢复，合成的新正块正确。得到非跨界答案时，只提高到已经证明必要的代价下界，任何两侧截断都不能因此改变最大子段和。弹出较小块时，保护性消元引理保证其内部区间及所有跨界区间不受影响。
-
-最终仍分开的活动块之间，间隔已经足以阻断不必要的连接；更大但未知的真实负代价不再影响答案。因此输出数组在每个区间上的最大子段和都与隐藏数组相同。
-
-## 7. 查询次数为什么不超过规定上限
-
-第一阶段使用 $n-s$ 次询问。$R\ge2$ 时，第二阶段每次比较要么弹出一个块，要么停止当前新块的处理。
-
-弹栈至多 $R-1$ 次，停止至多 $R-1$ 次，二者不能同时取满：如果总共弹出 $R-1$ 个块，最后只剩一个块，最后一轮不可能还因更大的左块而停止。因此比较次数至多 $2R-3$，询问次数不会更多。
-
-在 $R-1$ 个初始间隔中，$s$ 个是保留的单点未知位置，其余 $u=R-1-s$ 个间隔，要么长度至少二，要么左侧正块长度至少二。否则“单个正数后跟一个间隔，再到正数”的中间位置本应被跳过并保留。
-
-为每个这样的间隔各计一个额外位置，不同间隔不会重复计数，于是
-
-$$
-n\ge R+(R-1)+u=3R-2-s.
-$$
-
-总查询数满足
-
-$$
-Q\le n-s+2R-3,
-$$
-
-从而
-
-$$
-3Q\le3n-3s+6R-9\le5n-s-5\le5(n-1).
-$$
-
-因此
-
-$$
-\boxed{Q\le\left\lfloor\frac{5(n-1)}3\right\rfloor}.
-$$
-
-若 $R\le1$，第二阶段无需询问，$Q\le n$，对 $n\ge3$ 也满足该界。
-
-## 8. 复杂度与交互细节
-
-每个初始块入栈一次、出栈至多一次，本地时间和空间均为 $O(n)$，查询次数为 $O(n)$。
-
-查询结果、块和、间隔代价与输出值使用 64 位整数。真实区间和至多为 $nA$；每次调整后间隔总和不低于 $-nA$，其余位置都不超过 $A$，因此被调整位置大于 $-2nA\ge-4\times10^{12}$，满足输出的 $10^{15}$ 范围。
-
-输出每个 `? l r` 后刷新并读取回答；遇到 `-1` 或读入失败立即终止。最后输出恰好 $n$ 个数并刷新，不要读取不存在的确认信息。
+For $R\le1$ at most $n$ queries are needed. Thus $Q\le\lfloor5(n-1)/3\rfloor$ for $n\ge3$. The original domain also includes $n=1,2$, where the same implementation asks at most $n$ queries. The scan and amortized stack processing take $O(n)$ time and space. All sums and output values use signed 64-bit arithmetic. The final answer is free.

@@ -1,150 +1,36 @@
-# Radio Direction Finding 题解
+# Radio Direction Finding
 
-## 1. 两次固定询问，把问题缩到短区间
+Use zero-based coordinates, allowing the unfolded coordinate $n$ to represent zero. Write $n=2m+1$, $k=\lfloor(m+1)/2\rfloor$, and let $f(x)$ denote the receiver reading. Probe 0 and $k$ to obtain $u,v$, respectively. Set $S=u+v$ and $D=u-v$. For $n=3$, a reading of two at 0 identifies the other two points immediately. Otherwise a probe at 1 distinguishes the remaining possibilities.
 
-内部采用从零开始的编号，写成 $n=2m+1$。设隐藏点为 $a,b$，定义
+For $n\ge5$, a single hidden point $p$ contributes the following pair of distances.
 
-$$
-f(x)=\operatorname{dist}(x,a)+\operatorname{dist}(x,b).
-$$
-
-$n=3$ 单独处理：先问零。若回答二，隐藏点只能是另外两个点；否则再问一，就能区分剩余两对，至多两次。
-
-以下设 $n\ge5$，令
-
-$$
-k=\left\lfloor\frac{m+1}{2}\right\rfloor.
-$$
-
-询问零和 $k$，得到 $u=f(0),v=f(k)$，并记
-
-$$
-S=u+v,\qquad D=u-v.
-$$
-
-对单个隐藏点，它到这两个固定位置的距离是分段线性的。利用分段表，绝大部分情况可直接解出，剩余情况只需在约四分之一圈的连续区间里二分。
-
-## 2. 单点距离的四段公式
-
-允许展开坐标 $n$ 表示环上零点。将坐标分成四个短段：
-
-| 段 | 展开坐标 $p$ | 到零的距离 | 到 $k$ 的距离 |
+| Arc | Unfolded coordinate | Distance to 0 | Distance to $k$ |
 | --- | --- | --- | --- |
 | I | $[0,k]$ | $p$ | $k-p$ |
 | II | $[k,m]$ | $p$ | $p-k$ |
 | III | $[m+1,m+k]$ | $n-p$ | $p-k$ |
 | IV | $[m+k+1,n]$ | $n-p$ | $n+k-p$ |
 
-每一段跨度都不超过 $m$，两点在同一段时，段内直线距离就是环上最短距离。共享端点可以按任何满足公式的段表示。
+**One short arc.** Test the extrema first. If $S=2k$ or $D=2k$, both points attain the corresponding single-point extremum on arc I or II, and their coordinate sum is $P=u$. If $S=2(n-k)$ or $D=-2k$, the points lie on III or IV and $P=2n-u$. A reading at $\lfloor P/2\rfloor$ gives the gap $g$ since both points and their midpoint lie on one short arc. Return $(P-g)/2$ and $(P+g)/2$. Reuse a reading if the midpoint has already been probed.
 
-对一个点，距离和在 $[k,n-k]$ 中，距离差在 $[-k,k]$ 中。距离和最小恰对应 I，最大恰对应 III；距离差最大对应 II，最小对应 IV。
+**Opposite arcs.** After removing the extrema, $S=n$ places the points on I and III, while $D=0$ places them on II and IV, allowing shared endpoint representations. Substituting the four rows verifies these conditions. In either case the second unfolded coordinate is $b=a+n-u$. The candidate interval for $a$ is
 
-## 3. 同一段内：再问中点即可
-
-如果两点的距离和或距离差之和达到两倍极值，两个点必然同时达到对应极值：
-
-| 条件 | 两点所在段 | 坐标和 $P=a+b$ |
-| --- | --- | --- |
-| $S=2k$ | I | $u$ |
-| $D=2k$ | II | $u$ |
-| $S=2(n-k)$ | III | $2n-u$ |
-| $D=-2k$ | IV | $2n-u$ |
-
-询问 $x=\lfloor P/2\rfloor$。因为两点不同，中点落在它们之间，且同段直线距离有效，所以回答就是 $g=|a-b|$。于是
-
-$$
-a=\frac{P-g}{2},\qquad b=\frac{P+g}{2}.
-$$
-
-若中点是已经问过的零或 $k$，复用原回答。该类总共最多三问。
-
-必须先处理这一类，再判断下面的 $S=n$ 或 $D=0$，避免共享端点进入不合适的候选范围。
-
-## 4. 对侧两段：只剩一个整数未知量
-
-排除同段极值后，如果 $S=n$，两点可表示为分别位于 I、III；如果 $D=0$，可表示为分别位于 II、IV。两种情况都由距离表得到
-
-$$
-b=a+n-u.
-$$
-
-将两点所属区间代入，得到 $a$ 的合法范围：
-
-| 条件 | $a$ 的下界 $l$ | $a$ 的上界 $r$ |
+| Condition | Lower endpoint | Upper endpoint |
 | --- | --- | --- |
 | $S=n$ | $\max(0,u-m)$ | $\min(k,u-m+k-1)$ |
 | $D=0$ | $\max(k,u-m+k)$ | $\min(m,u)$ |
 
-分类依据也可直接从表验证：相邻段的距离和等于奇数 $n$，或距离差为零时，只可能落在可同时用对侧段表示的边界上。因此上述候选范围包含真实解。
+For a candidate probe $x$, set $h=x-a$. Then $f(x)=|h|+\min(n-u-h,u+h)$. For $u\le m$ the reading equals $u$ exactly when $x\le a$. For $u>m$ it equals $n-u$ exactly when $a\le x$. Binary search therefore recovers $a$ and then $b$.
 
-### 每一问如何二分
+**Adjacent arcs.** In all remaining cases the two linear readings uniquely determine the coordinates. Substituting the arc formulas gives
 
-在 $[l,r]$ 内询问 $x$，令 $h=x-a$。由 $b=a+n-u$，
+| Condition | Coordinates |
+| --- | --- |
+| $S$ even, $D>0$ | $D/2,\ S/2$ |
+| $S$ even, $D<0$ | $k+D/2,\ n+k-S/2$ |
+| $S$ odd, $D>0$ | $(S-n+2k)/2,\ (n+2k-D)/2$ |
+| $S$ odd, $D<0$ | $(n-D)/2,\ (3n-S)/2$ |
 
-$$
-f(x)=|h|+\min(n-u-h,u+h).
-$$
+No additional query is needed in these cases. Reduce unfolded coordinates modulo $n$ and add one before reporting.
 
-若 $u\le m$，则 $u<n-u$。当 $h\le0$ 时，结果为 $u$；当 $h>0$ 时，两种候选值 $n-u$ 与 $u+2h$ 都大于 $u$。所以
-
-$$
-f(x)=u\iff x\le a.
-$$
-
-用上中点 $x=\lfloor(l+r+1)/2\rfloor$，若回答等于 $u$，令 $l=x$；否则令 $r=x-1$。
-
-若 $u>m$，同理有
-
-$$
-f(x)=n-u\iff a\le x.
-$$
-
-用下中点 $x=\lfloor(l+r)/2\rfloor$，若回答等于 $n-u$，令 $r=x$；否则令 $l=x+1$。
-
-每问都将候选数减半，最后得到 $a=l=r$，再由关系式求出 $b$。
-
-## 5. 剩余相邻段：直接解线性方程
-
-如果既不是同段，也不是上述对侧段，就属于相邻两段。按 $S$ 的奇偶性和 $D$ 的正负分类：
-
-| 条件 | 段组合 | 两个展开坐标 |
-| --- | --- | --- |
-| $S$ 为偶数、$D>0$ | I、II | $D/2,\ S/2$ |
-| $S$ 为偶数、$D<0$ | I、IV | $k+D/2,\ n+k-S/2$ |
-| $S$ 为奇数、$D>0$ | II、III | $(S-n+2k)/2,\ (n+2k-D)/2$ |
-| $S$ 为奇数、$D<0$ | III、IV | $(n-D)/2,\ (3n-S)/2$ |
-
-例如 I、II 中，$u=a+b$、$v=b-a$，所以直接得到 $a=D/2,b=S/2$。其余三行同样由距离表代入消元。
-
-$D=0$ 已在上一节处理，所有整数除法都由奇偶关系保证整除。这一类无需额外查询。
-
-## 6. 30 次上界
-
-需要二分时，候选数量最多为
-
-$$
-C\le\max(k,m-k+1)=\left\lceil\frac{n+1}{4}\right\rceil.
-$$
-
-总查询数至多
-
-$$
-2+\left\lceil\log_2\left\lceil\frac{n+1}{4}\right\rceil\right\rceil
-=\lceil\log_2n\rceil
-$$
-
-其中最后的等式对奇数 $n\ge5$ 成立。因为若 $L=\lceil\log_2n\rceil$，则 $2^{L-1}<n\le2^L-1$，上述候选数位于 $2^{L-3}$ 与 $2^{L-2}$ 之间，左端严格、右端可取等号。
-
-同段至多三次，直接求解两次，$n=3$ 至多两次，因此所有合法输入满足
-
-$$
-\boxed{Q\le\lceil\log_2n\rceil\le30}.
-$$
-
-## 7. 正确性与实现
-
-四段距离表覆盖所有环上点；同段由极值准确识别，对侧段由关系式和区间边界完整保留候选，其余相邻段由线性方程唯一解出。二分判定均是充要条件，故每次更新都保留真实位置，最终输出正确点对。
-
-每组本地计算为 $O(\log n)$，空间 $O(1)$。使用 64 位整数，因为 $3n$ 可能超过 32 位有符号范围。最终展开坐标先对 $n$ 取模，再加一输出。
-
-每次输出查询后刷新；读入失败立即退出。最终答案没有确认回复，应直接读取下一组的 $n$，不要多消耗一次查询。
+The binary-search interval contains at most $\lceil(n+1)/4\rceil$ values. The initial probes and binary search together cost at most $2+\lceil\log_2\lceil(n+1)/4\rceil\rceil=\lceil\log_2n\rceil$ for odd $n\ge5$. The same-arc branch needs at most three readings, and $n=3$ needs at most two. Therefore the reference uses at most **30 receiver queries**. Multiple supplied cases attain 30. The implementation uses $O(\log n)$ time, $O(1)$ extra space and 64-bit intermediate arithmetic.

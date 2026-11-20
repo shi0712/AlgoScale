@@ -150,7 +150,7 @@ model and track are removed.
 
 ```text
 site/                         Static GitHub Pages site
-  data/problems.json          Public 74-problem catalog
+  data/problems.json          Public 117-problem catalog (66 Standard, 51 Interactive)
   data/leaderboard.json       Standard-only preliminary evaluation results
   data/interactive-results.json  Point-level Interactive source results
   data/interactive-leaderboard.json  Generated Interactive leaderboards

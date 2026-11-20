@@ -1,155 +1,25 @@
-# Where Am I Now? 题解
+# Where Am I Now?
 
-## 1. 候选状态必须包含朝向
+Treat a state as an open cell together with a heading. The target is a cell. Several possible headings can therefore already give a valid answer.
 
-一个完整状态为 $(p,g)$，其中 $p$ 是当前格子，$g$ 是四种朝向之一。每次观测和动作都用来排除不符合历史的状态。
+## Which states can be localized?
 
-但题目最后只要求确定格子，不要求确定朝向。因此“仍有多个完整状态”不等于无法定位。例如，旋转对称的房间可能无法确定朝向，却可以走到所有旋转都固定的中心格。
+Translate the current cell to the origin and rotate its heading to face north. The resulting set of open cells in its connected component is the relative map of the state. Equal relative maps give identical observations under every legal action sequence. If two maps differ, trace a path to the first square at which their occupancies differ. Looking toward this square distinguishes the maps. Only rotations and translations preserve the meanings of left and right.
 
-算法先分析哪些状态永远无法区分，再进行带候选过滤的探索。只有所有剩余状态都不可能可靠定位时，才输出 `no`。
+The program canonicalizes each component by comparing all four translated rotations as sorted coordinate lists. A second congruent component prevents localization because corresponding positions always lie in different components. A unique component with no rotational symmetry can be localized after its relative map has been recovered. In a rotationally symmetric unique component, any nontrivial symmetry group contains a half-turn. Its center is the only point fixed by that turn. Localization is possible precisely when this center is an open cell. In that case all rotations share the same center.
 
-## 2. 永远无法区分，当且仅当完整相对地图相同
+## Follow the observations
 
-设 $C$ 是状态 $(p,g)$ 所在的连通块。将 $p$ 平移到原点，并把朝向 $g$ 旋转为向上，得到相对地图
+Maintain four bitsets of candidate cells, one per initial heading. Turning changes the relative heading. A forward move shifts each bitset in its actual direction. Intersect the bitsets with the precomputed masks for the current wall distance. If their union is a single cell, report it. If all remaining components are impossible to localize, report impossibility. Exact equivalence classes always survive or disappear as whole classes. Once only one localizable class remains, either its cell is already unique or the component has an open rotation center. Run breadth-first search on cell-heading states from one representative to the center. The same commands work for all representatives by symmetry.
 
-$$
-\mathcal V(p,g)=\{R_{-g}(x-p):x\in C\}.
-$$
+While multiple classes remain, explore the relative component with a depth-first traversal. A wall observation records the visible ray and its ending wall. At a cell, consider the cyclic ordering north, south, east, west, starting just after the parent direction. Skip explored cells and known walls, look in each remaining direction and enter only if the observed distance is positive. Return on each tree edge. After a complete exploration every surviving state has the same relative map, so one of the termination rules applies.
 
-两个状态永远无法区分，当且仅当它们的 $\mathcal V$ 完全相同。
+## Round bound
 
-若相对地图相同，任何一步转向、移动都对应到相同的相对位置，墙距观测也相同，所以未来无法区分。
+Let the actual component have $N$ cells and an $h$ by $w$ bounding box. Its neighboring wall cells, including virtual exterior cells, number at most $hw-N+2h+2w$. The first observation already records one wall. Hence at most $F=hw-N+2h+2w-1$ later attempts find a previously unknown wall.
 
-若地图不同，从共同起点沿相同的可行路径探索，最终会遇到一处“这一边是通路、另一边是墙”的差异。转向该方向时，墙距必然不同，因此可以区分。
+The traversal uses at most $2(N-1)$ forward moves. Without failed probes, the rotations at each vertex cost at most two quarter-turns: enumerate the four possible incoming directions in the indicated opposite-pair order, with a returning child facing opposite its outgoing edge. Skipping children cannot increase this cost. An unsuccessful wall probe adds at most two quarter-turns. Thus exploration takes at most $4N+2F-2$ commands. Including the final report gives at most $4hw+4h+4w-3\le40797$ rounds when center navigation is unnecessary.
 
-这里只允许旋转和平移，不能允许镜像：镜像会交换 `left` 和 `right`，并不保持同一动作序列。
+If navigation is necessary, take any shortest cell path of length $d$ to the center. Its half-turned image and the path have only the center in common: an intersection at a fixed distance from the center must use the same path index, hence a fixed cell. Therefore $2d+1\le N$. Following the path takes at most $2d+1$ commands, and breadth-first search can only improve this. The total is at most $5hw+4h+4w-3$. Here both bounding dimensions are odd and at most 99, yielding **49,794 rounds**, including the final report.
 
-实现中，对每个连通块的四种旋转分别将坐标平移到统一外接框、排序，再用完整坐标序列作精确比较；结合状态在规范化形状中的坐标，即可编号这些观测等价类。
-
-## 3. 精确判断哪些连通块可以定位
-
-### 存在另一个旋转同形的连通块
-
-两个不同连通块的对应状态永远无法区分，而绝对位置总不相同，所以这类状态不可定位。
-
-### 形状唯一，没有非平凡旋转对称
-
-完整相对地图确定后，绝对位置与朝向都能确定，所以可以定位。
-
-### 形状唯一，但有旋转对称
-
-网格允许的非平凡旋转是 $90^\circ,180^\circ,270^\circ$，存在其中任何一种都意味着存在 $180^\circ$ 对称。旋转对应的状态无法区分，最后要让它们落到同一个格子，就必须到达旋转固定点，也就是唯一的旋转中心。
-
-因此只有中心是整数格点、并且是该连通块中的通路格时才可定位。中心为半格坐标或落在墙上时，都无法可靠定位。
-
-预处理每个连通块的可定位性，并为有旋转对称且可定位的块记录中心格。
-
-## 4. 用位集维护完整候选集合
-
-最多有 $4rc$ 个状态。参考程序为四种初始朝向分别维护一个格子位集，并记录当前相对朝向 `heading`。
-
-- 转向：只修改相对朝向。
-- 前进：四个位集分别按其实际方向平移一个格子。
-- 收到墙距 $d$：与“对应方向墙距恰为 $d$”的预处理掩码求交。
-
-由于只有在当前观测距离大于零时才前进，所有保留候选都能执行这一步，不会在某个可能状态下撞墙。
-
-每次过滤后依次检查：
-
-1. 若候选对应的绝对格子只有一个，直接输出 `yes`，不要求朝向唯一。
-2. 若所有候选都属于不可定位连通块，输出 `no`。
-3. 若只剩一个完整观测等价类，且它可定位但位置仍不唯一，则开始向旋转中心导航。
-
-完整等价类不可能被观测拆开；动作在合法状态间又是一一对应的。因此候选集合始终是完整等价类的并，用候选总数与其中一个候选的类大小比较，就能判断是否只剩一个类。
-
-导航时，任选一个候选，在“格子、朝向”状态图上 BFS，找出到中心的最短命令序列。其他候选在同一旋转关系下执行相同命令，都会到达同一个绝对中心，所以这个策略对全部候选都安全。
-
-## 5. 尚未识别等价类时进行 DFS 探索
-
-以初始朝向为相对北方，记录走过的格子、已经确认的墙和显式 DFS 栈。一次墙距观测还能标记面前所有可见通路格，以及末端墙格。
-
-探索方向采用相反方向相邻的循环次序
-
-$$
-N,S,E,W.
-$$
-
-对非根节点，从父边之后开始循环，最后沿父边返回。以下邻格直接跳过，不发送动作：已经访问过、已知是墙，或所有当前候选都认定该方向紧邻墙。
-
-若确实需要检查一个方向，先用最少转向动作面对它；观测距离为正时前进一步，否则记录这面墙。子树探索结束后沿原边返回。
-
-完整探索会认识所在连通块的相对形状，因此最终一定能确定一个完整等价类，随后要么位置已经唯一，要么判定无法定位，要么进入中心导航。实现无需递归，避免长走廊造成栈溢出。
-
-## 6. 为什么至多 49794 轮
-
-设实际连通块有 $N$ 个通路格，外接矩形为 $h\times w$。与连通块相邻的不同墙格数记为 $B$，把矩形外紧贴边界的虚拟墙也算进去，则
-
-$$
-B\le hw-N+2h+2w.
-$$
-
-初始观测已经认识至少一个墙格。设探索过程中首次“转过去才发现是墙”的次数为 $F$，每次都会记住墙，因此
-
-$$
-F\le B-1.
-$$
-
-### DFS 的动作账本
-
-每条 DFS 树边往返一次，前进动作至多 $2(N-1)$。
-
-使用 $N,S,E,W$ 的循环次序时，孩子探索返回后的朝向与进入方向相反。把返回父边也计入，一个真实节点完成方向循环所需的基本转向至多两次；略去部分孩子不会增加这个界。可以对四种父边方向直接核对这一事实。
-
-一次失败墙探测可视为一个虚拟叶子，它额外增加至多两次转向。故完整 DFS 动作至多
-
-$$
-2(N-1)+2N+2F=4N+2F-2.
-$$
-
-若不需要中心导航，再加最终报告所在的一轮，得到
-
-$$
-\begin{aligned}
-Q&\le4N+2F-1\\
-&\le2N+2hw+4h+4w-3\\
-&\le4hw+4h+4w-3\le40797.
-\end{aligned}
-$$
-
-### 中心导航的额外代价
-
-需要导航时，连通块有 $180^\circ$ 对称，中心是通路格。设当前位置到中心的最短格子路径长度为 $D$。将该最短路径旋转 $180^\circ$，两条路径除中心外不相交：若相交，按到中心的距离比较，交点必须对应原路径相同位置，因而是旋转固定点，只能是中心。
-
-因此
-
-$$
-2D+1\le N.
-$$
-
-沿最短格子路径，第一步前至多转向两次，之后相邻两步不会立即反向，至多转向一次，命令数不超过 $2D+1\le N$。BFS 选择最短命令序列，不会比这个方案更长。
-
-所以
-
-$$
-Q\le5N+2F-1\le5hw+4h+4w-3.
-$$
-
-中心是格点，外接框的 $h,w$ 必须都是奇数。在 $h,w\le100$ 下，实际上 $h,w\le99$，故
-
-$$
-\boxed{Q\le5\cdot99^2+4\cdot99+4\cdot99-3=49794<50000}.
-$$
-
-该计数已经包括最后的 `yes` 或 `no`。
-
-## 7. 复杂度与实现细节
-
-令 $A=rc,L=\max(r,c)$。连通块、规范化形状和状态编号预处理为 $O(A\log A+L^2)$。一次观测需要位集操作和至多 $L$ 个可见格标记，因此本地总时间可写为
-
-$$
-O\left(A\log A+L^2+Q\left(L+\left\lceil\frac A{64}\right\rceil\right)\right).
-$$
-
-中心 BFS 为 $O(A)$，已被包含。保存各方向、各距离的掩码以及相对地图，空间为 $O(A+L^2+LA/64)$。
-
-相对地图缓冲边长可取 $2L+3$。形状比较必须精确，不把镜像误认作旋转；前进前检查当前距离大于零；报告位置唯一后立即退出。收到 EOF 时直接结束，所有动作和最终报告均须换行并刷新。
+For $A=rc$ and $L=\max(r,c)$, the local running time is $O(A\log A+L^2+Q(L+\lceil A/64\rceil))$ with the implementation's 64-bit bitsets. Storage is $O(A+L^2+LA/64)$ machine words.

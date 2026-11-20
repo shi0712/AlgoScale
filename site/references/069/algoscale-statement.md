@@ -24,9 +24,9 @@ for every subarray $[l,r]$.
 
 Read from standard input.
 
-First read the integer $T$, the number of test cases. At the beginning of each test case, read the integer $n$. The hidden sequence itself is not supplied.
+First read the integer $n$. The hidden sequence itself is not supplied.
 
-After every valid query, read one integer: the maximum subarray sum of the queried interval. Replies may exceed the range of a signed 32-bit integer. If you read `-1` or the input stream closes, terminate immediately.
+After every valid query, read one integer: the maximum subarray sum of the queried interval.
 
 ## Output Format
 
@@ -46,7 +46,7 @@ To answer a test case, print:
 ! b_1 b_2 ... b_n
 ```
 
-The final answer must contain exactly $n$ integers and does not count as a query. End every command with a newline and flush the output. After a correct final answer there is no confirmation: read the next case's $n$ directly, or terminate if all test cases are complete. Every command and its arguments must occupy one line; do not print any other content to standard output.
+The final answer does not count as a query. After printing and flushing the final answer, terminate without reading another reply. Fewer interval queries earn a higher score.
 
 Typical flushing calls are `fflush(stdout)` or `cout.flush()` in C++, `System.out.flush()` in Java, `flush(output)` in Pascal, and `sys.stdout.flush()` in Python. Failing to flush a query may cause an idleness or time-limit verdict.
 
@@ -56,7 +56,6 @@ The table shows one possible complete interaction in chronological order. A blan
 
 | Judge sends | Program sends |
 | --- | --- |
-| `2` | |
 | `3` | |
 | | `? 1 1` |
 | `1` | |
@@ -65,12 +64,6 @@ The table shows one possible complete interaction in chronological order. A blan
 | | `? 3 3` |
 | `1` | |
 | | `! 1 -1 1` |
-| `5` | |
-| | `? 1 3` |
-| `4` | |
-| | `? 3 5` |
-| `5` | |
-| | `! 2 -1 3 -4 5` |
 
 ## Explanation / Notes
 
@@ -80,12 +73,9 @@ The transcript above is only an example. The judge responses depend on the hidde
 
 ## Constraints
 
-- $1\le T\le10^4$.
-- $3\le n\le2000$ in each test case.
-- Across all test cases, $\sum n\le10^4$.
+- $1\le n\le2000$.
 - $-10^9\le a_i\le10^9$.
 - Every query satisfies $1\le l\le r\le n$.
-- At most $\left\lfloor5(n-1)/3\right\rfloor$ queries may be issued in each test case.
 - Every reported value satisfies $-10^{15}\le b_i\le10^{15}$.
 - The interactor is non-adaptive.
-- Time limit: **1 second**. Memory limit: **256 MB**.
+- Time limit: **1 second**; memory limit: **256 MB**.

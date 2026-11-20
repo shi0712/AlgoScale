@@ -1,180 +1,21 @@
-# The Last Singer 题解
+## Scan the other dials
 
-## 1. 先认识反馈能告诉我们什么
+Use the starting value of dial 1 as coordinate zero modulo $n$. Advance this dial exactly $n$ times. The reply at coordinate $v$ indicates whether any other dial occupies $v$. The first dial returns to zero. Let $S$ be the resulting support, $k=|S|$, and $e=n-1-k$ the number of further copies beyond one occurrence of each occupied value.
 
-一次操作只把一个转盘向前拨一格。回答一表示它的新值在其他位置出现过，并不表示所有转盘已经相等。
+## Use a unique anchor for large instances
 
-把一号转盘的初值视为模 $n$ 坐标零。连续拨动它 $n$ 次，记录每次反馈；第 $s$ 次时它位于 $s\bmod n$，所以回答恰好说明其他 $n-1$ 个转盘中是否出现这个坐标。
+For $n\ge8$, choose a vacant coordinate $x$ minimizing
 
-扫描结束，一号转盘回到原位，其他转盘没有改变。我们得到了支持集
+$$H(x)=x+\sum_{v\in S}d(v,x)+e\max_{v\in S}d(v,x),\qquad d(v,x)=(x-v)\bmod n.$$
 
-$$
-S=\{a_2,\ldots,a_n\},\qquad k=|S|,\qquad e=n-1-k.
-$$
+Move dial 1 there and keep it fixed. Advance every other dial once in index order and remember its individual reply. Make further sweeps in the same order over the active dials. When a dial's reply first changes, a change from zero to one means it reached $x$, so advance twice more and stop it. A change from one to zero means it reached $x+1$, so advance once more and stop it. Every processed dial stops at $x+2$. Finally advance dial 1 twice.
 
-$e$ 是除每个支持值至少出现一次外，多出来的重复次数。我们不知道重复发生在哪些值上。由于 $k\le n-1$，至少存在一个没有被其他转盘占用的坐标。
+Before reaching the anchor, active dials keep the same relative order and perform the same one-step cyclic shift per sweep. Their collision feedback at the instant each is tested stays the same. A dial reaching $x$ necessarily has a partner there. On next leaving $x$ for $x+1$, formerly aligned smaller-index dials have already been processed and stopped at $x+2$, and a dial that was initially one step ahead has already been processed too. No stationary dial occupies $x+1$. Thus a baseline zero changes at the anchor, and a baseline one changes one step later. Each ordinary dial advances exactly $d(v,x)+2$ times.
 
-## 2. 选一个唯一的锚点
+The total is $3n+x+\sum_{i=2}^n d(a_i,x)\le 3n+\min H$. For the original hard budget one can directly use the stronger bound $n^2$ certified by this reference. To see the large-$n$ estimate, list the support coordinates as $b_0<\cdots<b_{k-1}$ and put $B=\sum b_i$. Candidate anchors immediately after a support value, together with zero, give the upper bounds $F_i=n(n-1-i)+nb_i-eb_{i+1}-B$ for $i<k-1$, $F_{k-1}=n+nb_{k-1}-eb_0-B$, and $G=n(n-1)-B-eb_0$. Moving across a consecutive run of occupied positions to the next free anchor does not increase the corresponding bound. Put $r=e/n$. The weights $w_G=1/n$ and $w_i=1/(k+1)+r^{i+1}/(n(1-r^k))$ sum to one and cancel every $b_i$. Their average is at most $n(n-1)-\frac{n}{k+1}(k(k-1)/2+e)$. For $n\ge9$ the last subtracted quantity is at least $2n$. At $n=8$ enumeration of its possible support sets gives a maximum total of 63. The running time and space for this branch are $O(n^2)$ and $O(n)$.
 
-以下先考虑 $n\ge8$。对每个空坐标 $x\notin S$，记
+## Synthesize the small-instance strategy
 
-$$
-d(x,v)=(x-v+n)\bmod n,
-$$
+For $3\le n\le7$ enumerate all ordered states consistent with the scanned support, normalized by subtracting the first dial's coordinate. Try each next dial at a search node. Simulate a step on every candidate, normalize again, and partition by the two possible responses. Accept an action only when every nonempty child can finish within the remaining budget. At a singleton leaf, choose a target minimizing the sum of forward distances and move the known dials accordingly.
 
-并计算
-
-$$
-H(x)=x+\sum_{v\in S}d(x,v)+e\max_{v\in S}d(x,v).
-$$
-
-选择 $H(x)$ 最小的空坐标作为锚点，将一号转盘从零拨动 $x$ 次到这里。此时只有一号转盘的值是 $x$。
-
-公式第一项是移动锚点的代价；中间项为每个已出现值付一份到锚点的距离；最后一项把未知重复值都按最远距离收费，是一个保守上界。
-
-最终目标选为 $x+2\pmod n$。这个偏移二很关键：锚点 $x$ 用于制造碰撞，$x+1$ 用于检测碰撞消失，已经处理好的转盘统一停在 $x+2$。
-
-## 3. 按固定顺序轮流拨动
-
-保持一号转盘不动。先按编号 $2,3,\ldots,n$，每个转盘拨一次，记下各自的初始反馈，但这一轮不停止任何转盘。
-
-之后仍按相同顺序，每轮让所有未停止的转盘各拨一次：
-
-- 反馈没有变化：继续参加下一轮。
-- 反馈从零变一：此时到达锚点 $x$，再拨两次，停在 $x+2$。
-- 反馈从一变零：此时到达 $x+1$，再拨一次，停在 $x+2$。
-
-额外拨动仍要实际询问并读取回答，只是不再用这些回答作决策。所有普通转盘停止后，一号转盘也拨两次，全部归一。
-
-### 为什么重复值不会破坏判断
-
-考虑某个转盘 $i$，其初值到锚点的距离为 $d\in[1,n-1]$。
-
-在它到达锚点之前，尚未停止的转盘每轮移动相同步数。在轮内查询 $i$ 时，可能与它相等的普通转盘只有两类：初值相同且编号更小的转盘，或初值比它大一且编号更大的转盘。固定轮内顺序后，这些碰撞关系在到达锚点前保持不变；已经停止的转盘在 $x+2$，也不会提前干扰它。
-
-到达 $x$ 时，一号转盘保证回答一。如果初始反馈为零，第一次变化就出现在这里。
-
-如果初始反馈为一，它再前进到 $x+1$。这时同初值、较小编号的转盘已在本轮被处理到 $x+2$；从前方一格出发的转盘也已完成归并。锚点在 $x$，停止点在 $x+2$，所以 $x+1$ 没有其他转盘，回答变为零。
-
-当 $d=1$ 时，第一轮到达锚点，初始反馈必为一，第二轮仍按后一种情况处理。因此每个普通转盘恰好移动 $d+2$ 次。
-
-## 4. 证明大规模分支不超过 $n^2$ 次
-
-总查询数包括扫描、锚点移动、所有普通转盘移动，以及最后两次锚点移动：
-
-$$
-Q=n+x+\sum_{i=2}^n(d(x,a_i)+2)+2
-=3n+x+\sum_{i=2}^n d(x,a_i).
-$$
-
-按支持集与重复次数估计，
-
-$$
-Q\le3n+\min_{x\notin S}H(x).
-$$
-
-下面给出这个最小值的上界。将 $S$ 排为 $b_0<\cdots<b_{k-1}$，令 $B=\sum_i b_i$，并定义
-
-$$
-F_i=n(n-1-i)+nb_i-eb_{i+1}-B\quad(0\le i<k-1),
-$$
-
-$$
-F_{k-1}=n+nb_{k-1}-eb_0-B,\qquad
-G=n(n-1)-B-eb_0.
-$$
-
-若 $b_i+1$ 为空，$F_i$ 就是该锚点的 $H$ 值。若它仍被占用，就沿连续占用段向后走；相邻的虚拟 $F$ 值不增加，最终会走到一个空坐标。回绕到零时，对应候选为 $G$。若零已被占用，$G$ 也不小于继续向后找到的候选。因此
-
-$$
-\min_{x\notin S}H(x)\le\min(F_0,\ldots,F_{k-1},G).
-$$
-
-令 $r=e/n$，取非负权重
-
-$$
-w_G=\frac1n,\qquad
-w_i=\frac1{k+1}+\frac{r^{i+1}}{n(1-r^k)}.
-$$
-
-它们的和为一，且加权后每个 $b_i$ 的系数都抵消。例如内部下标的系数为 $nw_i-ew_{i-1}-1=0$。剩余常数可化为
-
-$$
-\begin{aligned}
-\sum_iw_iF_i+w_GG
-={}&n(n-1)-\frac n{k+1}\left(\frac{k(k-1)}2+e\right)\\
-&-\frac{e^2}{(k+1)^2}
--\frac n{k+1}\frac{r^{k+1}}{1-r^k}.
-\end{aligned}
-$$
-
-丢掉最后两个非正项即可得到较简单的上界。对于 $n\ge9$，
-
-$$
-\frac{k(k-1)}2+e-2(k+1)
-=\frac{k^2-7k}{2}+n-3\ge n-9\ge0,
-$$
-
-其中整数 $k$ 使 $k^2-7k$ 最小时为 $k=3,4$。因此
-
-$$
-\min H(x)\le n(n-1)-2n=n^2-3n,
-$$
-
-从而 $Q\le n^2$。
-
-$n=8$ 只剩一个固定规模。直接枚举其合法支持集并计算上面的整数表达式，按 $k=1,\ldots,7$ 得到 $3n+\min H$ 的最大值依次为
-
-$$
-38,58,62,63,61,58,59.
-$$
-
-最大为 $63<64$，所以本分支覆盖所有 $n\ge8$。
-
-## 5. $3\le n\le7$：构造有预算的决策树
-
-小规模时，扫描和固定移动的开销不能直接套入上一分支。扫描后已知一号位为零，以及其余位置的精确支持集，枚举全部一致的有序状态作为候选集合 $V$。
-
-状态只需保存相对坐标。每次模拟拨动后，把所有值减去一号位的当前值，使一号位重新归零；这不改变反馈或最终能否归一。$n\le7$ 时，每个值用三位编码即可。
-
-定义 $\operatorname{search}(V,D)$：能否在最坏不超过 $D$ 次操作内完成。对一个候选操作位置 $i$，真实模拟所有候选，按反馈零、一分为 $V_0,V_1$。只有两个非空分支都能在 $D-1$ 次内完成，才能选择这个操作。
-
-初始预算为 $D=n^2-n$，已扣除扫描的 $n$ 次。
-
-若只剩一个状态 $a$，不再需要辨别信息，枚举统一目标 $z$，以
-
-$$
-P(a)=\min_z\sum_i(z-a_i+n)\bmod n
-$$
-
-次拨动直接归一。叶子的动作距离都按该叶子开始时的坐标系计算，不能在移动一号转盘后改用另一套坐标。
-
-搜索使用两个安全下界：
-
-$$
-\max_{a\in V}P(a),\qquad\lceil\log_2|V|\rceil.
-$$
-
-前者是即使知道状态也必须付出的移动次数。后者来自二值反馈：一个固定动作在规范化状态空间上是双射，不同候选不可能经同一动作序列合成同一个归一状态，因此必须在决策树中区分。
-
-用完整候选集合记忆化成功策略和失败预算，并按候选分支大小、剩余物理距离排列尝试顺序。启发式只影响搜索顺序，不能用作未经证明的剪枝条件。
-
-这个有限分支可以逐个支持集完整核验：验证每个内部节点的实际反馈分支、每个叶子的归一动作，并递推 `cost = 1 + max(child cost)`。包含前置扫描后的最大根成本如下。
-
-| $n$ | 合法支持集数 | 最坏查询数 | 预算 $n^2$ |
-| --- | ---: | ---: | ---: |
-| 3 | 5 | 7 | 9 |
-| 4 | 13 | 14 | 16 |
-| 5 | 29 | 24 | 25 |
-| 6 | 61 | 36 | 36 |
-| 7 | 125 | 49 | 49 |
-
-每个可能的支持集都能返回预算内的完整策略树。真实状态始终位于当前候选分支中，叶子又能确切归一，所以小规模分支也正确并满足预算。
-
-## 6. 复杂度与交互细节
-
-$n\ge8$ 时，枚举锚点、逐轮处理和总查询量都是 $O(n^2)$，额外空间 $O(n)$。
-
-$n\le7$ 的决策树搜索应单独分析，不能称为可扩展的多项式算法。设候选状态数上界为 $M$、搜索节点数为 $K$，每个节点枚举 $n$ 种操作、模拟并排序候选，保守本地时间为 $O(KnM(n+\log M))$；它仅用于题面这个固定的小范围。查询数由返回树的最大根成本保证，不由搜索运算量决定。
-
-每次输出 `? p` 后刷新并读取回复，遇到 `-1` 或读入失败立即终止。归一后仍必须输出并刷新 `!`；该命令没有确认回复，接着读取下一组的 $n$ 即可。
+The search uses $n^2-n$ as the remaining budget after the scan. It prunes on the largest known-state minimum number of physical moves and on the binary information bound. A fixed sequence of advances is a bijection on relative states, so two different relative states cannot both end synchronized along an identical transcript. Memoization stores full candidate sets. Across all support sets the resulting worst-case totals for $n=3,4,5,6,7$ are respectively $7,14,24,36,49$. The small branch performs finite decision-tree search and can take exponential local work. Its metric is the number of dial advances, including the initial scan and final adjustments.

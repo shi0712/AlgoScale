@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261120-split-leaderboards";
+const SITE_RELEASE = "20261120-split-catalogs";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",
@@ -15,7 +15,7 @@ const DOMAIN_ORDER = [
 const state = {
   problems: [],
   query: "",
-  filter: "All",
+  catalogKind: "Standard",
   expanded: false,
   leaderboardKind: "standard",
   track: "direct",
@@ -33,6 +33,9 @@ const els = {
   interactiveFormula: document.querySelector("#interactive-formula"),
   evaluationConfig: document.querySelector("#evaluation-config"),
   problemBody: document.querySelector("#problem-body"),
+  problemHead: document.querySelector("#problem-head"),
+  catalogTable: document.querySelector("#catalog-table"),
+  catalogDescription: document.querySelector("#catalog-description"),
   visibleCount: document.querySelector("#visible-count"),
   search: document.querySelector("#problem-search"),
   showAll: document.querySelector("#show-all"),
@@ -321,117 +324,185 @@ function matchesProblem(problem) {
     problem.taxonomy?.primaryDomain,
     ...(problem.taxonomy?.relatedDomains || []),
     ...(problem.taxonomy?.coreTags || []),
+    ...(problem.originalTags || []),
   ].map(normalize).join(" ");
   const queryMatches = haystack.includes(normalize(state.query.trim()));
-  const filterMatches = state.filter === "All"
-    || problem.track === state.filter
-    || (state.filter === "Pending" && problem.metadataStatus === "pending");
-  return queryMatches && filterMatches;
+  return queryMatches && problem.track === state.catalogKind;
+}
+
+function appendOriginalLinks(cell, problem) {
+  const links = problem.originalLinks?.length
+    ? problem.originalLinks
+    : problem.originalUrl
+      ? [{ label: problem.originalTitle || "Original problem", url: problem.originalUrl }]
+      : [];
+  if (!links.length) {
+    cell.append(pendingNode());
+  } else {
+    const list = element("div", "original-link-list");
+    links.forEach((entry) => {
+      const link = element("a", "original-link", `${entry.label} ↗`);
+      link.href = entry.url;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      list.append(link);
+    });
+    cell.append(list);
+  }
+  cell.append(element("span", "platform-label", problem.platform || "Pending"));
+}
+
+function catalogCell(className, label, text) {
+  const cell = element("td", className, text);
+  cell.dataset.label = label;
+  return cell;
+}
+
+function renderStandardProblem(problem) {
+  const row = document.createElement("tr");
+  row.append(catalogCell("problem-id", "ID", `#${String(problem.id).padStart(2, "0")}`));
+  row.append(catalogCell("problem-name", "AlgoScale problem", problem.title));
+
+  const originalCell = catalogCell("", "Original problem");
+  appendOriginalLinks(originalCell, problem);
+  row.append(originalCell);
+
+  const complexityCell = catalogCell("complexity-cell", "Complexity shift");
+  const shift = element("div", "complexity-shift");
+  const originalComplexity = element("div", "complexity-stage complexity-stage-original");
+  originalComplexity.append(
+    element("span", "complexity-label", "Original"),
+    complexityNode(problem.originalComplexity),
+  );
+  const targetComplexity = element("div", "complexity-stage complexity-stage-target");
+  targetComplexity.append(
+    element("span", "complexity-label", "AlgoScale"),
+    complexityNode(problem.algoscaleComplexity, true),
+  );
+  shift.append(originalComplexity, element("span", "complexity-arrow", "→"), targetComplexity);
+  complexityCell.append(shift);
+  row.append(complexityCell);
+
+  const taxonomyCell = catalogCell("taxonomy-cell", "Classification");
+  const taxonomy = problem.taxonomy || {};
+  if (taxonomy.primaryDomain) {
+    const primary = element("div", "taxonomy-group");
+    primary.append(
+      element("span", "taxonomy-label", "Primary"),
+      element("span", "taxonomy-chip taxonomy-primary", taxonomy.primaryDomain),
+    );
+    taxonomyCell.append(primary);
+
+    if (taxonomy.relatedDomains?.length) {
+      const related = element("div", "taxonomy-group");
+      related.append(element("span", "taxonomy-label", "Related"));
+      const chips = element("div", "taxonomy-chips");
+      taxonomy.relatedDomains.forEach((domain) => {
+        chips.append(element("span", "taxonomy-chip taxonomy-related", domain));
+      });
+      related.append(chips);
+      taxonomyCell.append(related);
+    }
+
+    if (taxonomy.coreTags?.length) {
+      const topics = element("div", "taxonomy-group taxonomy-topics");
+      topics.append(element("span", "taxonomy-label", "Core topics"));
+      const chips = element("div", "taxonomy-chips");
+      taxonomy.coreTags.forEach((tag) => {
+        chips.append(element("span", "taxonomy-chip taxonomy-core", tag));
+      });
+      topics.append(chips);
+      taxonomyCell.append(topics);
+    }
+  } else {
+    taxonomyCell.append(pendingNode());
+  }
+  row.append(taxonomyCell);
+
+  const modeCell = catalogCell("", "Mode");
+  modeCell.append(element("span", `mode-pill ${problem.track.toLowerCase()}`, problem.track));
+  row.append(modeCell);
+
+  const referenceCell = catalogCell("reference-cell", "Reference");
+  const referenceAssets = problem.referenceAssets || {};
+  if (referenceAssets.originalStatement && referenceAssets.algoscaleStatement) {
+    const statement = element("a", "reference-link reference-link-statement", "Compare");
+    statement.href = `./reference.html?id=${problem.id}&asset=statementComparison&v=${SITE_RELEASE}`;
+    referenceCell.append(statement);
+  }
+  if (referenceAssets.solution) {
+    const solution = element("a", "reference-link reference-link-solution", "Solution");
+    solution.href = `./reference.html?id=${problem.id}&asset=solution&v=${SITE_RELEASE}`;
+    referenceCell.append(solution);
+  }
+  if (referenceAssets.standardSolution) {
+    const standard = element("a", "reference-link", "std.cpp");
+    standard.href = `./reference.html?id=${problem.id}&asset=standardSolution&v=${SITE_RELEASE}`;
+    referenceCell.append(standard);
+  }
+  if (!referenceCell.childElementCount) {
+    referenceCell.append(element("span", "code-unavailable", "—"));
+  }
+  row.append(referenceCell);
+  return row;
+}
+
+function renderInteractiveProblem(problem) {
+  const row = document.createElement("tr");
+  row.append(catalogCell("problem-id", "ID", `#${String(problem.id).padStart(2, "0")}`));
+  row.append(catalogCell("problem-name", "AlgoScale problem", problem.title));
+
+  const originalCell = catalogCell("", "Original problem");
+  appendOriginalLinks(originalCell, problem);
+  row.append(originalCell);
+
+  const statementCell = catalogCell("reference-cell", "New statement");
+  if (problem.referenceAssets?.algoscaleStatement) {
+    const statement = element("a", "reference-link reference-link-statement", "New statement");
+    statement.href = `./reference.html?id=${problem.id}&asset=algoscaleStatement&v=${SITE_RELEASE}`;
+    statementCell.append(statement);
+  } else {
+    statementCell.append(pendingNode());
+  }
+  row.append(statementCell);
+
+  const zeroCell = catalogCell("zero-line-cell", "Zero-score line");
+  const zeroCard = element("div", "zero-line-card");
+  zeroCard.append(
+    element("span", "complexity-label", "Zero-score line"),
+    complexityNode(problem.zeroScoreLine || problem.originalComplexity, true),
+  );
+  zeroCell.append(zeroCard);
+  row.append(zeroCell);
+  return row;
 }
 
 function renderProblems() {
   const matches = state.problems.filter(matchesProblem);
-  const searching = state.query.trim() || state.filter !== "All";
+  const searching = Boolean(state.query.trim());
   const visible = state.expanded || searching ? matches : matches.slice(0, 16);
+
+  const interactive = state.catalogKind === "Interactive";
+  els.catalogTable.dataset.kind = interactive ? "interactive" : "standard";
+  els.problemHead.replaceChildren();
+  const headings = interactive
+    ? ["ID", "AlgoScale problem", "Original problem", "New statement", "Zero-score line"]
+    : ["ID", "AlgoScale problem", "Original problem", "Complexity shift", "Classification", "Mode", "Reference"];
+  headings.forEach((heading, index) => {
+    els.problemHead.append(element("th", index === 0 ? "problem-id" : "", heading));
+  });
+  els.catalogDescription.textContent = interactive
+    ? "Interactive tasks are listed separately with their original links, enhanced statements, and zero-score lines."
+    : "Standard tasks retain complexity shifts, classifications, and reference assets. Interactive tasks are not mixed into this catalog."
+  els.search.placeholder = interactive
+    ? "Search interactive title, platform, or zero-score line"
+    : "Search title, domain, tag, platform, or complexity";
 
   els.problemBody.replaceChildren();
   visible.forEach((problem) => {
-    const row = document.createElement("tr");
-    row.append(element("td", "problem-id", `#${String(problem.id).padStart(2, "0")}`));
-    row.append(element("td", "problem-name", problem.title));
-
-    const originalCell = document.createElement("td");
-    if (problem.originalUrl) {
-      const link = element("a", "original-link", `${problem.originalTitle || "Original problem"} ↗`);
-      link.href = problem.originalUrl;
-      link.target = "_blank";
-      link.rel = "noreferrer";
-      originalCell.append(link);
-    } else {
-      originalCell.append(pendingNode());
-    }
-    originalCell.append(element("span", "platform-label", problem.platform || "Pending"));
-    row.append(originalCell);
-
-    const complexityCell = element("td", "complexity-cell");
-    const shift = element("div", "complexity-shift");
-    const originalComplexity = element("div", "complexity-stage complexity-stage-original");
-    originalComplexity.append(
-      element("span", "complexity-label", "Original"),
-      complexityNode(problem.originalComplexity),
-    );
-    const targetComplexity = element("div", "complexity-stage complexity-stage-target");
-    targetComplexity.append(
-      element("span", "complexity-label", "AlgoScale"),
-      complexityNode(problem.algoscaleComplexity, true),
-    );
-    shift.append(originalComplexity, element("span", "complexity-arrow", "→"), targetComplexity);
-    complexityCell.append(shift);
-    row.append(complexityCell);
-
-    const taxonomyCell = element("td", "taxonomy-cell");
-    const taxonomy = problem.taxonomy || {};
-    if (taxonomy.primaryDomain) {
-      const primary = element("div", "taxonomy-group");
-      primary.append(
-        element("span", "taxonomy-label", "Primary"),
-        element("span", "taxonomy-chip taxonomy-primary", taxonomy.primaryDomain),
-      );
-      taxonomyCell.append(primary);
-
-      if (taxonomy.relatedDomains?.length) {
-        const related = element("div", "taxonomy-group");
-        related.append(element("span", "taxonomy-label", "Related"));
-        const chips = element("div", "taxonomy-chips");
-        taxonomy.relatedDomains.forEach((domain) => {
-          chips.append(element("span", "taxonomy-chip taxonomy-related", domain));
-        });
-        related.append(chips);
-        taxonomyCell.append(related);
-      }
-
-      if (taxonomy.coreTags?.length) {
-        const topics = element("div", "taxonomy-group taxonomy-topics");
-        topics.append(element("span", "taxonomy-label", "Core topics"));
-        const chips = element("div", "taxonomy-chips");
-        taxonomy.coreTags.forEach((tag) => {
-          chips.append(element("span", "taxonomy-chip taxonomy-core", tag));
-        });
-        topics.append(chips);
-        taxonomyCell.append(topics);
-      }
-    } else {
-      taxonomyCell.append(pendingNode());
-    }
-    row.append(taxonomyCell);
-
-    const modeCell = document.createElement("td");
-    modeCell.append(element("span", `mode-pill ${problem.track.toLowerCase()}`, problem.track));
-    row.append(modeCell);
-
-    const referenceCell = element("td", "reference-cell");
-    const referenceAssets = problem.referenceAssets || {};
-    if (referenceAssets.originalStatement && referenceAssets.algoscaleStatement) {
-      const statement = element("a", "reference-link reference-link-statement", "Compare");
-      statement.href = `./reference.html?id=${problem.id}&asset=statementComparison&v=${SITE_RELEASE}`;
-      referenceCell.append(statement);
-    }
-    if (referenceAssets.solution) {
-      const solution = element("a", "reference-link reference-link-solution", "Solution");
-      solution.href = `./reference.html?id=${problem.id}&asset=solution&v=${SITE_RELEASE}`;
-      referenceCell.append(solution);
-    }
-    if (referenceAssets.standardSolution) {
-      const standard = element("a", "reference-link", "std.cpp");
-      standard.href = `./reference.html?id=${problem.id}&asset=standardSolution&v=${SITE_RELEASE}`;
-      referenceCell.append(standard);
-    }
-    if (!referenceCell.childElementCount) {
-      referenceCell.append(element("span", "code-unavailable", "—"));
-    }
-    row.append(referenceCell);
-
-    els.problemBody.append(row);
+    els.problemBody.append(interactive
+      ? renderInteractiveProblem(problem)
+      : renderStandardProblem(problem));
   });
 
   els.visibleCount.textContent = String(matches.length);
@@ -501,10 +572,15 @@ els.search.addEventListener("input", (event) => {
   renderProblems();
 });
 
-document.querySelectorAll(".filter").forEach((button) => {
+document.querySelectorAll(".catalog-kind-tab").forEach((button) => {
   button.addEventListener("click", () => {
-    state.filter = button.dataset.filter;
-    document.querySelectorAll(".filter").forEach((item) => item.classList.toggle("is-active", item === button));
+    state.catalogKind = button.dataset.catalogKind;
+    state.expanded = false;
+    document.querySelectorAll(".catalog-kind-tab").forEach((item) => {
+      const active = item === button;
+      item.classList.toggle("is-active", active);
+      item.setAttribute("aria-selected", String(active));
+    });
     renderProblems();
   });
 });

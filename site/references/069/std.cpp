@@ -113,22 +113,18 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int T;
-    if (!(cin >> T)) return 0;
-    while (T--) {
-        int n;
-        if (!(cin >> n)) return 0;
-        auto ask = [&](int l, int r) -> int64 {
-            cout << "? " << l << ' ' << r << endl;
-            int64 answer;
-            if (!(cin >> answer) || answer < 0) exit(0);
-            return answer;
-        };
-        vector<int64> b = reconstruct(n, ask);
-        cout << '!';
-        for (int i = 1; i <= n; ++i) cout << ' ' << b[i];
-        cout << endl;
-        // The statement specifies no extra verdict token after an answer.
-    }
+    int n;
+    if (!(cin >> n)) return 0;
+    auto ask = [&](int l, int r) -> int64 {
+        cout << "? " << l << ' ' << r << endl;
+        int64 answer;
+        if (!(cin >> answer) || answer < 0) exit(0);
+        return answer;
+    };
+    vector<int64> b = reconstruct(n, ask);
+    cout << '!';
+    for (int i = 1; i <= n; ++i) cout << ' ' << b[i];
+    cout << endl;
+    // The statement specifies no extra verdict token after an answer.
     return 0;
 }

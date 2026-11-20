@@ -1,138 +1,17 @@
-# Inversion 题解
+## Strategy
 
-## 1. 逐个插入，恢复前缀的相对大小
+Process the permutation from left to right. Suppose the relative ranks r₁,…,rₘ of the first m values are known. For the next position let t be the number of old values smaller than the newcomer. For an interval inversion parity I(l,r), one query ending at m+1 supplies
 
-假设已经知道前 $m$ 个元素的相对排名，记为 $\rho_j\in[1,m]$。加入位置 $i=m+1$ 时，只需求出
+    G(l) = I(l,m+1) XOR I(l,m) = XOR over j=l,…,m of [rⱼ>t].
 
-$$
-t=|\{j\le m:p_j<p_i\}|,\qquad0\le t\le m.
-$$
+Maintain I(l,m) locally for all l. The virtual suffix G(m+1) is zero. From G(1)=(m−t) modulo two the first query removes half of the possible insertion ranks.
 
-然后将旧排名大于 $t$ 的元素排名加一，新元素排名设为 $t+1$。
+## Separating insertion ranks
 
-记区间逆序对奇偶性为 $I(l,r)$。旧前缀的相对大小已知，所以 $I(l,m)$ 可以本地计算和维护。一次查询 $I(l,i)$ 得到
+For an old rank v at position j, G(j) XOR G(j+1) equals [v>t]. Choose the median candidate rank v. Two queries thus implement an ordinary median comparison and leave at most ceil(k/2) of k candidates. Either of these binary replies might already achieve that reduction on its own. With two candidates at least one of the two queries separates them. With three, a nonconstant reply leaves at most two.
 
-$$
-G_l(t)=I(l,i)\oplus I(l,m)
-=\bigoplus_{j=l}^{m}[\rho_j>t].
-$$
+Define f(1)=0, f(2)=1, f(3)=2 and f(k)=2+f(ceil(k/2)) for k≥4. The preceding construction guarantees completion in f(k) more queries. The implementation also tries individual suffixes and selects a balanced single query if its larger predicted branch b satisfies 1+f(b)≤f(k). Otherwise use the median construction. The suffix predictions are exact for the true t, which therefore survives every filter. After finding t, increment the ranks above t and insert the new value at rank t+1. Update every interval parity by taking suffix XORs of the comparisons rⱼ>t. Induction recovers the whole permutation.
 
-右边只依赖已知排名和候选插入位置，因此能预测每个候选的回答。约定 $G_{m+1}=0$，无需实际查询。
+## Resources
 
-## 2. 首问先确定插入位置的奇偶性
-
-询问整个前缀 $[1,i]$，可得
-
-$$
-G_1(t)=(m-t)\bmod2.
-$$
-
-因此只保留与 $(m\bmod2)\oplus G_1$ 同奇偶的插入位置，候选数不超过
-
-$$
-\left\lceil\frac i2\right\rceil.
-$$
-
-这一问比直接进行普通比较更节省预算，因为它立即排除约一半候选。
-
-## 3. 两个相邻左端点完成一次二分比较
-
-当前候选为 $c_0<\cdots<c_{k-1}$。取中间候选
-
-$$
-v=c_{\lfloor k/2\rfloor},
-$$
-
-并找到旧排名为 $v$ 的原位置 $j$。由于 $k\ge2$ 且中间候选不是最小候选，有 $1\le v\le m$。
-
-两个相邻后缀只相差一个旧元素，所以
-
-$$
-G_j(t)\oplus G_{j+1}(t)=[v>t].
-$$
-
-最多两次查询即可判断 $t<v$ 还是 $t\ge v$，留下至多 $\lceil k/2\rceil$ 个候选。
-
-实际实现保留每个回答的全部信息，而不只保留它们的异或值。先在这两个查询中选择划分较均衡的一个；如果一问后候选已经减半，就不必再问第二个。查询过的左端点缓存起来，虚拟后缀 $m+1$ 直接返回零。
-
-当只剩两个候选时，两个查询中必有一个能区分它们，一问即可。三个候选时，非恒定的一问最多剩两个，再问一次即可。
-
-## 4. 用预算函数约束更积极的查询
-
-定义最坏剩余查询预算
-
-$$
-f(1)=0,\quad f(2)=1,\quad f(3)=2,
-$$
-
-$$
-f(k)=2+f(\lceil k/2\rceil)\quad(k\ge4).
-$$
-
-上一节已经给出实现这个预算的保底方法。
-
-程序还会枚举所有左端点，寻找一次查询能得到的最均衡划分。设最大分支人数为 $b$，仅当
-
-$$
-1+f(b)\le f(k)
-$$
-
-时采用它；否则仍执行两问减半。
-
-这个判断保证不会为了当前看似均衡的一问而破坏总预算。因为无论收到哪个回答，之后至多剩 $b$ 个候选，而 $f$ 单调不减，总成本至多为 $1+f(b)$。
-
-## 5. 位集快速评价所有查询
-
-候选按 $t$ 升序排列。把左端点从 $l+1$ 移到 $l$，恰好翻转满足 $t<\rho_l$ 的候选的预测回答。这些候选形成一个前缀。
-
-因此从全零的 $G_{m+1}$ 开始，向左扫描旧位置，用位集翻转相应前缀，同时维护一的总数，就能知道每个查询的两个分支大小。
-
-完整的 64 位块直接按位取反，一的个数从 $z$ 变为 $64-z$；末尾不足一块的部分用掩码和 `popcount` 更新。达到理论最均衡的 $\lceil k/2\rceil$ 时即可停止扫描。
-
-对于最终选定的查询，按旧排名从大到小扫描，累计“该排名所在位置是否不小于左端点”的异或值，可以在 $O(m+k)$ 时间内预测并筛选全部候选。
-
-## 6. 维护区间奇偶性
-
-确定 $t$ 后，新元素与旧位置 $j$ 构成逆序对，当且仅当 $\rho_j>t$。
-
-从右向左扫描旧位置，维护这些比较结果的后缀异或，逐项更新
-
-$$
-I(l,i)=I(l,m)\oplus\bigoplus_{j=l}^{m}[\rho_j>t].
-$$
-
-随后更新排名，并在按排名排列的位置数组中插入新位置。整个更新不需要询问。
-
-真实插入位置从未被错误删除；每个选定查询都按精确预测过滤，并在预算内将候选缩为一个。因此归纳可得，每一步恢复的相对排名都正确。全部元素加入后，相对排名就是实际数值，因为隐藏数组恰好是 $1,\ldots,n$ 的排列。
-
-## 7. 严格计算查询次数
-
-加入第 $i$ 个元素，首问一次，剩余候选至多 $\lceil i/2\rceil$，所以
-
-$$
-Q(n)\le\sum_{i=2}^{n}\left(1+f(\lceil i/2\rceil)\right).
-$$
-
-根据上述递推直接计算，在 $n=2000$ 时该和为
-
-$$
-\boxed{34887<35000}.
-$$
-
-这已经包括每次插入的首问。缓存、首问后的额外信息以及一问直接减半，只会进一步减少实际查询数。$n=1$ 时不必询问，直接输出一。
-
-## 8. 本地计算复杂度与交互细节
-
-一次最均衡查询扫描需要 $O(m+mk/64)$ 时间；指定查询的预测与过滤需要 $O(m+k)$。
-
-每轮至少让预算势能 $f(k)$ 减少一，因此一轮插入有 $O(\log m)$ 次迭代。由 $f$ 的递推，允许预算每减少两次，候选规模上界至少减半，所以各轮候选数之和为 $O(m)$。
-
-单次插入耗时 $O(m\log m+m^2/64)$，总本地时间为
-
-$$
-\boxed{O(n^2\log n+n^3/64)},
-$$
-
-额外空间为 $O(n)$。询问数则为 $O(n\log n)$，不能把它直接当作本地运行时间。
-
-只在余数为 $1,\ldots,63$ 时构造部分块掩码，避免移位 64 位。每次查询输出后刷新，遇到异常回复或 EOF 立即终止；最后输出排列并刷新后直接退出，不等待额外回复。
+To evaluate all possible queries, scan suffix starts from right to left. Including one old rank flips a prefix of the sorted candidate list. The implementation uses 64-bit blocks to count resulting parity classes and caches actual replies. The total query bound is the sum of 1+f(ceil(i/2)) for i=2,…,n, at most **34,887 queries** at n=2,000. The final permutation is free. Local time is O(n² log n+n³/64) with O(n) auxiliary space.

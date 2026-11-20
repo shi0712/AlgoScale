@@ -58,8 +58,13 @@ def main() -> None:
     existing_code: dict[int, dict[str, str]] = {}
     existing_references: dict[int, dict[str, str]] = {}
     existing_taxonomy: dict[int, dict[str, object]] = {}
+    dataset_entries: dict[int, dict[str, object]] = {}
     if args.output.is_file():
         existing_catalog = json.loads(args.output.read_text(encoding="utf-8"))
+        dataset_entries = {
+            int(item["id"]): item for item in existing_catalog
+            if item.get("datasetProblem", "").startswith("InteractBench/") or item.get("interactivePointCount")
+        }
         existing_code = {
             int(item["id"]): item.get("generatedCode", {})
             for item in existing_catalog
@@ -88,6 +93,14 @@ def main() -> None:
         platform = PLATFORM_NAMES.get(
             origin["source_platform"].strip(), origin["source_platform"].strip()
         )
+        if problem_id in dataset_entries:
+            # Per-instance interactive bounds, archive provenance and original
+            # contest tags come from the corresponding interactive release.
+            item = dataset_entries[problem_id].copy()
+            item.update(title=title, originalTitle=origin["original_title"].strip(),
+                        originalUrl=original_url or None, platform=platform or "Pending")
+            catalog.append(item)
+            continue
         catalog.append(
             {
                 "id": problem_id,

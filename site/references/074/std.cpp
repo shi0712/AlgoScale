@@ -80,9 +80,7 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int T;
-    if (!(cin >> T)) return 0;
-    while (T--) {
+    {
         int64 n;
         if (!(cin >> n) || n < 3) return 0;
 

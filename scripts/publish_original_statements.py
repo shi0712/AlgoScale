@@ -56,7 +56,9 @@ def main() -> None:
     args = parse_args()
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
     report = json.loads(args.reference_report.read_text(encoding="utf-8"))
-    problems = {int(item["id"]): item for item in catalog}
+    # The old archive uses its own numbering beyond the legacy public catalog.
+    problems = {int(item["id"]): item for item in catalog
+                if not item.get("datasetProblem", "").startswith("InteractBench/") and not item.get("interactivePointCount")}
     report_items = {int(item["id"]): item for item in report}
 
     with zipfile.ZipFile(args.archive) as archive:

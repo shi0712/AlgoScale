@@ -23,10 +23,18 @@ class TaxonomyTest(unittest.TestCase):
         )
 
     def test_every_problem_has_english_taxonomy(self) -> None:
-        self.assertEqual(len(self.problems), 74)
+        self.assertTrue(set(range(1, 75)).issubset(p["id"] for p in self.problems))
         for problem in self.problems:
             taxonomy = problem.get("taxonomy")
             self.assertIsInstance(taxonomy, dict, problem["id"])
+            if problem.get("datasetProblem", "").startswith("InteractBench/"):
+                tags = problem["originalTags"]
+                self.assertIsInstance(tags, list)
+                self.assertTrue(all(isinstance(tag, str) and tag.strip() for tag in tags))
+                self.assertEqual(problem["originalTagsStatus"], "verified" if tags else "pending")
+                self.assertEqual(bool(problem["originalTagsSource"]), bool(tags))
+                if not taxonomy:
+                    continue
             self.assertIn(taxonomy.get("primaryDomain"), DOMAINS, problem["id"])
             self.assertTrue(taxonomy.get("coreTags"), problem["id"])
             values = [
@@ -43,6 +51,9 @@ class TaxonomyTest(unittest.TestCase):
     def test_primary_and_related_domain_union_counts(self) -> None:
         counts = Counter()
         for problem in self.problems:
+            # The classification workbook freezes the taxonomy of the legacy 74.
+            if problem["id"] > 74:
+                continue
             taxonomy = problem["taxonomy"]
             domains = {
                 taxonomy["primaryDomain"],

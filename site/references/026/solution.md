@@ -1,162 +1,27 @@
-# Ball Machine 题解
+## Recover the path lengths in one collection
 
-## 思路概览
+Process leaves in increasing order. For each leaf, insert until the first failure. Previously occupied vertices form a connected subtree containing the root. Successful insertions at this leaf occupy a previously unseen chain, from its attachment down to the leaf. Record the chain length. These disjoint chains cover the hidden tree, so their lengths sum to the hidden vertex count.
 
-代价是“收集次数 $K$ 加上最大球值 $B$”，而不是插球次数。可以多次插球来获得结构信息，再用少量球值同时识别许多节点。
+Give the first eight chains distinct decreasing colors. If there are more leaves, use zero on the others and remove zero-colored entries from this first preorder. At each node, later chains with smaller colors appear before the continuation of its own chain. This identifies the side branches recursively. If there are at most eight leaves, the entire tree is already known.
 
-算法分三层：先把未知树拆成若干条链；用不同的颜色对恢复所有长链的挂接位置；最后用多轮整数计数恢复剩余单点叶子的父亲。这里把球值称为颜色，但只利用其大小关系及整数计数，不依赖同色孩子的遍历次序。
+## Place the remaining long chains
 
-## 1. 先灌满机器，得到链分解
+An internal vertex of the known skeleton can be refilled exactly by inserting at a representative descendant leaf after its ancestors have been filled. Keep one representative leaf below each terminal internal vertex. For a skeleton with $d$ long chains, reserve $b=\lceil\sqrt d\rceil$ colors. Distinguish internal siblings by the ordered pair consisting of the sibling's color and the minimum color among its skeleton children.
 
-按叶编号 $0,1,\ldots,M-1$，反复向当前叶插球，直到一次插入失败。
+Here is the coloring rule used in the reference. Work upwards. For each child, group its children by their old colors. Allocate its $c$ classes a consecutive segment $[L,L+c-1]$, with the segments disjoint among siblings. Recolor the classes by their positions modulo $b$ and the child by $\lfloor(L+c-1)/b\rfloor$. The total needed across siblings fits in $b^2$. A segment staying within one row has minimum residue equal to its start. A segment crossing a row boundary has minimum residue zero, and two disjoint segments cannot cross the same boundary. Thus the pair identifies the child. Renaming the old color classes preserves lower-level distinctions.
 
-处理叶 $i$ 时，此前占据的节点构成连通的含根子树。新球依次占据从这个子树往叶 $i$ 方向的一条链，先链首、后链尾；链尾就是叶 $i$。记成功插入次数为 $\ell_i$。
+Use the top $b$ colors of $0,\ldots,B$ on the skeleton. Reserve colors below $f$ for observations of singleton leaves. Identify each new long chain with a different pair $f\le x<B+1-b$, $x<y\le B$, and give it colors $x,y,B,\ldots,B$. Assign pairs in decreasing order of $x$. During preorder parsing, a side chain attached later starts at a color at most $x$. The continuation of the current chain has a larger color. Thus the first larger color identifies $y$, and $(x,y)$ determines the chain and its known length. At a skeleton node all new branches start below the skeleton's color band. Ties between equal-colored children may be resolved in any order.
 
-所有链互不相交并覆盖整棵树，所以
+## Identify singleton parents by subset counts
 
-$$N=\sum_i\ell_i.$$
+Once all internal nodes are occupied, a new ball at a singleton leaf stays there. Give groups of leaves distinct colors. In one collection the number of observed balls of a given color under a skeleton node counts that group's selected children. Assign each leaf a binary column. Selecting the leaves whose column has a one in each observation row returns the integer sum of the columns belonging to each parent.
 
-链内部的父子关系已知，只剩每条非首链的链首挂在哪里。链首的父亲一定属于更早处理的链。
+The general code has $F(r)=\sum_{a=1}^{r}\operatorname{popcount}(a)$ columns for $r$ rows. For each integer mask $a$, take every nonempty prefix $R$ of its set bits in increasing position order. Its column is one at row $x$ exactly when $a\setminus R\subseteq x$ and $|R\cap x|$ is odd. The multilinear expansion of this column has largest monomial $a$ with coefficient $(-2)^{|R|-1}$. Processing masks in decreasing order and taking a subset Möbius transform leaves a sum of distinct powers of $-2$ with binary digits. Repeatedly recover the least significant digit modulo two, subtract it, then divide by $-2$. Subtract the decoded columns from the observed vector. The nine-row special code in the source instead enumerates all $2^{16}$ subset sums and checks that they are distinct.
 
-若 $M\le8$，给第 $i$ 条链染成 $M-1-i$。一轮收集后递归读取：侧挂链的颜色更小，读到更小颜色就先递归解析；读满当前链的 $\ell_i$ 个同色节点即可结束。此时 $K+B=1+(M-1)=M\le8$。
+## Resource bound
 
-以下考虑 $M>8$。首次灌满时，前八条链使用颜色 $8,7,\ldots,1$，其他链用 $0$。收集后删去所有 $0$，同样恢复前八条链。
+Write $D$ for the total number of long chains and $s$ for the unresolved singleton count. With $b$ skeleton colors, one discovery round adds up to $T(B-f)-T(b-1)$ chains, where $T(z)=z(z+1)/2$. For each candidate $B=8,\ldots,26$, dynamic programming computes the minimum number of ordinary discovery rounds to reach each number of known chains. The last discovery round can also take one singleton observation with each of its $f$ reserved colors. If $q=B+1-\lceil\sqrt D\rceil$ group colors are available afterwards, $r$ further rounds have capacity
 
-称 $\ell_i\ge2$ 的链为长链。设长链总数为 $D$，前八条中有 $a$ 条长链，未知单点叶子数为
+$$qF(r)+\min(q,f)\bigl(F(r+1)-F(r)\bigr)+\max(0,f-q).$$
 
-$$s=M-D-8+a.$$
-
-第一条链含根且长度至少为二，所以 $a\ge1$。所有内部节点都属于长链。
-
-## 2. 用约 $\sqrt d$ 种颜色识别已知骨架
-
-假设已经恢复 $d$ 条长链。保留其中全部内部节点；若一个内部节点没有内部孩子，就保留一个已知叶子作为代表，否则忽略它的叶子孩子。得到的骨架至多有 $d$ 个叶子。
-
-我们要用
-
-$$b=\lceil\sqrt d\rceil$$
-
-种颜色，让每个内部孩子可以由“自身颜色、它的第一个骨架孩子的颜色”识别。
-
-下面给出一个自底向上的染色方法。对同一父亲的各个内部孩子 $v$，先将 $v$ 的孩子现有颜色压缩成 $c$ 个等价类。将这些类依次放入一段连续编号 $[L,L+c-1]$，然后令
-
-$$\operatorname{color}(v)=\left\lfloor\frac{L+c-1}{b}\right\rfloor,$$
-
-并将第 $r$ 类孩子染成 $(L+r)\bmod b$，$0\le r<c$。
-
-同一父亲下参与分配的类总数不超过骨架叶子数 $d\le b^2$，且每段长度不超过 $b$。所以颜色都落在 $0,\ldots,b-1$。
-
-每段由“最后所在块编号、段内最小余数”唯一确定：不跨块的段，其最小余数就是起点；跨块的段最小余数为 $0$，每个末块至多对应一条这样的段。因此同父亲的内部孩子可由上述颜色对识别。向上重新编码只改变颜色名，保留等色关系，不会破坏已经建立的下层识别性质。
-
-每个骨架节点记录一个后代代表叶子。按根到叶的顺序向代表叶子插球，由于它的祖先已满而它尚空，球恰好停在目标节点。这样可以重新搭建并染色整个已知骨架。
-
-## 3. 一轮用三角形数量的颜色对发现新长链
-
-固定本次计划的最大颜色 $B$。已知 $d$ 条长链时，令
-
-$$b=\lceil\sqrt d\rceil,\qquad h=B+1-b.$$
-
-将旧骨架颜色平移到 $h,\ldots,B$。每条新长链使用颜色序列
-
-$$[x,y,B,\ldots,B],\qquad f\le x<h,\quad x<y\le B,$$
-
-其中 $0,\ldots,f-1$ 暂时预留给单点观测；普通补链轮取 $f=0$。
-
-按 $x$ 从大到小枚举不同颜色对，再按原叶编号顺序分配给新链。一轮能恢复的长链数为
-
-$$A(B,b,f)=\sum_{x=f}^{B-b}(B-x)=T(B-f)-T(b-1),\qquad T(z)=\frac{z(z+1)}2.$$
-
-为什么收集序列能解码？一条链只会挂上更晚插入的新链，后者的首色 $x'\le x$；当前链的下一节点颜色则为 $y>x$，后续为 $B>x$。所以读到首色 $x$ 后，先递归解析所有首色不超过 $x$ 的侧链，遇到第一个更大的颜色就是 $y$。$(x,y)$ 唯一确定链编号和长度，再逐节点重复这个过程即可。
-
-在旧骨架节点处，先解析所有颜色小于 $h$ 的新内容，再按第 2 节的颜色对识别旧孩子。这样每条新链首的父亲也同时确定。
-
-**分配时首色非递增、解析时使用当前链自己的阈值 $x$，是这一步成立的关键。**
-
-## 4. 用整数子集计数找单点叶子的父亲
-
-全部长链都灌入球后，所有内部节点已经占据。此时向一个未知单点叶子插球，球只会留在该叶子。用相同颜色同时插入一组叶子，收集后可以知道每个内部节点下挂了该组的几个叶子。
-
-设组内有 $g$ 个叶子，给每个叶子分配一个 $r$ 维 0/1 列向量。第 $j$ 轮只插入第 $j$ 位为 $1$ 的叶子。对每个内部节点，观测到的 $r$ 个计数，就是挂在它下面的这些列向量之和。
-
-因此需要的不是不同的二进制编码，而是**任意两个子集的整数向量和都不同**的列集合。
-
-### 通用计数码
-
-$r$ 行可构造
-
-$$F(r)=\sum_{a=1}^r\operatorname{popcount}(a)$$
-
-列。把 $a$ 看成位集合，将它的置位从低到高依次加入前缀集合 $R$，每个非空前缀产生一列。该列在行 $x\in[1,r]$ 为 $1$，当且仅当
-
-$$a\setminus R\subseteq x,\qquad |x\cap R|\text{ 为奇数}.$$
-
-其可解码性来自子集 Möbius 变换。将每列看成布尔变量的多线性函数，它的最高单项式是 $a$，系数为 $(-2)^{|R|-1}$，其他单项式都是 $a$ 的真子集。按 $a$ 从大到小处理，消去更大项后，当前系数形如
-
-$$\sum_j\varepsilon_j(-2)^j,\qquad\varepsilon_j\in\{0,1\}.$$
-
-负二进制表示唯一，依次取规范化的模 $2$ 余数，再除以 $-2$，就能恢复这些叶子是否属于当前父亲。减掉已识别列后继续即可。取构造的任意前 $g$ 列仍然可解码。
-
-### 九行的特例
-
-为了把总代价压到 $27$，$r=9$ 时采用以下 $16$ 列掩码，第 $j$ 位表示第 $j$ 行：
-
-```text
-466 231 382 476 441 391 459 210
-364 62 470 341 59 60 91 306
-```
-
-其 $2^{16}$ 个整数子集和互不相同，因此此时取 $F(9)=16$。这是一个可完全枚举验证的有限编码：每个坐标最多 $16$，用 $5$ 位打包一个坐标，九个坐标共 $45$ 位，不会发生进位混淆。程序枚举当前组全部子集和，建立“计数向量到叶子集合”的映射。
-
-## 5. 把最后一次补链和第一次观测合在一起
-
-纯观测轮的旧骨架需要 $\lceil\sqrt D\rceil$ 种颜色，所以有
-
-$$q=B+1-\lceil\sqrt D\rceil$$
-
-种低位颜色，能并行观测 $q$ 个组。
-
-最后一次补链时，如果还预留了 $f$ 种低位颜色，可以在所有长链插完后立即插入这些单点观测球，再一起收集。
-
-若之后再进行 $r$ 次纯观测，则前 $\min(q,f)$ 个组有 $r+1$ 行，其余后续组有 $r$ 行；若 $f>q$，多出的提前颜色可以各定位一个叶子。因此总容量为
-
-$$\boxed{qF(r)+\min(q,f)(F(r+1)-F(r))+\max(0,f-q).}$$
-
-这就是节省一次收集机会的来源。
-
-## 6. 选择计划并保证 $K+B\le27$
-
-枚举 $B=8,\ldots,26$。设 $\operatorname{dp}_B[d]$ 是从初始 $a$ 条长链恢复到 $d$ 条所需的最少普通补链轮数，初始 $\operatorname{dp}_B[a]=0$，转移为
-
-$$d<e\le\min\{D,d+T(B)-T(\lceil\sqrt d\rceil-1)\},$$
-
-$$\operatorname{dp}_B[e]\leftarrow\min(\operatorname{dp}_B[e],\operatorname{dp}_B[d]+1).$$
-
-然后枚举三种结束方式：
-
-- 没有未知单点：成本 $B+1+\operatorname{dp}_B[D]$。
-- 长链已经全知：选满足 $qF(r)\ge s$ 的 $r$，成本 $B+1+r$。
-- 仍需最后一轮补链：枚举其前的 $d$、预留颜色 $f$ 和之后的 $r$ 轮，要求 $A(B,\lceil\sqrt d\rceil,f)\ge D-d$，且上一节容量至少为 $s$。成本为 $B+2+\operatorname{dp}_B[d]+r$。
-
-其中的 $1$ 是最初灌满后的收集；第三种的额外 $1$ 是融合的最后补链轮。保存最小可行计划及前驱，再执行相应操作。
-
-资源上界只依赖 $M,D,a$。对固定 $D,a$，增大 $M$ 只会增大 $s$，所以检查 $M=200$ 就覆盖所有较小的 $M>8$。合法参数为
-
-$$1\le D\le200,\quad1\le a\le\min(8,D),\quad200-D-8+a\ge0,$$
-
-共 $1544$ 组。按上述有限递推逐一计算，所有组的最小成本都不超过 $27$，最大值恰为 $27$。九行特殊编码的 $65536$ 个子集和也可完整枚举，因此这里的预算保证来自有限参数的完整验证，和未知树的形状、同色次序无关。
-
-每轮至多成功插入 $N$ 个球，只有首次灌满时每个叶子多一次失败插入。$M>8$ 时 $B\ge8$，故 $K\le19$，插入总数至多 $KN+M\le19200$，满足 $500000$ 的限制。所有轮次以收集结束，提交答案时机器为空。
-
-## 7. 实现与复杂度
-
-重建时自行分配内部节点编号，保留叶编号和根编号 $N-1$；题面允许输出父编号不大于子编号。所有查询换行后立即刷新，读到 $-1$ 立即结束。
-
-预算规划的保守上界为 $O(27^2D^2)$；每轮骨架构造及解析为 $O(N\log N)$。计数码还需单独计算解码代价：一个 $g$ 列、$r$ 行的普通组可在
-
-$$O\left(N\left[\sum_{a=1}^r2^{\operatorname{popcount}(a)}+gr\right]\right)$$
-
-内解码；九行特殊组最多枚举 $2^{16}$ 个子集，使用哈希表时平均代价为 $O(2^g+Ng)$。哈希只影响运行时间，不影响预算或解码唯一性。空间为
-
-$$O\left(N+D+\sum_{\text{组}}Nr+\sum_{\text{组}}gr+\max_{\text{特殊组}}2^g\right).$$
-
-本题的 $N\le1000,M\le200$ 和固定预算使这些数组规模可控。交互预算与 CPU 复杂度是两种不同限制，不能仅用 $C\le27$ 代替运行时间分析。
+The planner tests the permitted last-round choices and takes a feasible plan minimizing $K+B$. The finite parameter check uses $1\le D\le200$, $1\le d_0\le\min(8,D)$ and $s\le200-D-8+d_0$. Maximum cost over these 1,544 parameter pairs is 27. For $M\le8$, the initial collection alone suffices. Every collection empties the machine. Each round fills at most $N$ vertices, and only the first fill incurs one extra failure per leaf. There are at most 19 rounds for $M>8$, giving at most $19N+M$ insertion attempts. Planning takes $O(27^2D^2)$ local work. Sorting the skeleton takes $O(N\log N)$ per round, and the exceptional nine-row decoder enumerates at most $2^{16}$ subsets per group.

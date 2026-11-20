@@ -233,24 +233,20 @@ void solve_phase_lock(int n, Ask&& ask) {
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int T;
-    if (!(cin >> T) || T < 1 || T > 100) return 0;
-    while (T--) {
-        int n;
-        if (!(cin >> n) || n == -1) return 0;
-        if (n < 3 || n > 100) return 0;
-        int queries = 0;
-        auto ask = [&](int position) {
-            if (position < 1 || position > n || ++queries > n * n) exit(2);
-            cout << "? " << position << endl;
-            int reply;
-            if (!(cin >> reply) || reply == -1) exit(0);
-            if (reply != 0 && reply != 1) exit(0);
-            return reply;
-        };
-        solve_phase_lock(n, ask);
-        cout << "!" << endl;
-    }
+    int n;
+    if (!(cin >> n) || n == -1) return 0;
+    if (n < 3 || n > 100) return 0;
+    int queries = 0;
+    auto ask = [&](int position) {
+        if (position < 1 || position > n || ++queries > n * n) exit(2);
+        cout << "? " << position << endl;
+        int reply;
+        if (!(cin >> reply) || reply == -1) exit(0);
+        if (reply != 0 && reply != 1) exit(0);
+        return reply;
+    };
+    solve_phase_lock(n, ask);
+    cout << "!" << endl;
     return 0;
 }
 #endif

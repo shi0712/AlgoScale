@@ -4,7 +4,7 @@ This is an interactive problem.
 
 There are $n$ cyclic wheels. Every wheel contains the same $n$ distinct symbols in the same cyclic order, and each wheel currently displays one symbol. Their initial positions are hidden.
 
-You may rotate one wheel by any allowed integer number of positions. After each action, the judge reports how many distinct symbols are currently displayed across the wheels. Make all wheels display the same symbol within the allowed number of actions.
+You may rotate one wheel by any allowed integer number of positions. After each action, the judge reports how many distinct symbols are currently displayed across the wheels. Make all wheels display the same symbol using as few actions as possible.
 
 ## Input Format
 
@@ -28,7 +28,9 @@ i j
 
 This rotates wheel $i$ by $j$ positions. Negative $j$ rotates in the opposite direction. Do not print a final answer marker: success is indicated by reading $k=1$, after which the program must exit.
 
-Flush an emitted action before waiting for the next response. At most $1333$ actions may be printed. Every valid action counts once, including $j=0$ or a multiple of $n$; reading the initial $n$ and $k$ does not count. All wheels use the same positive rotation direction, and $n$ steps make one full rotation.
+Flush an emitted action before waiting for the next response. Every valid action counts once, including $j=0$ or a multiple of $n$; reading the initial $n$ and $k$ does not count. All wheels use the same positive rotation direction, and $n$ steps make one full rotation.
+
+Fewer actions earn a higher score.
 
 ## Examples
 
@@ -56,7 +58,6 @@ The judge reveals only the number of different visible symbols, not their identi
 - Every response satisfies $1\le k\le n$.
 - The first response satisfies $k>1$; the machine is not already solved.
 - For every action, $1\le i\le n$ and $-10^9\le j\le10^9$, with integer $i,j$.
-- At most $1333$ actions are allowed.
 - The hidden initial configuration is fixed before the first action; the judge is non-adaptive.
 - After receiving $k=1$, produce no further non-whitespace output.
 - Time limit: **0.5 seconds**. Memory limit: **256 MB**.
