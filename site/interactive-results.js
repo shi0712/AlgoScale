@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261121-point-results";
+const SITE_RELEASE = "20261121-submission-code";
 const params = new URLSearchParams(window.location.search);
 const problemId = Number(params.get("id"));
 const allowedScopes = new Set(["direct", "agent", "combined"]);
@@ -24,6 +24,8 @@ const els = {
   status: document.querySelector("#status"),
   updated: document.querySelector("#updated"),
   pointList: document.querySelector("#point-list"),
+  submissionCount: document.querySelector("#submission-count"),
+  submissionList: document.querySelector("#submission-list"),
 };
 
 function element(tag, className, text) {
@@ -89,9 +91,47 @@ function renderResultCard(result) {
   numbers.append(interactions, score);
   card.append(head, numbers);
   if (result.sourceSubmissionId) {
-    card.append(element("p", "submission-id", `UOJ submission #${result.sourceSubmissionId}`));
+    const footer = element("div", "submission-footer");
+    footer.append(element("span", "submission-id", `UOJ #${result.sourceSubmissionId}`));
+    const link = element("a", "code-link", "View code ↗");
+    link.href = `./interactive-code.html?submission=${encodeURIComponent(result.sourceSubmissionId)}&problem=${problemId}`;
+    footer.append(link);
+    card.append(footer);
   }
   return card;
+}
+
+function renderSubmissionCard(submission) {
+  const card = element("article", "submission-card");
+  const head = element("div", "submission-card-head");
+  const identity = element("div");
+  identity.append(
+    element("h3", "submission-model", submission.model),
+    element("span", "submission-mode", submission.mode === "agent"
+      ? `Agent · ${submission.harness || "Unspecified harness"}`
+      : "Direct"),
+  );
+  const status = submission.allPointsSuccessful ? "All points correct" : "Partial result";
+  head.append(identity, element("span", `status-pill ${submission.allPointsSuccessful ? "record" : "valid"}`, status));
+
+  const meta = element("div", "submission-meta");
+  meta.append(
+    element("span", "", `UOJ #${submission.submissionId}`),
+    element("span", "", `${formatNumber(submission.successfulPoints)}/${formatNumber(submission.pointCount)} correct points`),
+    element("span", "", `${formatNumber(submission.validScoringPoints)}/${formatNumber(submission.pointCount)} scoring points`),
+  );
+  const link = element("a", "submission-code-button", "Open source code ↗");
+  link.href = `./interactive-code.html?submission=${encodeURIComponent(submission.submissionId)}&problem=${problemId}`;
+  card.append(head, meta, link);
+  return card;
+}
+
+function renderSubmissions() {
+  const submissions = (detailData.submissions || []).filter((submission) => (
+    activeScope === "combined" || submission.mode === activeScope
+  ));
+  els.submissionCount.textContent = `${submissions.length} submission${submissions.length === 1 ? "" : "s"}`;
+  els.submissionList.replaceChildren(...submissions.map(renderSubmissionCard));
 }
 
 function renderPoint(point) {
@@ -152,6 +192,7 @@ function renderScope() {
   els.summaryCompetitors.textContent = formatNumber(scope.competitorCount);
   els.summaryRecords.textContent = formatNumber(scope.points.filter((point) => point.record !== null).length);
   els.summaryMetric.textContent = detailData.problem.metric.description;
+  renderSubmissions();
   els.pointList.replaceChildren(...scope.points.map(renderPoint));
 }
 

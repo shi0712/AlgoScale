@@ -144,6 +144,34 @@ class InteractiveLeaderboardTest(unittest.TestCase):
         rows = build(data)["boards"]["agent"]["rows"]
         self.assertEqual([row["rank"] for row in rows], [1, 1])
 
+    def test_retries_are_not_combined_pointwise(self):
+        data = fixture()
+        data["submissions"] = [
+            {
+                **data["submissions"][0],
+                "submissionId": "r1",
+                "points": [
+                    {"testId": 1, "verdict": "Accepted", "protocolValid": True, "interactionCount": 20},
+                    {"testId": 2, "verdict": "Wrong Answer", "protocolValid": False, "interactionCount": 1},
+                ],
+            },
+            {
+                **data["submissions"][0],
+                "submissionId": "r2",
+                "points": [
+                    {"testId": 1, "verdict": "Wrong Answer", "protocolValid": False, "interactionCount": 1},
+                    {"testId": 2, "verdict": "Accepted", "protocolValid": True, "interactionCount": 30},
+                ],
+            },
+        ]
+        result = build(data)
+        points = result["boards"]["direct"]["rows"][0]["problemScores"][0]["points"]
+        # r1 is selected as the better whole program; r2 must not fill its failed point.
+        self.assertEqual(points[0]["sourceSubmissionId"], "r1")
+        self.assertIsNone(points[1]["sourceSubmissionId"])
+        detail = build_problem_details(data, result)[80]
+        self.assertEqual([item["submissionId"] for item in detail["submissions"]], ["r1"])
+
     def test_stale_data_version_is_rejected(self):
         data = fixture()
         data["submissions"][0]["dataVersion"] = "old"
@@ -170,6 +198,18 @@ class InteractiveLeaderboardTest(unittest.TestCase):
         )
         self.assertEqual(direct_result["interactionCount"], 30.0)
         self.assertEqual(direct_result["sourceSubmissionId"], "d2")
+        self.assertEqual(len(details["submissions"]), 2)
+        retry = next(
+            item for item in details["submissions"]
+            if item["submissionId"] == "d2"
+        )
+        self.assertEqual(retry["successfulPoints"], 2)
+        self.assertEqual(retry["validScoringPoints"], 2)
+        self.assertTrue(retry["allPointsSuccessful"])
+        self.assertEqual(
+            retry["sourceCodeUrl"],
+            "./generated/interactive/submissions/d2.cpp",
+        )
 
 
 if __name__ == "__main__":

@@ -69,7 +69,7 @@ python scripts/build_standard_leaderboard.py
 Point-level Interactive source data lives in
 `site/data/interactive-results.json`. It records problem data versions, every
 point threshold, and every submission's point verdict, protocol validity, and
-interaction count. Rebuild the three Interactive views with:
+interaction count.
 
 Every Interactive package must follow the
 [`Interactive judge contract`](docs/INTERACTOR_CONTRACT.md); the score formula
@@ -78,6 +78,7 @@ and record-sharing rules are specified in
 
 ```powershell
 python scripts/build_interactive_leaderboard.py
+python scripts/export_interactive_submission_code.py
 ```
 
 The generated `site/data/interactive-leaderboard.json` contains compact Direct,
@@ -85,6 +86,13 @@ Agent, and Combined board summaries. Per-problem point records and model results
 are written to `site/data/interactive/problems/NNN.json` and are loaded only when
 a visitor opens that Interactive task. Reference solutions validate judge
 packages but are not entered as record-setting submissions.
+
+Each model, mode, and problem is represented by one concrete submitted program.
+A retry can replace that program as a whole, but point results from multiple
+programs are never combined. The same selected program drives both the
+leaderboard score and the source displayed on the problem page. The export step
+copies its exact UOJ `answer.code` into
+`site/generated/interactive/submissions/`; superseded retry sources are removed.
 
 ## Local metadata admin
 
@@ -161,6 +169,7 @@ scripts/build_problem_catalog.py
 scripts/build_standard_leaderboard.py
 scripts/build_interactive_leaderboard.py
 scripts/export_generated_cpp.py  Export exact UOJ-submitted model sources
+scripts/export_interactive_submission_code.py  Export current Interactive sources
 .github/workflows/pages.yml   GitHub Pages deployment
 ```
 

@@ -84,6 +84,11 @@ def competitor_from_submission(submission: dict[str, Any]) -> CompetitorKey:
     )
 
 
+def submission_source_url(submission_id: str) -> str:
+    """Return the deterministic public path for one submitted C++ program."""
+    return f"./generated/interactive/submissions/{submission_id}.cpp"
+
+
 def is_success(point: dict[str, Any]) -> bool:
     verdict = str(point.get("verdict") or "").strip().lower()
     return verdict in SUCCESS_VERDICTS and point.get("protocolValid") is True
@@ -148,6 +153,14 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
 
     names: dict[CompetitorKey, str] = {}
     best: dict[CompetitorKey, dict[PointKey, tuple[Decimal, str]]] = defaultdict(dict)
+    selected: dict[
+        tuple[CompetitorKey, int],
+        tuple[
+            tuple[int, int, Decimal, int],
+            str,
+            dict[PointKey, Decimal],
+        ],
+    ] = {}
     seen_submission_ids: set[str] = set()
 
     for submission in submissions:
@@ -171,6 +184,10 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(result_points, list):
             raise DataError(f"submission {submission_id}.points must be an array")
         seen_tests: set[int] = set()
+        successful_results: dict[PointKey, Decimal] = {}
+        valid_scoring_points = 0
+        successful_points = 0
+        successful_interactions = Decimal(0)
         for result in result_points:
             test_id = positive_int(result.get("testId"), "result.testId")
             if test_id in seen_tests:
@@ -184,9 +201,34 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
             interaction_count = nonnegative_decimal(
                 result.get("interactionCount"), "result.interactionCount"
             )
-            current = best[competitor].get(point_key)
-            if current is None or interaction_count < current[0]:
-                best[competitor][point_key] = (interaction_count, submission_id)
+            successful_results[point_key] = interaction_count
+            successful_points += 1
+            successful_interactions += interaction_count
+            if interaction_count < point_config[point_key]["threshold"]:
+                valid_scoring_points += 1
+
+        numeric_id = int(submission_id) if submission_id.isdigit() else 0
+        quality = (
+            valid_scoring_points,
+            successful_points,
+            -successful_interactions,
+            numeric_id,
+        )
+        candidate_key = (competitor, problem_id)
+        current = selected.get(candidate_key)
+        if current is None or quality > current[0]:
+            selected[candidate_key] = (
+                quality,
+                submission_id,
+                successful_results,
+            )
+
+    # A leaderboard row represents one concrete program per problem. Repeated runs
+    # may replace that program as a whole, but their per-point results are never
+    # combined into a synthetic submission.
+    for (competitor, _problem_id), (_quality, submission_id, results) in selected.items():
+        for point_key, interaction_count in results.items():
+            best[competitor][point_key] = (interaction_count, submission_id)
 
     all_competitors = sorted(names)
     scopes = {
@@ -432,6 +474,67 @@ def build_problem_details(
                 "points": point_rows,
             }
 
+        current_submissions: dict[
+            CompetitorKey, tuple[tuple[int, int, Decimal, int], dict[str, Any]]
+        ] = {}
+        for submission in raw.get("submissions", []):
+            if positive_int(submission.get("problemId"), "submission.problemId") != problem_id:
+                continue
+            submission_id = require_text(
+                submission.get("submissionId"), "submission.submissionId"
+            )
+            competitor = competitor_from_submission(submission)
+            submission_points = submission.get("points")
+            if not isinstance(submission_points, list):
+                raise DataError(f"submission {submission_id}.points must be an array")
+            successful_points = sum(1 for point in submission_points if is_success(point))
+            valid_scoring_points = 0
+            successful_interactions = Decimal(0)
+            for point in submission_points:
+                test_id = positive_int(point.get("testId"), "result.testId")
+                if not is_success(point):
+                    continue
+                interactions = nonnegative_decimal(
+                    point.get("interactionCount"), "result.interactionCount"
+                )
+                successful_interactions += interactions
+                threshold = nonnegative_decimal(
+                    raw_points[test_id].get("threshold"), "point.threshold"
+                )
+                if interactions < threshold:
+                    valid_scoring_points += 1
+            published_submission = {
+                "submissionId": submission_id,
+                "model": require_text(submission.get("model"), "submission.model"),
+                "modelKey": competitor.model_key,
+                "mode": competitor.mode,
+                "harness": competitor.harness or None,
+                "successfulPoints": successful_points,
+                "validScoringPoints": valid_scoring_points,
+                "pointCount": len(raw_points),
+                "allPointsSuccessful": successful_points == len(raw_points),
+                "sourceCodeUrl": submission_source_url(submission_id),
+            }
+            numeric_id = int(submission_id) if submission_id.isdigit() else 0
+            quality = (
+                valid_scoring_points,
+                successful_points,
+                -successful_interactions,
+                numeric_id,
+            )
+            current = current_submissions.get(competitor)
+            if current is None or quality > current[0]:
+                current_submissions[competitor] = (quality, published_submission)
+
+        problem_submissions = [item[1] for item in current_submissions.values()]
+        problem_submissions.sort(
+            key=lambda item: (
+                item["mode"],
+                item["model"].casefold(),
+                int(item["submissionId"]) if item["submissionId"].isdigit() else item["submissionId"],
+            )
+        )
+
         metric = problem.get("metric") if isinstance(problem.get("metric"), dict) else {}
         details[problem_id] = {
             "schemaVersion": 1,
@@ -447,6 +550,7 @@ def build_problem_details(
                     "description": str(metric.get("description") or metric.get("name") or "Interactions"),
                 },
             },
+            "submissions": problem_submissions,
             "scopes": scopes,
         }
 

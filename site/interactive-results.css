@@ -90,7 +90,21 @@ h1 { max-width: 880px; margin: 8px 0 0; font-family: var(--serif); font-size: cl
 .result-numbers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
 .result-numbers span { display: block; color: var(--muted); font-family: var(--mono); font-size: 11px; text-transform: uppercase; }
 .result-numbers strong { display: block; margin-top: 4px; font-family: var(--serif); font-size: 25px; font-weight: 500; }
-.submission-id { margin: 16px 0 0; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.submission-footer { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.submission-id { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.code-link { font-family: var(--mono); font-size: 11px; font-weight: 700; text-underline-offset: 4px; }
+
+.submission-section { margin-top: 66px; }
+.submission-section-head { margin-top: 0; }
+.submission-note { max-width: 760px; margin: 18px 0 0; color: var(--muted); font-size: 14px; }
+.submission-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
+.submission-card { min-width: 0; padding: 18px; border: 1px solid var(--line); background: var(--card); }
+.submission-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.submission-model { margin: 0; font-size: 15px; line-height: 1.35; }
+.submission-mode { display: block; margin-top: 5px; color: var(--muted); font-family: var(--mono); font-size: 11px; text-transform: uppercase; }
+.submission-meta { display: grid; gap: 5px; margin-top: 20px; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.submission-code-button { min-height: 40px; margin-top: 18px; padding: 0 12px; display: inline-flex; align-items: center; border: 1px solid var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 700; text-decoration: none; }
+.submission-code-button:hover { background: var(--ink); color: white; }
 
 @media (max-width: 900px) {
   .heading-row, .scope-bar, .point-section-head { align-items: stretch; flex-direction: column; }
@@ -104,6 +118,7 @@ h1 { max-width: 880px; margin: 8px 0 0; font-family: var(--serif); font-size: cl
   .point-summary { grid-template-columns: 72px 1fr 1fr; }
   .point-summary > :nth-child(5) { grid-column: 2 / -1; }
   .point-summary > :nth-child(6) { grid-column: 1 / -1; }
+  .submission-list { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 600px) {
@@ -122,4 +137,5 @@ h1 { max-width: 880px; margin: 8px 0 0; font-family: var(--serif); font-size: cl
   .point-summary > :nth-child(6) { grid-column: 1 / -1; }
   .point-results { padding: 0 12px 16px; }
   .result-grid { grid-template-columns: 1fr; }
+  .submission-list { grid-template-columns: 1fr; }
 }

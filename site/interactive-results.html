@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./interactive-results.css?v=20261121-point-results" />
+    <link rel="stylesheet" href="./interactive-results.css?v=20261121-submission-code" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -57,6 +57,18 @@
           <article><span>Measured quantity</span><strong id="summary-metric">—</strong></article>
         </div>
 
+        <section class="submission-section" aria-labelledby="submission-heading">
+          <div class="point-section-head submission-section-head">
+            <div>
+              <p class="section-kicker">Submitted programs</p>
+              <h2 id="submission-heading">Current submitted source</h2>
+            </div>
+            <p id="submission-count">—</p>
+          </div>
+          <p class="submission-note">One current best source is shown for every evaluated model and mode. Superseded retries are not published.</p>
+          <div id="submission-list" class="submission-list"></div>
+        </section>
+
         <div class="point-section-head">
           <div>
             <p class="section-kicker">Point-by-point</p>
@@ -72,6 +84,6 @@
       </section>
     </main>
 
-    <script src="./interactive-results.js?v=20261121-point-results" defer></script>
+    <script src="./interactive-results.js?v=20261121-submission-code" defer></script>
   </body>
 </html>
