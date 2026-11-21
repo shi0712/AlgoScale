@@ -1048,14 +1048,21 @@
       ]
     },
     "agent": {
-      "competitorCount": 1,
+      "competitorCount": 2,
       "competitors": [
+        {
+          "model": "GPT-6.2 Sol",
+          "modelKey": "gpt-6.2-sol",
+          "mode": "agent",
+          "harness": "Codex",
+          "problemScore": 99.710149
+        },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "agent",
           "harness": "DeepSeek Harness",
-          "problemScore": 100.0
+          "problemScore": 94.369944
         }
       ],
       "points": [
@@ -1071,6 +1078,12 @@
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
@@ -1084,6 +1097,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1983"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
             }
           ]
         },
@@ -1091,26 +1115,37 @@
           "testId": 2,
           "scale": "n8200",
           "threshold": 300.0,
-          "record": 19.0,
+          "record": 5.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 5.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 19.0,
-              "score": 100.0,
+              "score": 90.733697,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1119,26 +1154,37 @@
           "testId": 3,
           "scale": "n16395",
           "threshold": 300.0,
-          "record": 20.0,
+          "record": 8.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 8.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 20.0,
-              "score": 100.0,
+              "score": 91.949709,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1147,26 +1193,37 @@
           "testId": 4,
           "scale": "n32869",
           "threshold": 300.0,
-          "record": 28.0,
+          "record": 16.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 16.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 28.0,
-              "score": 100.0,
+              "score": 91.727832,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1175,26 +1232,37 @@
           "testId": 5,
           "scale": "n65606",
           "threshold": 300.0,
-          "record": 25.0,
+          "record": 11.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 11.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 25.0,
-              "score": 100.0,
+              "score": 90.54609,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1203,26 +1271,37 @@
           "testId": 6,
           "scale": "n1599",
           "threshold": 300.0,
-          "record": 21.0,
+          "record": 12.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 12.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 21.0,
-              "score": 100.0,
+              "score": 93.847656,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1239,6 +1318,12 @@
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
@@ -1252,6 +1337,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1983"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 27.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
             }
           ]
         },
@@ -1259,26 +1355,37 @@
           "testId": 8,
           "scale": "n40463",
           "threshold": 300.0,
-          "record": 31.0,
+          "record": 16.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 16.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 31.0,
-              "score": 100.0,
+              "score": 89.715582,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1287,26 +1394,37 @@
           "testId": 9,
           "scale": "n38218",
           "threshold": 300.0,
-          "record": 30.0,
+          "record": 21.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 21.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 30.0,
-              "score": 100.0,
+              "score": 93.652445,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1336,6 +1454,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1983"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 26.0,
+              "score": 97.845665,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2030"
             }
           ]
         },
@@ -1343,26 +1472,37 @@
           "testId": 11,
           "scale": "n94920",
           "threshold": 300.0,
-          "record": 52.0,
+          "record": 41.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 41.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 52.0,
-              "score": 100.0,
+              "score": 91.68617,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1371,26 +1511,37 @@
           "testId": 12,
           "scale": "n129",
           "threshold": 300.0,
-          "record": 12.0,
+          "record": 1.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 92.777486,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1399,26 +1550,37 @@
           "testId": 13,
           "scale": "n2049",
           "threshold": 300.0,
-          "record": 15.0,
+          "record": 4.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 4.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 15.0,
-              "score": 100.0,
+              "score": 92.70567,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1427,26 +1589,37 @@
           "testId": 14,
           "scale": "n8205",
           "threshold": 300.0,
-          "record": 19.0,
+          "record": 7.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 7.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 19.0,
-              "score": 100.0,
+              "score": 91.97661,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1455,26 +1628,37 @@
           "testId": 15,
           "scale": "n16395",
           "threshold": 300.0,
-          "record": 19.0,
+          "record": 8.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 8.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 19.0,
-              "score": 100.0,
+              "score": 92.607666,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1483,26 +1667,37 @@
           "testId": 16,
           "scale": "n32882",
           "threshold": 300.0,
-          "record": 24.0,
+          "record": 11.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 11.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 24.0,
-              "score": 100.0,
+              "score": 91.205805,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1511,26 +1706,37 @@
           "testId": 17,
           "scale": "n65617",
           "threshold": 300.0,
-          "record": 23.0,
+          "record": 17.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 17.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 23.0,
-              "score": 100.0,
+              "score": 95.804667,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1539,26 +1745,37 @@
           "testId": 18,
           "scale": "n1216",
           "threshold": 300.0,
-          "record": 18.0,
+          "record": 15.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 15.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 18.0,
-              "score": 100.0,
+              "score": 97.905817,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1567,26 +1784,37 @@
           "testId": 19,
           "scale": "n3831",
           "threshold": 300.0,
-          "record": 26.0,
+          "record": 24.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 24.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 26.0,
-              "score": 100.0,
+              "score": 98.555976,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             }
           ]
@@ -1616,14 +1844,32 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1983"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 33.0,
+              "score": 96.357321,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2030"
             }
           ]
         }
       ]
     },
     "combined": {
-      "competitorCount": 4,
+      "competitorCount": 5,
       "competitors": [
+        {
+          "model": "GPT-6.2 Sol",
+          "modelKey": "gpt-6.2-sol",
+          "mode": "agent",
+          "harness": "Codex",
+          "problemScore": 99.710149
+        },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
@@ -1636,21 +1882,21 @@
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 97.304349
+          "problemScore": 94.020683
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "agent",
           "harness": "DeepSeek Harness",
-          "problemScore": 97.666439
+          "problemScore": 94.369944
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "direct",
           "harness": null,
-          "problemScore": 27.175665
+          "problemScore": 26.543963
         }
       ],
       "points": [
@@ -1678,6 +1924,12 @@
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
@@ -1717,6 +1969,17 @@
             {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -1731,26 +1994,37 @@
           "testId": 2,
           "scale": "n8200",
           "threshold": 300.0,
-          "record": 10.0,
+          "record": 5.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 5.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 10.0,
-              "score": 100.0,
+              "score": 96.638897,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -1759,7 +2033,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 19.0,
-              "score": 93.889417,
+              "score": 90.733697,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -1770,7 +2044,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 69.0,
-              "score": 63.449465,
+              "score": 61.316863,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1853"
@@ -1792,26 +2066,37 @@
           "testId": 3,
           "scale": "n16395",
           "threshold": 300.0,
-          "record": 14.0,
+          "record": 8.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 8.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 100.0,
+              "score": 95.932633,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -1820,7 +2105,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 20.0,
-              "score": 95.848208,
+              "score": 91.949709,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -1831,7 +2116,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 65.0,
-              "score": 67.515526,
+              "score": 64.769422,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1853"
@@ -1853,26 +2138,37 @@
           "testId": 4,
           "scale": "n32869",
           "threshold": 300.0,
-          "record": 19.0,
+          "record": 16.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 16.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 19.0,
-              "score": 100.0,
+              "score": 97.898482,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -1881,7 +2177,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 28.0,
-              "score": 93.696888,
+              "score": 91.727832,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -1914,26 +2210,37 @@
           "testId": 5,
           "scale": "n65606",
           "threshold": 300.0,
-          "record": 22.0,
+          "record": 11.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 11.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 22.0,
-              "score": 100.0,
+              "score": 92.532417,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -1942,7 +2249,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 25.0,
-              "score": 97.853372,
+              "score": 90.54609,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -1975,26 +2282,37 @@
           "testId": 6,
           "scale": "n1599",
           "threshold": 300.0,
-          "record": 18.0,
+          "record": 12.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 12.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 18.0,
-              "score": 100.0,
+              "score": 95.876736,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -2003,7 +2321,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 21.0,
-              "score": 97.883658,
+              "score": 93.847656,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -2044,6 +2362,12 @@
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
@@ -2057,6 +2381,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1983"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 27.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -2097,26 +2432,37 @@
           "testId": 8,
           "scale": "n40463",
           "threshold": 300.0,
-          "record": 30.0,
+          "record": 16.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 16.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 30.0,
-              "score": 100.0,
+              "score": 90.383852,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -2125,7 +2471,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 31.0,
-              "score": 99.260631,
+              "score": 89.715582,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -2158,26 +2504,37 @@
           "testId": 9,
           "scale": "n38218",
           "threshold": 300.0,
-          "record": 30.0,
+          "record": 21.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 21.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 30.0,
-              "score": 100.0,
+              "score": 93.652445,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             },
             {
@@ -2186,7 +2543,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 36.0,
-              "score": 95.604938,
+              "score": 89.536363,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1899"
@@ -2242,6 +2599,17 @@
               "sourceSubmissionId": "1983"
             },
             {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 26.0,
+              "score": 97.845665,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2030"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -2280,26 +2648,37 @@
           "testId": 11,
           "scale": "n94920",
           "threshold": 300.0,
-          "record": 52.0,
+          "record": 41.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 41.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 52.0,
-              "score": 100.0,
+              "score": 91.68617,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             },
             {
@@ -2308,7 +2687,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 70.0,
-              "score": 86.010666,
+              "score": 78.859886,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1899"
@@ -2349,6 +2728,12 @@
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
@@ -2362,6 +2747,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1899"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -2402,26 +2798,37 @@
           "testId": 13,
           "scale": "n2049",
           "threshold": 300.0,
-          "record": 10.0,
+          "record": 4.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 4.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 10.0,
-              "score": 100.0,
+              "score": 95.987034,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -2430,7 +2837,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 98.625446,
+              "score": 94.667641,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1853"
@@ -2441,7 +2848,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 15.0,
-              "score": 96.581451,
+              "score": 92.70567,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -2463,26 +2870,37 @@
           "testId": 14,
           "scale": "n8205",
           "threshold": 300.0,
-          "record": 10.0,
+          "record": 7.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 7.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 10.0,
-              "score": 100.0,
+              "score": 97.962702,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -2491,7 +2909,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 19.0,
-              "score": 93.889417,
+              "score": 91.97661,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -2502,7 +2920,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 94.0,
-              "score": 50.458977,
+              "score": 49.430978,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1853"
@@ -2524,26 +2942,37 @@
           "testId": 15,
           "scale": "n16395",
           "threshold": 300.0,
-          "record": 14.0,
+          "record": 8.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 8.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 100.0,
+              "score": 95.932633,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -2552,7 +2981,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 19.0,
-              "score": 96.53406,
+              "score": 92.607666,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -2563,7 +2992,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 64.0,
-              "score": 68.091349,
+              "score": 65.321824,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1853"
@@ -2585,26 +3014,37 @@
           "testId": 16,
           "scale": "n32882",
           "threshold": 300.0,
-          "record": 17.0,
+          "record": 11.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 11.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 17.0,
-              "score": 100.0,
+              "score": 95.890854,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1899"
             },
             {
@@ -2613,7 +3053,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 24.0,
-              "score": 95.114185,
+              "score": 91.205805,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1983"
@@ -2646,26 +3086,37 @@
           "testId": 17,
           "scale": "n65617",
           "threshold": 300.0,
-          "record": 23.0,
+          "record": 17.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 17.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 23.0,
-              "score": 100.0,
+              "score": 95.804667,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             },
             {
@@ -2674,7 +3125,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 24.0,
-              "score": 99.279282,
+              "score": 95.114185,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1899"
@@ -2707,26 +3158,37 @@
           "testId": 18,
           "scale": "n1216",
           "threshold": 300.0,
-          "record": 18.0,
+          "record": 15.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 15.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 18.0,
-              "score": 100.0,
+              "score": 97.905817,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             },
             {
@@ -2735,7 +3197,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 20.0,
-              "score": 98.58659,
+              "score": 96.522007,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1899"
@@ -2768,26 +3230,37 @@
           "testId": 19,
           "scale": "n3831",
           "threshold": 300.0,
-          "record": 26.0,
+          "record": 24.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
               "mode": "agent",
-              "harness": "DeepSeek Harness"
+              "harness": "Codex"
             }
           ],
           "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 24.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2030"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 26.0,
-              "score": 100.0,
+              "score": 98.555976,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1983"
             },
             {
@@ -2796,7 +3269,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 44.0,
-              "score": 87.292877,
+              "score": 86.032346,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1899"
@@ -2861,6 +3334,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1899"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "agent",
+              "harness": "Codex",
+              "interactionCount": 33.0,
+              "score": 96.357321,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2030"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
