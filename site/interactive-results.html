@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Per-point interactive benchmark results for AlgoScale" />
+    <meta name="theme-color" content="#f3f0e8" />
+    <title>Interactive results · AlgoScale</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./interactive-results.css?v=20261121-point-results" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="results-nav">
+      <a class="brand" href="./"><span class="brand-mark">A²</span><span>AlgoScale</span></a>
+      <a class="back-link" href="./#catalog">Problem catalog</a>
+    </header>
+
+    <main id="main">
+      <section class="results-head">
+        <p class="eyebrow">Interactive point results</p>
+        <div class="heading-row">
+          <div>
+            <p class="problem-number" id="problem-number">Loading…</p>
+            <h1 id="problem-title">Interactive results</h1>
+            <p class="problem-description" id="problem-description"></p>
+          </div>
+          <div class="head-actions">
+            <a id="original-link" href="#" target="_blank" rel="noreferrer">Original problem</a>
+            <a id="statement-link" href="#">AlgoScale statement</a>
+          </div>
+        </div>
+      </section>
+
+      <section id="loading" class="message-card" aria-live="polite">Loading point results…</section>
+      <section id="error" class="message-card error" hidden aria-live="assertive"></section>
+
+      <section id="results" hidden>
+        <div class="scope-bar">
+          <div>
+            <span class="scope-label">Record scope</span>
+            <div class="scope-tabs" role="tablist" aria-label="Record scope">
+              <button type="button" role="tab" data-scope="direct">Direct</button>
+              <button type="button" role="tab" data-scope="agent">Agent</button>
+              <button type="button" role="tab" data-scope="combined">Combined</button>
+            </div>
+          </div>
+          <p class="scope-note" id="scope-note"></p>
+        </div>
+
+        <div class="summary-grid" aria-label="Problem result summary">
+          <article><span>Test points</span><strong id="summary-points">—</strong></article>
+          <article><span>Evaluated configurations</span><strong id="summary-competitors">—</strong></article>
+          <article><span>Points with a record</span><strong id="summary-records">—</strong></article>
+          <article><span>Measured quantity</span><strong id="summary-metric">—</strong></article>
+        </div>
+
+        <div class="point-section-head">
+          <div>
+            <p class="section-kicker">Point-by-point</p>
+            <h2>Current records and model results</h2>
+          </div>
+          <p><span id="status">Preliminary</span> · Updated <span id="updated">—</span></p>
+        </div>
+
+        <div class="point-columns" aria-hidden="true">
+          <span>Point</span><span>Scale</span><span>Zero line Tᵢ</span><span>Best Pᵢ</span><span>Record holder</span><span>Results</span>
+        </div>
+        <div id="point-list" class="point-list"></div>
+      </section>
+    </main>
+
+    <script src="./interactive-results.js?v=20261121-point-results" defer></script>
+  </body>
+</html>

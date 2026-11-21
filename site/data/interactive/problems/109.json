@@ -1,0 +1,2904 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-11-21",
+  "status": "Preliminary",
+  "problem": {
+    "problemId": 109,
+    "title": "Guess the K-th Zero (Hard version)",
+    "dataVersion": "sha256:3bcb819da392df85ab3ef6dd1aede709aa1cd2c410de9042d78254444f5b2a7f",
+    "pointCount": 20,
+    "metric": {
+      "name": "queries",
+      "description": "Number of chargeable query commands"
+    }
+  },
+  "scopes": {
+    "direct": {
+      "competitorCount": 3,
+      "competitors": [
+        {
+          "model": "GPT-6.2 Sol",
+          "modelKey": "gpt-6.2-sol",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 93.954019
+        },
+        {
+          "model": "GPT-6.2 Astra",
+          "modelKey": "gpt-6.2-astra",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 90.951056
+        },
+        {
+          "model": "DeepSeek V4.1 Flash 1017",
+          "modelKey": "deepseek-v4.1-flash-1017",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 83.603171
+        }
+      ],
+      "points": [
+        {
+          "testId": 1,
+          "scale": "n1_rounds1",
+          "threshold": 60000.0,
+          "record": 0.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 2,
+          "scale": "n63_rounds9",
+          "threshold": 60000.0,
+          "record": 7.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 7.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9.0,
+              "score": 99.993333,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 99.983332,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 3,
+          "scale": "n200000_rounds9",
+          "threshold": 60000.0,
+          "record": 122.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 122.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 125.0,
+              "score": 99.98998,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 128.0,
+              "score": 99.97996,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 4,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46568.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46568.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47841.0,
+              "score": 81.94347,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 48024.0,
+              "score": 79.495438,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 5,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46151.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46151.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.677641,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.677641,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 6,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 638.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 638.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 937.0,
+              "score": 98.995159,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10012.0,
+              "score": 70.911141,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 7,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40676.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 40676.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 41703.0,
+              "score": 89.653184,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46420.0,
+              "score": 49.386185,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 8,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46218.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46218.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47896.0,
+              "score": 77.131777,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47920.0,
+              "score": 76.826204,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 9,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46148.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46148.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.635769,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46384.0,
+              "score": 96.621577,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 10,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 653.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 653.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 943.0,
+              "score": 99.025085,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10011.0,
+              "score": 70.94983,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 11,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40627.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 40627.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 41839.0,
+              "score": 87.879132,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46147.0,
+              "score": 51.132133,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 12,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46313.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46313.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47755.0,
+              "score": 80.038888,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47911.0,
+              "score": 78.012505,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 13,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46146.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46146.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.60787,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46384.0,
+              "score": 96.593682,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 14,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 660.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 660.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 961.0,
+              "score": 98.98808,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10012.0,
+              "score": 70.963731,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 15,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40884.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 40884.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 42030.0,
+              "score": 88.369442,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46377.0,
+              "score": 50.786873,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 16,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46269.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46269.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47722.0,
+              "score": 79.955975,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47724.0,
+              "score": 79.929929,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            }
+          ]
+        },
+        {
+          "testId": 17,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46137.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46137.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.482473,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.482473,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 18,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 649.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 649.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 736.0,
+              "score": 99.707044,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10010.0,
+              "score": 70.943105,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 19,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40907.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 40907.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 42018.0,
+              "score": 88.700821,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46418.0,
+              "score": 50.603331,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 20,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 51087.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 51087.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 52106.0,
+              "score": 78.441598,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 53782.0,
+              "score": 48.669134,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            }
+          ]
+        }
+      ]
+    },
+    "agent": {
+      "competitorCount": 1,
+      "competitors": [
+        {
+          "model": "DeepSeek V4.1 Flash 1017",
+          "modelKey": "deepseek-v4.1-flash-1017",
+          "mode": "agent",
+          "harness": "DeepSeek Harness",
+          "problemScore": 100.0
+        }
+      ],
+      "points": [
+        {
+          "testId": 1,
+          "scale": "n1_rounds1",
+          "threshold": 60000.0,
+          "record": 1.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 2,
+          "scale": "n63_rounds9",
+          "threshold": 60000.0,
+          "record": 4.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 4.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 3,
+          "scale": "n200000_rounds9",
+          "threshold": 60000.0,
+          "record": 122.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 122.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 4,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46738.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46738.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 5,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46306.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46306.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 6,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 22.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 22.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 7,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40702.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 40702.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 8,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46866.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46866.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 9,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46334.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46334.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 10,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 25.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 25.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 11,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40695.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 40695.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 12,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46561.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46561.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 13,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46249.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46249.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 14,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 26.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 26.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 15,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40781.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 40781.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 16,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46674.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46674.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 17,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46397.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46397.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 18,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 25.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 25.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 19,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40874.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 40874.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 20,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 51699.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 51699.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        }
+      ]
+    },
+    "combined": {
+      "competitorCount": 4,
+      "competitors": [
+        {
+          "model": "GPT-6.2 Sol",
+          "modelKey": "gpt-6.2-sol",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 93.467836
+        },
+        {
+          "model": "GPT-6.2 Astra",
+          "modelKey": "gpt-6.2-astra",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 90.476447
+        },
+        {
+          "model": "DeepSeek V4.1 Flash 1017",
+          "modelKey": "deepseek-v4.1-flash-1017",
+          "mode": "agent",
+          "harness": "DeepSeek Harness",
+          "problemScore": 97.72871
+        },
+        {
+          "model": "DeepSeek V4.1 Flash 1017",
+          "modelKey": "deepseek-v4.1-flash-1017",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 83.272396
+        }
+      ],
+      "points": [
+        {
+          "testId": 1,
+          "scale": "n1_rounds1",
+          "threshold": 60000.0,
+          "record": 0.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 1.0,
+              "score": 99.996667,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 2,
+          "scale": "n63_rounds9",
+          "threshold": 60000.0,
+          "record": 4.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 4.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 7.0,
+              "score": 99.99,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9.0,
+              "score": 99.983333,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 99.973333,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 3,
+          "scale": "n200000_rounds9",
+          "threshold": 60000.0,
+          "record": 122.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 122.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 122.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 125.0,
+              "score": 99.98998,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 128.0,
+              "score": 99.97996,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 4,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46568.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46568.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46738.0,
+              "score": 97.48475,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47841.0,
+              "score": 81.94347,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 48024.0,
+              "score": 79.495438,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 5,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46151.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46151.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46306.0,
+              "score": 97.774098,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.677641,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.677641,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 6,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 22.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 22.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 638.0,
+              "score": 97.956462,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 937.0,
+              "score": 96.972155,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10012.0,
+              "score": 69.462045,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 7,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40676.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 40676.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 40702.0,
+              "score": 99.731086,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 41703.0,
+              "score": 89.653184,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46420.0,
+              "score": 49.386185,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 8,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46218.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46218.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46866.0,
+              "score": 90.817498,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47896.0,
+              "score": 77.131777,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47920.0,
+              "score": 76.826204,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 9,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46148.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46148.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46334.0,
+              "score": 97.332497,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.635769,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46384.0,
+              "score": 96.621577,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 10,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 25.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 25.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 653.0,
+              "score": 97.916758,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 943.0,
+              "score": 96.962153,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10011.0,
+              "score": 69.471773,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 11,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40627.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 40627.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 40695.0,
+              "score": 99.299224,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 41839.0,
+              "score": 87.879132,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46147.0,
+              "score": 51.132133,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 12,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46313.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46313.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46561.0,
+              "score": 96.408955,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47755.0,
+              "score": 80.038888,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47911.0,
+              "score": 78.012505,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 13,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46146.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46146.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46249.0,
+              "score": 98.518592,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.60787,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46384.0,
+              "score": 96.593682,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            }
+          ]
+        },
+        {
+          "testId": 14,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 26.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 26.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 660.0,
+              "score": 97.896926,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 961.0,
+              "score": 96.906287,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10012.0,
+              "score": 69.471311,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 15,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40781.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 40781.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 40884.0,
+              "score": 98.931016,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 42030.0,
+              "score": 87.424787,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46377.0,
+              "score": 50.243969,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 16,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 46269.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46269.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46674.0,
+              "score": 94.187937,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47722.0,
+              "score": 79.955975,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 47724.0,
+              "score": 79.929929,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            }
+          ]
+        },
+        {
+          "testId": 17,
+          "scale": "n131071_rounds10000",
+          "threshold": 60000.0,
+          "record": 46137.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46137.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.482473,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46383.0,
+              "score": 96.482473,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 46397.0,
+              "score": 96.284183,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            }
+          ]
+        },
+        {
+          "testId": 18,
+          "scale": "n131073_rounds10000",
+          "threshold": 60000.0,
+          "record": 25.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 25.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 649.0,
+              "score": 97.929958,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 736.0,
+              "score": 97.643066,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10010.0,
+              "score": 69.474553,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 19,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 40874.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness"
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 40874.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 40907.0,
+              "score": 99.655218,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 42018.0,
+              "score": 88.394997,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 46418.0,
+              "score": 50.42886,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1787"
+            }
+          ]
+        },
+        {
+          "testId": 20,
+          "scale": "n200000_rounds10000",
+          "threshold": 60000.0,
+          "record": 51087.0,
+          "metric": "queries",
+          "recordHolders": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null
+            }
+          ],
+          "results": [
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 51087.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "1787"
+            },
+            {
+              "model": "DeepSeek V4.1 Flash 1017",
+              "modelKey": "deepseek-v4.1-flash-1017",
+              "mode": "agent",
+              "harness": "DeepSeek Harness",
+              "interactionCount": 51699.0,
+              "score": 86.738721,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1953"
+            },
+            {
+              "model": "GPT-6.2 Sol",
+              "modelKey": "gpt-6.2-sol",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 52106.0,
+              "score": 78.441598,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1871"
+            },
+            {
+              "model": "GPT-6.2 Astra",
+              "modelKey": "gpt-6.2-astra",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 53782.0,
+              "score": 48.669134,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "1919"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

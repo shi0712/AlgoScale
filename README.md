@@ -80,9 +80,11 @@ and record-sharing rules are specified in
 python scripts/build_interactive_leaderboard.py
 ```
 
-The generated `site/data/interactive-leaderboard.json` contains Direct, Agent,
-and Combined boards. Reference solutions validate judge packages but are not
-entered as record-setting submissions.
+The generated `site/data/interactive-leaderboard.json` contains compact Direct,
+Agent, and Combined board summaries. Per-problem point records and model results
+are written to `site/data/interactive/problems/NNN.json` and are loaded only when
+a visitor opens that Interactive task. Reference solutions validate judge
+packages but are not entered as record-setting submissions.
 
 ## Local metadata admin
 
@@ -154,6 +156,7 @@ site/                         Static GitHub Pages site
   data/leaderboard.json       Standard-only preliminary evaluation results
   data/interactive-results.json  Point-level Interactive source results
   data/interactive-leaderboard.json  Generated Interactive leaderboards
+  data/interactive/problems/NNN.json  Lazy-loaded per-problem point results
 scripts/build_problem_catalog.py
 scripts/build_standard_leaderboard.py
 scripts/build_interactive_leaderboard.py

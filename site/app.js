@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261120-interactive-scores-v3";
+const SITE_RELEASE = "20261121-point-results";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",
@@ -121,6 +121,33 @@ function complexityNode(value, isNew = false) {
   }
   node.title = value;
   return node;
+}
+
+function zeroScoreNode(value) {
+  const source = String(value || "").trim();
+  if (!source) return pendingNode();
+
+  let formula = source;
+  let note = "";
+  const parenthetical = formula.match(/^(.*?)\s+(\([^()]+\))$/);
+  const unit = formula.match(/^(.*?)\s+(tastings)$/i);
+  if (parenthetical) [formula, note] = [parenthetical[1], parenthetical[2]];
+  else if (unit) [formula, note] = [unit[1], unit[2]];
+
+  const normalizedFormulas = {
+    "3n²/(2k)": "\\frac{3n^2}{2k}",
+    "2n²/k": "\\frac{2n^2}{k}",
+    "⌈7N/2⌉": "\\left\\lceil\\frac{7N}{2}\\right\\rceil",
+    "⌊5n/3⌋+5": "\\left\\lfloor\\frac{5n}{3}\\right\\rfloor+5",
+    "⌈log₁.₁₁₆(n)⌉−1": "\\left\\lceil\\log_{1.116}(n)\\right\\rceil-1",
+  };
+  formula = normalizedFormulas[formula] || formula;
+
+  const wrapper = element("span", "zero-line-value");
+  wrapper.append(complexityNode(formula, true));
+  if (note) wrapper.append(element("span", "zero-line-note", note));
+  wrapper.title = source;
+  return wrapper;
 }
 
 function problemDomains(problem) {
@@ -450,7 +477,12 @@ function renderStandardProblem(problem) {
 function renderInteractiveProblem(problem) {
   const row = document.createElement("tr");
   row.append(catalogCell("problem-id", "ID", `#${String(problem.id).padStart(2, "0")}`));
-  row.append(catalogCell("problem-name", "Title", problem.title));
+  const titleCell = catalogCell("problem-name", "Title");
+  const titleLink = element("a", "interactive-problem-link", problem.title);
+  titleLink.href = `./interactive-results.html?id=${problem.id}&scope=combined`;
+  const resultLabel = element("span", "interactive-result-label", "Point results");
+  titleCell.append(titleLink, resultLabel);
+  row.append(titleCell);
 
   const originalCell = catalogCell("", "Original problem");
   appendOriginalLinks(originalCell, problem);
@@ -470,7 +502,7 @@ function renderInteractiveProblem(problem) {
   const zeroCard = element("div", "zero-line-card");
   zeroCard.append(
     element("span", "complexity-label", "Zero-score line"),
-    complexityNode(problem.zeroScoreLine || problem.originalComplexity, true),
+    zeroScoreNode(problem.zeroScoreLine || problem.originalComplexity),
   );
   zeroCell.append(zeroCard);
   row.append(zeroCell);

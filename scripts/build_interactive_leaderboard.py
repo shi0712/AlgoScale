@@ -308,6 +308,151 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def compact_leaderboard(result: dict[str, Any]) -> dict[str, Any]:
+    """Keep the homepage payload small; point data is published per problem."""
+    boards: dict[str, Any] = {}
+    for scope, board in result["boards"].items():
+        boards[scope] = {
+            "problemCount": board["problemCount"],
+            "pointCount": board["pointCount"],
+            "rows": [
+                {key: value for key, value in row.items() if key != "problemScores"}
+                for row in board["rows"]
+            ],
+        }
+    return {
+        "schemaVersion": result["schemaVersion"],
+        "updated": result["updated"],
+        "status": result["status"],
+        "boards": boards,
+    }
+
+
+def build_problem_details(
+    raw: dict[str, Any], result: dict[str, Any]
+) -> dict[int, dict[str, Any]]:
+    """Build one lazy-loadable point-result payload for each Interactive task."""
+    raw_problems = {
+        positive_int(problem.get("problemId"), "problem.problemId"): problem
+        for problem in raw.get("problems", [])
+    }
+    details: dict[int, dict[str, Any]] = {}
+
+    for problem_id, problem in sorted(raw_problems.items()):
+        raw_points = {
+            positive_int(point.get("testId"), "point.testId"): point
+            for point in problem["points"]
+        }
+        scopes: dict[str, Any] = {}
+
+        for scope, board in result["boards"].items():
+            competitors: list[dict[str, Any]] = []
+            per_competitor_points: list[tuple[dict[str, Any], dict[int, dict[str, Any]]]] = []
+
+            for row in board["rows"]:
+                problem_score = next(
+                    item for item in row["problemScores"]
+                    if item["problemId"] == problem_id
+                )
+                competitor = {
+                    "model": row["model"],
+                    "modelKey": row["modelKey"],
+                    "mode": row["mode"],
+                    "harness": row.get("harness"),
+                    "problemScore": problem_score["score"],
+                }
+                competitors.append(competitor)
+                per_competitor_points.append(
+                    (competitor, {point["testId"]: point for point in problem_score["points"]})
+                )
+
+            point_rows: list[dict[str, Any]] = []
+            for test_id, raw_point in sorted(raw_points.items()):
+                results: list[dict[str, Any]] = []
+                threshold: float | None = None
+                record: float | None = None
+                metric = require_text(raw_point.get("metric") or "interactions", "point.metric")
+
+                for competitor, point_map in per_competitor_points:
+                    point = point_map[test_id]
+                    threshold = point["threshold"]
+                    if point["record"] is not None:
+                        record = point["record"]
+                    is_record = (
+                        point["valid"]
+                        and point["record"] is not None
+                        and point["interactionCount"] == point["record"]
+                    )
+                    results.append(
+                        {
+                            "model": competitor["model"],
+                            "modelKey": competitor["modelKey"],
+                            "mode": competitor["mode"],
+                            "harness": competitor["harness"],
+                            "interactionCount": point["interactionCount"],
+                            "score": point["score"],
+                            "valid": point["valid"],
+                            "isRecord": is_record,
+                            "sourceSubmissionId": point["sourceSubmissionId"],
+                        }
+                    )
+
+                results.sort(
+                    key=lambda item: (
+                        not item["valid"],
+                        item["interactionCount"] is None,
+                        item["interactionCount"] if item["interactionCount"] is not None else float("inf"),
+                        item["model"].casefold(),
+                        item["mode"],
+                    )
+                )
+                point_rows.append(
+                    {
+                        "testId": test_id,
+                        "scale": str(raw_point.get("scale") or "").strip() or None,
+                        "threshold": threshold,
+                        "record": record,
+                        "metric": metric,
+                        "recordHolders": [
+                            {
+                                "model": item["model"],
+                                "modelKey": item["modelKey"],
+                                "mode": item["mode"],
+                                "harness": item["harness"],
+                            }
+                            for item in results if item["isRecord"]
+                        ],
+                        "results": results,
+                    }
+                )
+
+            scopes[scope] = {
+                "competitorCount": len(competitors),
+                "competitors": competitors,
+                "points": point_rows,
+            }
+
+        metric = problem.get("metric") if isinstance(problem.get("metric"), dict) else {}
+        details[problem_id] = {
+            "schemaVersion": 1,
+            "updated": result["updated"],
+            "status": result["status"],
+            "problem": {
+                "problemId": problem_id,
+                "title": require_text(problem.get("title"), "problem.title"),
+                "dataVersion": require_text(problem.get("dataVersion"), "problem.dataVersion"),
+                "pointCount": len(raw_points),
+                "metric": {
+                    "name": str(metric.get("name") or "interactions"),
+                    "description": str(metric.get("description") or metric.get("name") or "Interactions"),
+                },
+            },
+            "scopes": scopes,
+        }
+
+    return details
+
+
 def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(
@@ -317,6 +462,16 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
         output.write("\n")
         temporary = Path(output.name)
     temporary.replace(path)
+
+
+def write_problem_details(directory: Path, details: dict[int, dict[str, Any]]) -> None:
+    directory.mkdir(parents=True, exist_ok=True)
+    expected_names = {f"{problem_id:03d}.json" for problem_id in details}
+    for stale in directory.glob("*.json"):
+        if stale.name not in expected_names:
+            stale.unlink()
+    for problem_id, payload in details.items():
+        atomic_write_json(directory / f"{problem_id:03d}.json", payload)
 
 
 def main() -> None:
@@ -333,14 +488,21 @@ def main() -> None:
         type=Path,
         default=Path("site/data/interactive-leaderboard.json"),
     )
+    parser.add_argument(
+        "--detail-output-dir",
+        type=Path,
+        default=Path("site/data/interactive/problems"),
+    )
     args = parser.parse_args()
     raw = json.loads(args.input.read_text(encoding="utf-8"))
     result = build(raw)
-    atomic_write_json(args.output, result)
+    atomic_write_json(args.output, compact_leaderboard(result))
+    write_problem_details(args.detail_output_dir, build_problem_details(raw, result))
     print(
         f"interactive leaderboard: {result['boards']['combined']['problemCount']} problems, "
         f"{result['boards']['combined']['pointCount']} points, "
-        f"{len(result['boards']['combined']['rows'])} competitors"
+        f"{len(result['boards']['combined']['rows'])} competitors; "
+        f"{len(result['boards']['combined']['rows'][0]['problemScores']) if result['boards']['combined']['rows'] else 0} detail files"
     )
 
 

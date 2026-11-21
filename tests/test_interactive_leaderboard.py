@@ -6,7 +6,12 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from build_interactive_leaderboard import DataError, build  # noqa: E402
+from build_interactive_leaderboard import (  # noqa: E402
+    DataError,
+    build,
+    build_problem_details,
+    compact_leaderboard,
+)
 
 
 def fixture():
@@ -144,6 +149,27 @@ class InteractiveLeaderboardTest(unittest.TestCase):
         data["submissions"][0]["dataVersion"] = "old"
         with self.assertRaises(DataError):
             build(data)
+
+    def test_compact_homepage_and_problem_detail_payloads(self):
+        data = fixture()
+        result = build(data)
+        compact = compact_leaderboard(result)
+        self.assertNotIn("problemScores", compact["boards"]["direct"]["rows"][0])
+
+        details = build_problem_details(data, result)[80]
+        combined = details["scopes"]["combined"]
+        self.assertEqual(details["problem"]["pointCount"], 2)
+        self.assertEqual(combined["points"][0]["record"], 20.0)
+        self.assertEqual(
+            [holder["model"] for holder in combined["points"][0]["recordHolders"]],
+            ["Model B"],
+        )
+        direct_result = next(
+            item for item in combined["points"][0]["results"]
+            if item["mode"] == "direct"
+        )
+        self.assertEqual(direct_result["interactionCount"], 30.0)
+        self.assertEqual(direct_result["sourceSubmissionId"], "d2")
 
 
 if __name__ == "__main__":

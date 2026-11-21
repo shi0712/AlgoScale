@@ -371,6 +371,9 @@ table { width: 100%; border-collapse: collapse; }
 .catalog-table tbody tr:hover { background: rgba(255,255,255,.45); }
 .problem-id { color: #7a7d75; font-family: var(--mono); }
 .problem-name { overflow-wrap: anywhere; font-weight: 800; }
+.interactive-problem-link { color: inherit; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.interactive-problem-link:hover { color: #4f7d00; }
+.interactive-result-label { display: block; margin-top: 5px; color: #5d850f; font-family: var(--mono); font-size: 8px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; }
 .original-link { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; text-underline-offset: 3px; }
 .platform-label { display: block; margin-top: 4px; color: #7a7d75; font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
 .complexity-cell { container-type: inline-size; }
@@ -466,6 +469,8 @@ table { width: 100%; border-collapse: collapse; }
   background: var(--acid-soft);
 }
 .zero-line-card .complexity { font-size: 15px; }
+.zero-line-value { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 5px; }
+.zero-line-note { color: #666d5f; font-family: var(--sans); font-size: 9px; font-weight: 500; line-height: 1.35; }
 .reference-link {
   display: block;
   width: fit-content;
