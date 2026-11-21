@@ -59,9 +59,9 @@ button, select { cursor: pointer; }
 .toolbar button { min-width: 120px; padding: 0 18px; border: 0; background: var(--accent); font-family: var(--mono); font-size: 9px; font-weight: 700; text-transform: uppercase; }
 .toolbar button:hover { background: #a6ed2c; }
 
-.explorer-shell { min-height: 690px; margin-top: 18px; display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); border: 1px solid var(--ink); background: var(--ink); gap: 1px; }
+.explorer-shell { min-height: 690px; margin-top: 18px; display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); border: 1px solid var(--ink); background: var(--card); }
 .problem-pane, .code-pane { min-width: 0; background: var(--card); }
-.problem-pane { max-height: 760px; overflow: hidden; display: flex; flex-direction: column; }
+.problem-pane { min-height: 690px; max-height: 760px; overflow: hidden; display: flex; flex-direction: column; border-right: 1px solid var(--ink); }
 .pane-heading { flex: 0 0 auto; display: flex; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--ink); font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
 .pane-heading strong { color: var(--accent-dark); }
 .problem-list { overflow-y: auto; scrollbar-width: thin; }
@@ -132,7 +132,7 @@ footer > a:last-child { justify-self: end; color: #aeb2a9; font-size: 10px; }
   .page-hero { padding-top: 50px; }
   .page-hero h1 { font-size: 62px; }
   .explorer-shell { display: block; }
-  .problem-pane { max-height: 330px; border-bottom: 1px solid var(--ink); }
+  .problem-pane { min-height: 0; max-height: 330px; border-right: 0; border-bottom: 1px solid var(--ink); }
   .code-pane, .detail-empty { min-height: 620px; }
   .detail-header { align-items: flex-start; flex-direction: column; }
   .code-frame { height: 390px; }
