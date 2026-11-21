@@ -62,7 +62,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 99.972731,
+      "score": 99.860164,
       "sourceCodeUrl": "./generated/interactive/submissions/1789.cpp"
     },
     {
@@ -75,7 +75,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 99.983273,
+      "score": 99.870712,
       "sourceCodeUrl": "./generated/interactive/submissions/1913.cpp"
     },
     {
@@ -88,34 +88,54 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 99.972954,
+      "score": 99.860446,
       "sourceCodeUrl": "./generated/interactive/submissions/1863.cpp"
+    },
+    {
+      "submissionId": "2119",
+      "model": "GPT-OSS-120B",
+      "modelKey": "gpt-oss-120b",
+      "mode": "direct",
+      "harness": null,
+      "successfulPoints": 20,
+      "validScoringPoints": 20,
+      "pointCount": 20,
+      "allPointsSuccessful": true,
+      "score": 99.846647,
+      "sourceCodeUrl": "./generated/interactive/submissions/2119.cpp"
     }
   ],
   "scopes": {
     "direct": {
-      "competitorCount": 3,
+      "competitorCount": 4,
       "competitors": [
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
-          "problemScore": 99.972954
+          "problemScore": 99.860446
         },
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 99.983273
+          "problemScore": 99.870712
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "direct",
           "harness": null,
-          "problemScore": 99.972731
+          "problemScore": 99.860164
+        },
+        {
+          "model": "GPT-OSS-120B",
+          "modelKey": "gpt-oss-120b",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 99.846647
         }
       ],
       "points": [
@@ -178,6 +198,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1863"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 1.0,
+              "score": 99.804783,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -185,32 +216,37 @@
           "testId": 2,
           "scale": "n975_k7",
           "threshold": 12700.0,
-          "record": 1023.0,
+          "record": 1010.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "direct",
-              "harness": null
-            },
-            {
-              "model": "GPT-6.2 Sol",
-              "modelKey": "gpt-6.2-sol",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 1010.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 1023.0,
-              "score": 100.0,
+              "score": 99.777711,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1913"
             },
             {
@@ -219,9 +255,9 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 1023.0,
-              "score": 100.0,
+              "score": 99.777711,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1863"
             },
             {
@@ -230,7 +266,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 1024.0,
-              "score": 99.982873,
+              "score": 99.760622,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
@@ -241,26 +277,37 @@
           "testId": 3,
           "scale": "n3450_k15",
           "threshold": 42400.0,
-          "record": 3587.0,
+          "record": 3524.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 3524.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "direct",
               "harness": null,
               "interactionCount": 3587.0,
-              "score": 100.0,
+              "score": 99.676155,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1789"
             },
             {
@@ -269,7 +316,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 3594.0,
-              "score": 99.963933,
+              "score": 99.640205,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1913"
@@ -280,7 +327,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 3618.0,
-              "score": 99.840323,
+              "score": 99.516996,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1863"
@@ -334,6 +381,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 8223.0,
+              "score": 98.916789,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -384,6 +442,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12272.0,
+              "score": 99.354424,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -391,26 +460,37 @@
           "testId": 6,
           "scale": "n14400_k30",
           "threshold": 173800.0,
-          "record": 14709.0,
+          "record": 14525.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14525.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "direct",
               "harness": null,
               "interactionCount": 14709.0,
-              "score": 100.0,
+              "score": 99.769087,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1789"
             },
             {
@@ -419,7 +499,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14744.0,
-              "score": 99.956005,
+              "score": 99.725193,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1913"
@@ -430,7 +510,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14752.0,
-              "score": 99.94595,
+              "score": 99.715162,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1863"
@@ -496,6 +576,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1863"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15012.0,
+              "score": 99.984338,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -546,6 +637,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1863"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9779.0,
+              "score": 99.966743,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -596,6 +698,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 13400.0,
+              "score": 99.820789,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -646,6 +759,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15219.0,
+              "score": 99.745579,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -653,26 +777,37 @@
           "testId": 11,
           "scale": "n15000_k29",
           "threshold": 181000.0,
-          "record": 15299.0,
+          "record": 15124.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15124.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "direct",
               "harness": null,
               "interactionCount": 15299.0,
-              "score": 100.0,
+              "score": 99.78911,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1789"
             },
             {
@@ -681,7 +816,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 15331.0,
-              "score": 99.96138,
+              "score": 99.750572,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1913"
@@ -692,7 +827,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 15376.0,
-              "score": 99.907083,
+              "score": 99.696389,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1863"
@@ -703,26 +838,37 @@
           "testId": 12,
           "scale": "n6300_k30",
           "threshold": 76600.0,
-          "record": 6593.0,
+          "record": 6451.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 6451.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "direct",
               "harness": null,
               "interactionCount": 6593.0,
-              "score": 100.0,
+              "score": 99.595557,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1789"
             },
             {
@@ -731,7 +877,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 6594.0,
-              "score": 99.997143,
+              "score": 99.592712,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1913"
@@ -742,7 +888,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 6628.0,
-              "score": 99.900035,
+              "score": 99.495997,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1863"
@@ -753,26 +899,37 @@
           "testId": 13,
           "scale": "n13650_k30",
           "threshold": 164800.0,
-          "record": 13966.0,
+          "record": 13800.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Sol",
-              "modelKey": "gpt-6.2-sol",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 13800.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "direct",
               "harness": null,
               "interactionCount": 13966.0,
-              "score": 100.0,
+              "score": 99.780253,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1863"
             },
             {
@@ -781,7 +938,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13974.0,
-              "score": 99.989393,
+              "score": 99.769669,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
@@ -792,7 +949,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13974.0,
-              "score": 99.989393,
+              "score": 99.769669,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1913"
@@ -858,6 +1015,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1863"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14954.0,
+              "score": 99.963678,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -865,26 +1033,37 @@
           "testId": 15,
           "scale": "n15000_k30",
           "threshold": 181000.0,
-          "record": 15339.0,
+          "record": 15208.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15208.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 15339.0,
-              "score": 100.0,
+              "score": 99.842033,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1913"
             },
             {
@@ -893,7 +1072,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 15376.0,
-              "score": 99.955335,
+              "score": 99.797439,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
@@ -904,7 +1083,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 15387.0,
-              "score": 99.942059,
+              "score": 99.784183,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1863"
@@ -915,26 +1094,37 @@
           "testId": 16,
           "scale": "n9300_k7",
           "threshold": 112600.0,
-          "record": 9365.0,
+          "record": 9337.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9337.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 9365.0,
-              "score": 100.0,
+              "score": 99.945777,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1913"
             },
             {
@@ -943,7 +1133,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 9366.0,
-              "score": 99.998063,
+              "score": 99.943841,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1863"
@@ -954,7 +1144,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 9370.0,
-              "score": 99.990314,
+              "score": 99.936096,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
@@ -965,26 +1155,37 @@
           "testId": 17,
           "scale": "n14055_k15",
           "threshold": 169660.0,
-          "record": 14216.0,
+          "record": 14137.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Sol",
-              "modelKey": "gpt-6.2-sol",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14137.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "direct",
               "harness": null,
               "interactionCount": 14216.0,
-              "score": 100.0,
+              "score": 99.898433,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1863"
             },
             {
@@ -993,7 +1194,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14220.0,
-              "score": 99.994854,
+              "score": 99.893292,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
@@ -1004,7 +1205,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14225.0,
-              "score": 99.988421,
+              "score": 99.886865,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1913"
@@ -1015,26 +1216,37 @@
           "testId": 18,
           "scale": "n14985_k29",
           "threshold": 180820.0,
-          "record": 15296.0,
+          "record": 15140.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "DeepSeek V4.1 Flash 1017",
-              "modelKey": "deepseek-v4.1-flash-1017",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15140.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "direct",
               "harness": null,
               "interactionCount": 15296.0,
-              "score": 100.0,
+              "score": 99.811774,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1789"
             },
             {
@@ -1043,7 +1255,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 15310.0,
-              "score": 99.983085,
+              "score": 99.79489,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1913"
@@ -1054,7 +1266,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 15324.0,
-              "score": 99.966171,
+              "score": 99.778008,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1863"
@@ -1108,6 +1320,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15803.0,
+              "score": 99.375807,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -1115,26 +1338,37 @@
           "testId": 20,
           "scale": "n15000_k30",
           "threshold": 181000.0,
-          "record": 15322.0,
+          "record": 15208.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15208.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 15322.0,
-              "score": 100.0,
+              "score": 99.862526,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1913"
             },
             {
@@ -1143,7 +1377,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 15342.0,
-              "score": 99.975858,
+              "score": 99.838417,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1863"
@@ -1154,7 +1388,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 15376.0,
-              "score": 99.934824,
+              "score": 99.797439,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1789"
@@ -2234,7 +2468,7 @@
       ]
     },
     "combined": {
-      "competitorCount": 6,
+      "competitorCount": 7,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
@@ -2277,6 +2511,13 @@
           "mode": "direct",
           "harness": null,
           "problemScore": 99.754513
+        },
+        {
+          "model": "GPT-OSS-120B",
+          "modelKey": "gpt-oss-120b",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 99.740978
         }
       ],
       "points": [
@@ -2390,6 +2631,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1863"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 1.0,
+              "score": 99.804783,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -2429,6 +2681,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 1010.0,
+              "score": 99.829133,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -2512,6 +2775,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 3524.0,
+              "score": 99.784278,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             },
             {
               "model": "GPT-6.2 Sol",
@@ -2639,6 +2913,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 8223.0,
+              "score": 98.58958,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -2722,6 +3007,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12272.0,
+              "score": 99.245625,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -2761,6 +3057,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14525.0,
+              "score": 99.841971,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             },
             {
               "model": "GPT-6.2 Sol",
@@ -2918,6 +3225,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1863"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15012.0,
+              "score": 99.984338,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -3001,6 +3319,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2095"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9779.0,
+              "score": 99.966743,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -3084,6 +3413,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 13400.0,
+              "score": 99.820789,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -3167,6 +3507,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15219.0,
+              "score": 99.712782,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -3206,6 +3557,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15124.0,
+              "score": 99.849455,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             },
             {
               "model": "GPT-6.2 Sol",
@@ -3302,6 +3664,17 @@
               "sourceSubmissionId": "2044"
             },
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 6451.0,
+              "score": 99.732537,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "direct",
@@ -3372,6 +3745,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 13800.0,
+              "score": 99.880901,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             },
             {
               "model": "GPT-6.2 Sol",
@@ -3529,6 +3913,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1863"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14954.0,
+              "score": 99.963678,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -3568,6 +3963,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15208.0,
+              "score": 99.891519,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -3653,6 +4059,17 @@
               "sourceSubmissionId": "1982"
             },
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9337.0,
+              "score": 99.926442,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -3736,6 +4153,17 @@
               "sourceSubmissionId": "1982"
             },
             {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14137.0,
+              "score": 99.942156,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "agent",
@@ -3817,6 +4245,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15140.0,
+              "score": 99.88301,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -3944,6 +4383,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1982"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15803.0,
+              "score": 99.375807,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             }
           ]
         },
@@ -3994,6 +4444,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2044"
+            },
+            {
+              "model": "GPT-OSS-120B",
+              "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 15208.0,
+              "score": 99.794036,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2119"
             },
             {
               "model": "GPT-6.2 Astra",

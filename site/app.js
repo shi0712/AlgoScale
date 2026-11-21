@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261121-point-results";
+const SITE_RELEASE = "20261121-gpt-oss-interactive";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",

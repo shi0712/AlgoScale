@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261121-submission-archive";
+const SITE_RELEASE = "20261121-gpt-oss-submission-archive";
 const VALID_KINDS = new Set(["standard", "interactive"]);
 
 const state = {
