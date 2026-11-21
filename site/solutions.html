@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Accepted C++ submissions for the AlgoScale benchmark." />
+    <meta name="description" content="C++ submissions used for the reported Standard and Interactive AlgoScale results." />
     <meta name="theme-color" content="#f3f0e8" />
-    <title>Accepted Solutions — AlgoScale</title>
+    <title>Submission Archive — AlgoScale</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github-dark.min.css" />
-    <link rel="stylesheet" href="./solutions.css?v=20261115-1" />
+    <link rel="stylesheet" href="./solutions.css?v=20261121-submission-archive" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -22,7 +22,7 @@
       <nav class="page-nav" aria-label="Page navigation">
         <a href="./#leaderboard">Leaderboard</a>
         <a href="./#catalog">Problems</a>
-        <a class="is-current" href="./solutions.html" aria-current="page">Accepted solutions</a>
+        <a class="is-current" href="./solutions.html" aria-current="page">Submissions</a>
         <a class="nav-github" href="https://github.com/shi0712/AlgoScale" target="_blank" rel="noreferrer">GitHub ↗</a>
       </nav>
     </header>
@@ -31,12 +31,13 @@
       <section class="page-hero">
         <div>
           <p class="eyebrow"><span></span> Executable evidence</p>
-          <h1>Accepted<br /><em>solutions.</em></h1>
+          <h1>Submission<br /><em>archive.</em></h1>
         </div>
         <div class="hero-note">
           <p>
-            Browse the C++ programs that received a full score under the current
-            AlgoScale judge data. Superseded or failed submissions are not published.
+            Inspect the exact C++ programs behind the reported results. Standard keeps
+            full-score submissions; Interactive keeps each evaluated configuration's
+            current scoring program, including partial-score results.
           </p>
           <dl class="summary-stats" aria-label="Solution archive statistics">
             <div><dt>Programs</dt><dd id="stat-programs">—</dd></div>
@@ -46,7 +47,16 @@
         </div>
       </section>
 
-      <section class="workspace" aria-label="Accepted solution explorer">
+      <section class="workspace" aria-label="Submission explorer">
+        <div class="archive-tabs" role="tablist" aria-label="Benchmark type">
+          <button class="is-active" type="button" role="tab" data-kind="standard" aria-selected="true">
+            <span>Standard</span><small>Full-score submissions only</small>
+          </button>
+          <button type="button" role="tab" data-kind="interactive" aria-selected="false">
+            <span>Interactive</span><small>Current scoring submissions</small>
+          </button>
+        </div>
+        <p id="archive-note" class="archive-note"></p>
         <div class="toolbar">
           <label class="search-field">
             <span>Search</span>
@@ -68,19 +78,19 @@
         </div>
 
         <div class="explorer-shell">
-          <aside class="problem-pane" aria-label="Problems with accepted solutions">
+          <aside class="problem-pane" aria-label="Problems with published submissions">
             <div class="pane-heading">
               <span>Problems</span>
               <strong id="result-count">0</strong>
             </div>
             <div id="problem-list" class="problem-list"></div>
-            <p id="problem-empty" class="empty-message" hidden>No accepted solutions match these filters.</p>
+            <p id="problem-empty" class="empty-message" hidden>No submissions match these filters.</p>
           </aside>
 
           <article class="code-pane" aria-live="polite">
             <div id="detail-empty" class="detail-empty">
               <span>A²</span>
-              <p>Select a problem to inspect its accepted programs.</p>
+              <p>Select a problem to inspect its published programs.</p>
             </div>
             <div id="detail-content" hidden>
               <header class="detail-header">
@@ -92,7 +102,7 @@
               </header>
               <div class="variant-section">
                 <div class="variant-heading">
-                  <span>Accepted variants</span>
+                  <span id="variant-label">Published variants</span>
                   <span id="variant-count"></span>
                 </div>
                 <div id="variant-list" class="variant-list" role="list"></div>
@@ -122,12 +132,12 @@
 
     <footer>
       <a class="brand" href="./"><span class="brand-mark">A²</span><span>AlgoScale</span></a>
-      <p>Only judge-accepted C++ programs are retained in this archive.</p>
+      <p>Standard publishes full-score code; Interactive publishes the current code used for scoring.</p>
       <a href="https://github.com/shi0712/AlgoScale" target="_blank" rel="noreferrer">Repository ↗</a>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/languages/cpp.min.js" defer></script>
-    <script src="./solutions.js?v=20261116-agent-rounds" defer></script>
+    <script src="./solutions.js?v=20261121-submission-archive" defer></script>
   </body>
 </html>

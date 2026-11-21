@@ -10,6 +10,7 @@ from build_interactive_leaderboard import (  # noqa: E402
     DataError,
     build,
     build_problem_details,
+    build_submission_archive,
     compact_leaderboard,
 )
 
@@ -208,6 +209,17 @@ class InteractiveLeaderboardTest(unittest.TestCase):
         self.assertTrue(retry["allPointsSuccessful"])
         self.assertEqual(
             retry["sourceCodeUrl"],
+            "./generated/interactive/submissions/d2.cpp",
+        )
+        archive = build_submission_archive({80: details})
+        archived_retry = next(
+            item for item in archive["entries"]
+            if item["submissionId"] == "d2"
+        )
+        self.assertEqual(archived_retry["score"], 100.0)
+        self.assertEqual(archived_retry["track"], "direct")
+        self.assertEqual(
+            archived_retry["path"],
             "./generated/interactive/submissions/d2.cpp",
         )
 

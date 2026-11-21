@@ -44,7 +44,6 @@ const els = {
   menu: document.querySelector(".menu-button"),
   heroProblemCount: document.querySelector("#hero-problem-count"),
   statProblemCount: document.querySelector("#stat-problem-count"),
-  statInteractiveCount: document.querySelector("#stat-interactive-count"),
 };
 
 function element(tag, className, text) {
@@ -560,11 +559,9 @@ async function loadData() {
   state.problems = await problemResponse.json();
   const leaderboard = await leaderboardResponse.json();
   const interactiveLeaderboard = await interactiveResponse.json();
-  const interactiveCount = state.problems.filter((problem) => problem.track === "Interactive").length;
   [els.heroProblemCount, els.statProblemCount].filter(Boolean).forEach((node) => {
     node.textContent = String(state.problems.length);
   });
-  els.statInteractiveCount.textContent = String(interactiveCount);
 
   document.querySelectorAll(".leaderboard-kind-tab").forEach((tab) => {
     tab.addEventListener("click", () => {

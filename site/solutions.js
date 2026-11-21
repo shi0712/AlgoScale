@@ -1,6 +1,10 @@
-const SITE_RELEASE = "20261116-kimi-offline-audit";
+"use strict";
+
+const SITE_RELEASE = "20261121-submission-archive";
+const VALID_KINDS = new Set(["standard", "interactive"]);
 
 const state = {
+  kind: "standard",
   problems: [],
   entries: [],
   filteredProblems: [],
@@ -10,6 +14,8 @@ const state = {
 };
 
 const elements = {
+  kindTabs: document.querySelectorAll("[data-kind]"),
+  archiveNote: document.querySelector("#archive-note"),
   search: document.querySelector("#solution-search"),
   track: document.querySelector("#track-filter"),
   model: document.querySelector("#model-filter"),
@@ -22,6 +28,7 @@ const elements = {
   detailId: document.querySelector("#detail-id"),
   detailTitle: document.querySelector("#detail-title"),
   problemLink: document.querySelector("#problem-link"),
+  variantLabel: document.querySelector("#variant-label"),
   variantList: document.querySelector("#variant-list"),
   variantCount: document.querySelector("#variant-count"),
   sourceMode: document.querySelector("#source-mode"),
@@ -33,17 +40,35 @@ const elements = {
   code: document.querySelector("#source-code"),
   loading: document.querySelector("#loading-source"),
   status: document.querySelector("#source-status"),
+  statPrograms: document.querySelector("#stat-programs"),
+  statProblems: document.querySelector("#stat-problems"),
+  statModels: document.querySelector("#stat-models"),
 };
 
 const padId = (id) => String(id).padStart(2, "0");
-const entryKey = (entry) => `${entry.problemId}:${entry.track}:${entry.modelKey}`;
+const entryKey = (entry) => [
+  entry.kind,
+  entry.problemId,
+  entry.track,
+  entry.modelKey,
+  entry.harness || "",
+  entry.submissionId || "",
+].join(":");
+
+function activeEntries() {
+  return state.entries.filter((entry) => entry.kind === state.kind);
+}
+
+function activeProblems() {
+  const trackName = state.kind === "standard" ? "Standard" : "Interactive";
+  return state.problems.filter((problem) => problem.track === trackName);
+}
 
 function matchingEntries() {
   const query = elements.search.value.trim().toLowerCase();
   const track = elements.track.value;
   const model = elements.model.value;
-
-  return state.entries.filter((entry) => {
+  return activeEntries().filter((entry) => {
     const haystack = `${entry.problemId} ${entry.title} ${entry.model} ${entry.track} ${entry.harness || ""}`.toLowerCase();
     return (!query || haystack.includes(query))
       && (track === "all" || entry.track === track)
@@ -52,26 +77,56 @@ function matchingEntries() {
 }
 
 function updateUrl(entry) {
-  if (!entry) return;
   const url = new URL(window.location.href);
-  url.searchParams.set("problem", entry.problemId);
-  url.searchParams.set("track", entry.track);
-  url.searchParams.set("model", entry.modelKey);
+  url.searchParams.set("kind", state.kind);
+  if (entry) {
+    url.searchParams.set("problem", entry.problemId);
+    url.searchParams.set("track", entry.track);
+    url.searchParams.set("model", entry.modelKey);
+  } else {
+    ["problem", "track", "model"].forEach((key) => url.searchParams.delete(key));
+  }
   history.replaceState(null, "", url);
 }
 
+function populateModels() {
+  const current = elements.model.value;
+  const models = [...new Map(activeEntries().map((entry) => [entry.modelKey, entry.model])).entries()]
+    .sort((a, b) => a[1].localeCompare(b[1]));
+  elements.model.replaceChildren(new Option("All models", "all"));
+  models.forEach(([key, label]) => elements.model.append(new Option(label, key)));
+  elements.model.value = models.some(([key]) => key === current) ? current : "all";
+}
+
+function updateArchiveContext() {
+  elements.kindTabs.forEach((button) => {
+    const active = button.dataset.kind === state.kind;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+    button.tabIndex = active ? 0 : -1;
+  });
+  const entries = activeEntries();
+  elements.archiveNote.textContent = state.kind === "standard"
+    ? "Standard publishes only C++ programs that received 100 points under the current judge data."
+    : "Interactive publishes the one current program used to score each model, mode, and problem; partial-score programs remain visible.";
+  elements.variantLabel.textContent = state.kind === "standard"
+    ? "Full-score variants"
+    : "Current scoring variants";
+  elements.statPrograms.textContent = entries.length;
+  elements.statProblems.textContent = new Set(entries.map((entry) => entry.problemId)).size;
+  elements.statModels.textContent = new Set(entries.map((entry) => entry.modelKey)).size;
+  populateModels();
+}
+
 function renderProblems() {
-  const entries = matchingEntries();
   const byProblem = new Map();
-  entries.forEach((entry) => {
+  matchingEntries().forEach((entry) => {
     if (!byProblem.has(entry.problemId)) byProblem.set(entry.problemId, []);
     byProblem.get(entry.problemId).push(entry);
   });
-
-  state.filteredProblems = state.problems
+  state.filteredProblems = activeProblems()
     .filter((problem) => byProblem.has(problem.id))
     .map((problem) => ({ ...problem, variants: byProblem.get(problem.id) }));
-
   elements.count.textContent = state.filteredProblems.length;
   elements.empty.hidden = state.filteredProblems.length > 0;
   elements.list.replaceChildren();
@@ -96,9 +151,9 @@ function renderProblems() {
     state.selectedEntry = null;
     elements.detail.hidden = true;
     elements.detailEmpty.hidden = false;
+    updateUrl(null);
     return;
   }
-
   if (!state.filteredProblems.some((problem) => problem.id === state.selectedProblemId)) {
     selectProblem(state.filteredProblems[0].id);
   } else {
@@ -110,12 +165,10 @@ function selectProblem(problemId, preferredEntry = null) {
   state.selectedProblemId = Number(problemId);
   const problem = state.filteredProblems.find((item) => item.id === state.selectedProblemId);
   if (!problem) return;
-
-  const chosen = preferredEntry && problem.variants.some((entry) => entryKey(entry) === entryKey(preferredEntry))
+  state.selectedEntry = preferredEntry
+    && problem.variants.some((entry) => entryKey(entry) === entryKey(preferredEntry))
     ? preferredEntry
     : problem.variants[0];
-  state.selectedEntry = chosen;
-
   elements.list.querySelectorAll(".problem-row").forEach((row) => {
     row.classList.toggle("is-active", Number(row.dataset.problemId) === state.selectedProblemId);
   });
@@ -125,12 +178,14 @@ function selectProblem(problemId, preferredEntry = null) {
 function renderDetail() {
   const problem = state.filteredProblems.find((item) => item.id === state.selectedProblemId);
   if (!problem || !state.selectedEntry) return;
-
   elements.detailEmpty.hidden = true;
   elements.detail.hidden = false;
-  elements.detailId.textContent = `Problem #${padId(problem.id)}`;
+  elements.detailId.textContent = `${state.kind === "standard" ? "Standard" : "Interactive"} problem #${padId(problem.id)}`;
   elements.detailTitle.textContent = problem.title;
-  elements.problemLink.href = `./?problem=${problem.id}#catalog`;
+  elements.problemLink.href = state.kind === "standard"
+    ? `./?problem=${problem.id}#catalog`
+    : `./interactive-results.html?id=${problem.id}&scope=${state.selectedEntry.track}`;
+  elements.problemLink.textContent = state.kind === "standard" ? "Problem metadata" : "Point results";
   elements.variantCount.textContent = `${problem.variants.length} program${problem.variants.length === 1 ? "" : "s"}`;
   elements.variantList.replaceChildren();
 
@@ -155,7 +210,6 @@ function renderDetail() {
       });
       elements.variantList.append(button);
     });
-
   loadSource(state.selectedEntry);
 }
 
@@ -164,14 +218,13 @@ async function loadSource(entry) {
   elements.sourceMode.textContent = entry.track;
   elements.sourceModel.textContent = entry.model;
   elements.sourceHarness.textContent = entry.harness ? `Harness: ${entry.harness}` : "";
-  renderTokenUsage(entry);
+  renderMetrics(entry);
   elements.raw.href = entry.path;
   elements.loading.hidden = false;
   elements.code.textContent = "";
   elements.code.removeAttribute("data-highlighted");
   elements.status.textContent = "";
   updateUrl(entry);
-
   try {
     let source = state.sourceCache.get(entry.path);
     if (source === undefined) {
@@ -182,8 +235,10 @@ async function loadSource(entry) {
     }
     if (!state.selectedEntry || entryKey(state.selectedEntry) !== requestKey) return;
     elements.code.textContent = source;
-    if (window.hljs) window.hljs.highlightElement(elements.code);
-    elements.status.textContent = `${entry.bytes.toLocaleString()} bytes · SHA-256 ${entry.sha256.slice(0, 12)}…`;
+    if (window.hljs && source.length <= 120000) window.hljs.highlightElement(elements.code);
+    elements.status.textContent = entry.kind === "standard"
+      ? `${entry.bytes.toLocaleString()} bytes · SHA-256 ${entry.sha256.slice(0, 12)}…`
+      : `${source.length.toLocaleString()} characters · UOJ submission #${entry.submissionId}`;
   } catch (error) {
     elements.code.textContent = "// Source unavailable.";
     elements.status.textContent = `Could not load this source (${error.message}).`;
@@ -192,37 +247,41 @@ async function loadSource(entry) {
   }
 }
 
-function renderTokenUsage(entry) {
+function renderMetrics(entry) {
   const metrics = [];
-  if (entry.track === "agent") {
-    metrics.push(["Interaction rounds", entry.rounds]);
-    metrics.push(["Input tokens", entry.inputTokens]);
-    metrics.push(["Cached input", entry.cachedInputTokens]);
+  if (entry.kind === "interactive") {
+    metrics.push(["Problem score", Number(entry.score).toLocaleString("en-US", { maximumFractionDigits: 2 })]);
+    metrics.push(["Correct points", `${entry.successfulPoints}/${entry.pointCount}`]);
+    metrics.push(["Scoring points", `${entry.validScoringPoints}/${entry.pointCount}`]);
+  } else {
+    if (entry.track === "agent") {
+      metrics.push(["Interaction rounds", entry.rounds]);
+      metrics.push(["Input tokens", entry.inputTokens]);
+      metrics.push(["Cached input", entry.cachedInputTokens]);
+    }
+    metrics.push(["Output tokens", entry.outputTokens]);
   }
-  metrics.push(["Output tokens", entry.outputTokens]);
   elements.usage.replaceChildren();
   metrics.forEach(([label, value]) => {
     const group = document.createElement("div");
     const term = document.createElement("dt");
     const amount = document.createElement("dd");
     term.textContent = label;
-    amount.textContent = Number.isFinite(Number(value))
-      ? Number(value).toLocaleString("en-US")
-      : "Unavailable";
+    amount.textContent = typeof value === "number" && Number.isFinite(value)
+      ? value.toLocaleString("en-US")
+      : value ?? "Unavailable";
     group.append(term, amount);
     elements.usage.append(group);
   });
 }
 
-function populateModels() {
-  const models = [...new Map(state.entries.map((entry) => [entry.modelKey, entry.model])).entries()]
-    .sort((a, b) => a[1].localeCompare(b[1]));
-  models.forEach(([key, label]) => {
-    const option = document.createElement("option");
-    option.value = key;
-    option.textContent = label;
-    elements.model.append(option);
-  });
+function switchKind(kind) {
+  if (!VALID_KINDS.has(kind) || kind === state.kind) return;
+  state.kind = kind;
+  state.selectedProblemId = null;
+  state.selectedEntry = null;
+  updateArchiveContext();
+  renderProblems();
 }
 
 async function copySource() {
@@ -239,41 +298,69 @@ async function copySource() {
 
 async function initialize() {
   try {
-    const [problemResponse, solutionResponse] = await Promise.all([
-      fetch("./data/problems.json"),
+    const [problemResponse, standardResponse, interactiveResponse] = await Promise.all([
+      fetch(`./data/problems.json?v=${SITE_RELEASE}`, { cache: "no-store" }),
       fetch(`./data/accepted-solutions.json?v=${SITE_RELEASE}`, { cache: "no-store" }),
+      fetch(`./data/interactive-submissions.json?v=${SITE_RELEASE}`, { cache: "no-store" }),
     ]);
-    if (!problemResponse.ok || !solutionResponse.ok) throw new Error("Archive metadata is unavailable.");
-    const [problems, manifest] = await Promise.all([problemResponse.json(), solutionResponse.json()]);
+    if (!problemResponse.ok || !standardResponse.ok || !interactiveResponse.ok) {
+      throw new Error("Archive metadata is unavailable.");
+    }
+    const [problems, standardManifest, interactiveManifest] = await Promise.all([
+      problemResponse.json(), standardResponse.json(), interactiveResponse.json(),
+    ]);
+    const standardProblemIds = new Set(
+      problems.filter((problem) => problem.track === "Standard").map((problem) => problem.id),
+    );
+    const interactiveProblemIds = new Set(
+      problems.filter((problem) => problem.track === "Interactive").map((problem) => problem.id),
+    );
     state.problems = problems.slice().sort((a, b) => a.id - b.id);
-    state.entries = manifest.entries.slice().sort((a, b) => a.problemId - b.problemId || a.track.localeCompare(b.track) || a.model.localeCompare(b.model));
-
-    document.querySelector("#stat-programs").textContent = state.entries.length;
-    document.querySelector("#stat-problems").textContent = new Set(state.entries.map((entry) => entry.problemId)).size;
-    document.querySelector("#stat-models").textContent = new Set(state.entries.map((entry) => entry.modelKey)).size;
-    populateModels();
+    state.entries = [
+      ...standardManifest.entries
+        .filter((entry) => standardProblemIds.has(entry.problemId))
+        .map((entry) => ({ ...entry, kind: "standard" })),
+      ...interactiveManifest.entries
+        .filter((entry) => interactiveProblemIds.has(entry.problemId))
+        .map((entry) => ({ ...entry, kind: "interactive" })),
+    ].sort((a, b) => a.kind.localeCompare(b.kind)
+      || a.problemId - b.problemId
+      || a.track.localeCompare(b.track)
+      || a.model.localeCompare(b.model));
 
     const params = new URLSearchParams(window.location.search);
-    const requestedProblem = Number(params.get("problem"));
+    state.kind = VALID_KINDS.has(params.get("kind")) ? params.get("kind") : "standard";
+    updateArchiveContext();
     const requestedTrack = params.get("track");
     const requestedModel = params.get("model");
     if (["direct", "agent"].includes(requestedTrack)) elements.track.value = requestedTrack;
-    if ([...elements.model.options].some((option) => option.value === requestedModel)) elements.model.value = requestedModel;
+    if ([...elements.model.options].some((option) => option.value === requestedModel)) {
+      elements.model.value = requestedModel;
+    }
     renderProblems();
 
-    const requestedEntry = state.entries.find((entry) => entry.problemId === requestedProblem
+    const requestedProblem = Number(params.get("problem"));
+    const requestedEntry = activeEntries().find((entry) => entry.problemId === requestedProblem
       && (!requestedTrack || entry.track === requestedTrack)
       && (!requestedModel || entry.modelKey === requestedModel));
     if (requestedEntry && state.filteredProblems.some((problem) => problem.id === requestedProblem)) {
       selectProblem(requestedProblem, requestedEntry);
     }
   } catch (error) {
-    elements.detailEmpty.innerHTML = `<span>!</span><p>${error.message}</p>`;
+    elements.detailEmpty.replaceChildren();
+    const marker = document.createElement("span");
+    const message = document.createElement("p");
+    marker.textContent = "!";
+    message.textContent = error.message;
+    elements.detailEmpty.append(marker, message);
   }
 }
 
 [elements.search, elements.track, elements.model].forEach((control) => {
   control.addEventListener(control === elements.search ? "input" : "change", renderProblems);
+});
+elements.kindTabs.forEach((button) => {
+  button.addEventListener("click", () => switchKind(button.dataset.kind));
 });
 elements.clear.addEventListener("click", () => {
   elements.search.value = "";

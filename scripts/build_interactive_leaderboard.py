@@ -477,6 +477,17 @@ def build_problem_details(
         current_submissions: dict[
             CompetitorKey, tuple[tuple[int, int, Decimal, int], dict[str, Any]]
         ] = {}
+        scope_scores = {
+            mode: {
+                (
+                    competitor["modelKey"],
+                    competitor["mode"],
+                    competitor.get("harness") or "",
+                ): competitor["problemScore"]
+                for competitor in scopes[mode]["competitors"]
+            }
+            for mode in VALID_MODES
+        }
         for submission in raw.get("submissions", []):
             if positive_int(submission.get("problemId"), "submission.problemId") != problem_id:
                 continue
@@ -513,6 +524,9 @@ def build_problem_details(
                 "validScoringPoints": valid_scoring_points,
                 "pointCount": len(raw_points),
                 "allPointsSuccessful": successful_points == len(raw_points),
+                "score": scope_scores[competitor.mode][
+                    (competitor.model_key, competitor.mode, competitor.harness)
+                ],
                 "sourceCodeUrl": submission_source_url(submission_id),
             }
             numeric_id = int(submission_id) if submission_id.isdigit() else 0
@@ -557,6 +571,37 @@ def build_problem_details(
     return details
 
 
+def build_submission_archive(details: dict[int, dict[str, Any]]) -> dict[str, Any]:
+    """Build the compact Interactive source index used by the submissions page."""
+    entries: list[dict[str, Any]] = []
+    updated = ""
+    for problem_id, detail in sorted(details.items()):
+        updated = detail["updated"]
+        title = detail["problem"]["title"]
+        for submission in detail["submissions"]:
+            entries.append(
+                {
+                    "problemId": problem_id,
+                    "title": title,
+                    "track": submission["mode"],
+                    "model": submission["model"],
+                    "modelKey": submission["modelKey"],
+                    "harness": submission.get("harness"),
+                    "submissionId": submission["submissionId"],
+                    "score": submission["score"],
+                    "successfulPoints": submission["successfulPoints"],
+                    "validScoringPoints": submission["validScoringPoints"],
+                    "pointCount": submission["pointCount"],
+                    "path": submission["sourceCodeUrl"],
+                }
+            )
+    return {
+        "schemaVersion": 1,
+        "updated": updated,
+        "entries": entries,
+    }
+
+
 def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(
@@ -597,11 +642,18 @@ def main() -> None:
         type=Path,
         default=Path("site/data/interactive/problems"),
     )
+    parser.add_argument(
+        "--submission-output",
+        type=Path,
+        default=Path("site/data/interactive-submissions.json"),
+    )
     args = parser.parse_args()
     raw = json.loads(args.input.read_text(encoding="utf-8"))
     result = build(raw)
     atomic_write_json(args.output, compact_leaderboard(result))
-    write_problem_details(args.detail_output_dir, build_problem_details(raw, result))
+    details = build_problem_details(raw, result)
+    write_problem_details(args.detail_output_dir, details)
+    atomic_write_json(args.submission_output, build_submission_archive(details))
     print(
         f"interactive leaderboard: {result['boards']['combined']['problemCount']} problems, "
         f"{result['boards']['combined']['pointCount']} points, "

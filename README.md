@@ -87,6 +87,12 @@ are written to `site/data/interactive/problems/NNN.json` and are loaded only whe
 a visitor opens that Interactive task. Reference solutions validate judge
 packages but are not entered as record-setting submissions.
 
+`site/data/interactive-submissions.json` is the compact Interactive source index
+for the public Submission Archive. The archive's Standard view reads the existing
+100-point manifest, while its Interactive view contains the single concrete
+program used to score each model, mode, and problem, including partial-score
+programs.
+
 Each model, mode, and problem is represented by one concrete submitted program.
 A retry can replace that program as a whole, but point results from multiple
 programs are never combined. The same selected program drives both the
@@ -164,6 +170,7 @@ site/                         Static GitHub Pages site
   data/leaderboard.json       Standard-only preliminary evaluation results
   data/interactive-results.json  Point-level Interactive source results
   data/interactive-leaderboard.json  Generated Interactive leaderboards
+  data/interactive-submissions.json  Current Interactive source index
   data/interactive/problems/NNN.json  Lazy-loaded per-problem point results
 scripts/build_problem_catalog.py
 scripts/build_standard_leaderboard.py
