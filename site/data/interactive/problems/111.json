@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-21",
+  "updated": "2026-11-23",
   "status": "Preliminary",
   "problem": {
     "problemId": 111,
@@ -62,7 +62,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 79.063117,
+      "score": 69.500617,
       "sourceCodeUrl": "./generated/interactive/submissions/1792.cpp"
     },
     {
@@ -75,7 +75,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 71.446566,
+      "score": 58.734066,
       "sourceCodeUrl": "./generated/interactive/submissions/1923.cpp"
     },
     {
@@ -88,7 +88,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 69.878125,
+      "score": 62.734375,
       "sourceCodeUrl": "./generated/interactive/submissions/1866.cpp"
     },
     {
@@ -101,8 +101,21 @@
       "validScoringPoints": 16,
       "pointCount": 20,
       "allPointsSuccessful": false,
-      "score": 63.284722,
+      "score": 57.772222,
       "sourceCodeUrl": "./generated/interactive/submissions/2133.cpp"
+    },
+    {
+      "submissionId": "2249",
+      "model": "Kimi K3.1 Pro",
+      "modelKey": "kimi-k3.1-pro",
+      "mode": "direct",
+      "harness": null,
+      "successfulPoints": 20,
+      "validScoringPoints": 20,
+      "pointCount": 20,
+      "allPointsSuccessful": true,
+      "score": 80.538117,
+      "sourceCodeUrl": "./generated/interactive/submissions/2249.cpp"
     },
     {
       "submissionId": "2203",
@@ -114,48 +127,55 @@
       "validScoringPoints": 11,
       "pointCount": 20,
       "allPointsSuccessful": false,
-      "score": 41.171875,
+      "score": 28.459375,
       "sourceCodeUrl": "./generated/interactive/submissions/2203.cpp"
     }
   ],
   "scopes": {
     "direct": {
-      "competitorCount": 5,
+      "competitorCount": 6,
       "competitors": [
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
-          "problemScore": 69.878125
+          "problemScore": 62.734375
         },
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 71.446566
+          "problemScore": 58.734066
+        },
+        {
+          "model": "Kimi K3.1 Pro",
+          "modelKey": "kimi-k3.1-pro",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 80.538117
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "direct",
           "harness": null,
-          "problemScore": 79.063117
+          "problemScore": 69.500617
         },
         {
           "model": "Qwen3.8-27B",
           "modelKey": "qwen3.8-27b",
           "mode": "direct",
           "harness": null,
-          "problemScore": 41.171875
+          "problemScore": 28.459375
         },
         {
           "model": "GPT-OSS-120B",
           "modelKey": "gpt-oss-120b",
           "mode": "direct",
           "harness": null,
-          "problemScore": 63.284722
+          "problemScore": 57.772222
         }
       ],
       "points": [
@@ -225,6 +245,17 @@
               "sourceSubmissionId": "1866"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -273,6 +304,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -347,6 +389,17 @@
               "sourceSubmissionId": "1792"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 11.0,
+              "score": 81.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "direct",
@@ -385,26 +438,37 @@
           "testId": 4,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "Qwen3.8-27B",
-              "modelKey": "qwen3.8-27b",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2203"
             },
             {
@@ -413,7 +477,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1923"
@@ -424,7 +488,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -435,7 +499,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -457,26 +521,37 @@
           "testId": 5,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1923"
             },
             {
@@ -485,7 +560,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -496,7 +571,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -507,7 +582,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2133"
@@ -518,7 +593,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2203"
@@ -580,6 +655,17 @@
               "sourceSubmissionId": "1866"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14.0,
+              "score": 56.25,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -607,26 +693,37 @@
           "testId": 7,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "Qwen3.8-27B",
-              "modelKey": "qwen3.8-27b",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2203"
             },
             {
@@ -635,7 +732,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1923"
@@ -646,7 +743,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -657,7 +754,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 16.0,
-              "score": 25.0,
+              "score": 16.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -730,6 +827,17 @@
               "sourceSubmissionId": "1866"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14.0,
+              "score": 56.25,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -757,26 +865,37 @@
           "testId": 9,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1923"
             },
             {
@@ -785,7 +904,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -796,7 +915,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2133"
@@ -807,7 +926,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2203"
@@ -818,7 +937,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -880,6 +999,17 @@
               "sourceSubmissionId": "1792"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 11.0,
+              "score": 81.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -939,6 +1069,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -1041,6 +1182,17 @@
               "sourceSubmissionId": "2133"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -1089,6 +1241,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 79.012346,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -1191,6 +1354,17 @@
               "sourceSubmissionId": "2133"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -1258,6 +1432,17 @@
               "sourceSubmissionId": "1866"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14.0,
+              "score": 56.25,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -1285,26 +1470,37 @@
           "testId": 16,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1923"
             },
             {
@@ -1313,7 +1509,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -1324,7 +1520,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -1335,7 +1531,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2133"
@@ -1346,7 +1542,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2203"
@@ -1357,26 +1553,37 @@
           "testId": 17,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "Qwen3.8-27B",
-              "modelKey": "qwen3.8-27b",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2203"
             },
             {
@@ -1385,7 +1592,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1923"
@@ -1396,7 +1603,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -1407,7 +1614,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 16.0,
-              "score": 25.0,
+              "score": 16.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -1474,6 +1681,17 @@
               "sourceSubmissionId": "1866"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 11.0,
+              "score": 81.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -1501,26 +1719,37 @@
           "testId": 19,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "Qwen3.8-27B",
-              "modelKey": "qwen3.8-27b",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2203"
             },
             {
@@ -1529,7 +1758,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1923"
@@ -1540,7 +1769,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -1551,7 +1780,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 16.0,
-              "score": 25.0,
+              "score": 16.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -1573,26 +1802,37 @@
           "testId": 20,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1923"
             },
             {
@@ -1601,7 +1841,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -1612,7 +1852,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2133"
@@ -1623,7 +1863,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2203"
@@ -1634,7 +1874,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -2828,63 +3068,70 @@
       ]
     },
     "combined": {
-      "competitorCount": 8,
+      "competitorCount": 9,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 81.250617
+          "problemScore": 68.538117
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 73.750617
+          "problemScore": 63.738117
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
-          "problemScore": 69.878125
+          "problemScore": 62.734375
         },
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 71.446566
+          "problemScore": 58.734066
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "agent",
           "harness": "DeepSeek Harness",
-          "problemScore": 67.813117
+          "problemScore": 62.300617
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "direct",
           "harness": null,
-          "problemScore": 79.063117
+          "problemScore": 69.500617
+        },
+        {
+          "model": "Kimi K3.1 Pro",
+          "modelKey": "kimi-k3.1-pro",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 80.538117
         },
         {
           "model": "Qwen3.8-27B",
           "modelKey": "qwen3.8-27b",
           "mode": "direct",
           "harness": null,
-          "problemScore": 41.171875
+          "problemScore": 28.459375
         },
         {
           "model": "GPT-OSS-120B",
           "modelKey": "gpt-oss-120b",
           "mode": "direct",
           "harness": null,
-          "problemScore": 63.284722
+          "problemScore": 57.772222
         }
       ],
       "points": [
@@ -3005,6 +3252,17 @@
               "sourceSubmissionId": "1866"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -3086,6 +3344,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1996"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -3193,6 +3462,17 @@
               "sourceSubmissionId": "1996"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 11.0,
+              "score": 81.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "direct",
@@ -3231,38 +3511,37 @@
           "testId": 4,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "agent",
-              "harness": "Codex"
-            },
-            {
-              "model": "GPT-6.2 Sol",
-              "modelKey": "gpt-6.2-sol",
-              "mode": "agent",
-              "harness": "Codex"
-            },
-            {
-              "model": "Qwen3.8-27B",
-              "modelKey": "qwen3.8-27b",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2058"
             },
             {
@@ -3271,9 +3550,9 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1996"
             },
             {
@@ -3282,9 +3561,9 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2203"
             },
             {
@@ -3293,7 +3572,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1923"
@@ -3304,7 +3583,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -3315,7 +3594,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -3348,26 +3627,37 @@
           "testId": 5,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1923"
             },
             {
@@ -3376,7 +3666,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1947"
@@ -3387,7 +3677,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -3398,7 +3688,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2058"
@@ -3409,7 +3699,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -3420,7 +3710,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2133"
@@ -3431,7 +3721,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2203"
@@ -3442,7 +3732,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 15.0,
-              "score": 39.0625,
+              "score": 25.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1996"
@@ -3543,6 +3833,17 @@
               "sourceSubmissionId": "1996"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14.0,
+              "score": 56.25,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -3570,38 +3871,37 @@
           "testId": 7,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "agent",
-              "harness": "Codex"
-            },
-            {
-              "model": "GPT-6.2 Sol",
-              "modelKey": "gpt-6.2-sol",
-              "mode": "agent",
-              "harness": "Codex"
-            },
-            {
-              "model": "Qwen3.8-27B",
-              "modelKey": "qwen3.8-27b",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2058"
             },
             {
@@ -3610,9 +3910,9 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1996"
             },
             {
@@ -3621,9 +3921,9 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2203"
             },
             {
@@ -3632,7 +3932,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1923"
@@ -3643,7 +3943,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -3654,7 +3954,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 16.0,
-              "score": 25.0,
+              "score": 16.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -3777,6 +4077,17 @@
               "sourceSubmissionId": "1996"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14.0,
+              "score": 56.25,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -3804,26 +4115,37 @@
           "testId": 9,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1923"
             },
             {
@@ -3832,7 +4154,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1947"
@@ -3843,7 +4165,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -3854,7 +4176,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2058"
@@ -3865,7 +4187,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2133"
@@ -3876,7 +4198,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2203"
@@ -3887,7 +4209,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -3898,7 +4220,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 15.0,
-              "score": 39.0625,
+              "score": 25.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1996"
@@ -3993,6 +4315,17 @@
               "sourceSubmissionId": "1996"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 11.0,
+              "score": 81.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -4085,6 +4418,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1996"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -4238,6 +4582,17 @@
               "sourceSubmissionId": "2133"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -4319,6 +4674,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1996"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 79.012346,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -4472,6 +4838,17 @@
               "sourceSubmissionId": "2133"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 64.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -4578,6 +4955,17 @@
               "sourceSubmissionId": "1996"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14.0,
+              "score": 56.25,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -4605,26 +4993,37 @@
           "testId": 16,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1923"
             },
             {
@@ -4633,7 +5032,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1947"
@@ -4644,7 +5043,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -4655,7 +5054,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2058"
@@ -4666,7 +5065,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -4677,7 +5076,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2133"
@@ -4688,7 +5087,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2203"
@@ -4699,7 +5098,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 15.0,
-              "score": 39.0625,
+              "score": 25.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1996"
@@ -4710,38 +5109,37 @@
           "testId": 17,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "agent",
-              "harness": "Codex"
-            },
-            {
-              "model": "GPT-6.2 Sol",
-              "modelKey": "gpt-6.2-sol",
-              "mode": "agent",
-              "harness": "Codex"
-            },
-            {
-              "model": "Qwen3.8-27B",
-              "modelKey": "qwen3.8-27b",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2058"
             },
             {
@@ -4750,9 +5148,9 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1996"
             },
             {
@@ -4761,9 +5159,9 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2203"
             },
             {
@@ -4772,7 +5170,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1923"
@@ -4783,7 +5181,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -4794,7 +5192,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 16.0,
-              "score": 25.0,
+              "score": 16.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -4905,6 +5303,17 @@
               "sourceSubmissionId": "1866"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 11.0,
+              "score": 81.0,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
@@ -4932,38 +5341,37 @@
           "testId": 19,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "agent",
-              "harness": "Codex"
-            },
-            {
-              "model": "GPT-6.2 Sol",
-              "modelKey": "gpt-6.2-sol",
-              "mode": "agent",
-              "harness": "Codex"
-            },
-            {
-              "model": "Qwen3.8-27B",
-              "modelKey": "qwen3.8-27b",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2058"
             },
             {
@@ -4972,9 +5380,9 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1996"
             },
             {
@@ -4983,9 +5391,9 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2203"
             },
             {
@@ -4994,7 +5402,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1923"
@@ -5005,7 +5413,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -5016,7 +5424,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 16.0,
-              "score": 25.0,
+              "score": 16.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -5049,26 +5457,37 @@
           "testId": 20,
           "scale": "pool6",
           "threshold": 20.0,
-          "record": 12.0,
+          "record": 10.0,
           "metric": "rounds",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 10.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2249"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 12.0,
-              "score": 100.0,
+              "score": 64.0,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1923"
             },
             {
@@ -5077,7 +5496,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1947"
@@ -5088,7 +5507,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1792"
@@ -5099,7 +5518,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2058"
@@ -5110,7 +5529,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2133"
@@ -5121,7 +5540,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 13.0,
-              "score": 76.5625,
+              "score": 49.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2203"
@@ -5132,7 +5551,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 14.0,
-              "score": 56.25,
+              "score": 36.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1866"
@@ -5143,7 +5562,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 15.0,
-              "score": 39.0625,
+              "score": 25.0,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1996"
