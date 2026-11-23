@@ -14,6 +14,19 @@
   },
   "submissions": [
     {
+      "submissionId": "2452",
+      "model": "Claude Opus 5.5",
+      "modelKey": "claude-opus-5-5-cc",
+      "mode": "agent",
+      "harness": "Claude Code",
+      "successfulPoints": 20,
+      "validScoringPoints": 20,
+      "pointCount": 20,
+      "allPointsSuccessful": true,
+      "score": 87.04742,
+      "sourceCodeUrl": "./generated/interactive/submissions/2452.cpp"
+    },
+    {
       "submissionId": "1971",
       "model": "DeepSeek V4.1 Flash 1017",
       "modelKey": "deepseek-v4.1-flash-1017",
@@ -23,7 +36,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 50.871387,
+      "score": 50.853806,
       "sourceCodeUrl": "./generated/interactive/submissions/1971.cpp"
     },
     {
@@ -36,7 +49,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 98.446711,
+      "score": 98.419784,
       "sourceCodeUrl": "./generated/interactive/submissions/2083.cpp"
     },
     {
@@ -49,7 +62,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 99.892003,
+      "score": 99.86553,
       "sourceCodeUrl": "./generated/interactive/submissions/2027.cpp"
     },
     {
@@ -2687,28 +2700,35 @@
       ]
     },
     "agent": {
-      "competitorCount": 3,
+      "competitorCount": 4,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 98.446711
+          "problemScore": 98.419784
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 99.892003
+          "problemScore": 99.86553
+        },
+        {
+          "model": "Claude Opus 5.5",
+          "modelKey": "claude-opus-5-5-cc",
+          "mode": "agent",
+          "harness": "Claude Code",
+          "problemScore": 87.04742
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "agent",
           "harness": "DeepSeek Harness",
-          "problemScore": 50.871387
+          "problemScore": 50.853806
         }
       ],
       "points": [
@@ -2719,6 +2739,12 @@
           "record": 1.0,
           "metric": "queries",
           "recordHolders": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
@@ -2739,6 +2765,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
@@ -2812,6 +2849,17 @@
               "sourceSubmissionId": "2027"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 263.0,
+              "score": 99.467479,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
@@ -2860,6 +2908,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2083"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 389.0,
+              "score": 99.843658,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -2912,6 +2971,17 @@
               "sourceSubmissionId": "2083"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 2345.0,
+              "score": 88.012629,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
@@ -2932,6 +3002,12 @@
           "metric": "queries",
           "recordHolders": [
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "agent",
@@ -2939,6 +3015,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1285.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
@@ -3012,6 +3099,17 @@
               "sourceSubmissionId": "2083"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 3852.0,
+              "score": 86.008141,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
@@ -3032,6 +3130,12 @@
           "metric": "queries",
           "recordHolders": [
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
@@ -3045,6 +3149,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1667.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
@@ -3088,6 +3203,12 @@
           "metric": "queries",
           "recordHolders": [
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "agent",
@@ -3095,6 +3216,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1087.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
@@ -3168,6 +3300,17 @@
               "sourceSubmissionId": "2027"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 3788.0,
+              "score": 18.181781,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
@@ -3205,6 +3348,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2027"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1658.0,
+              "score": 99.895969,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -3277,6 +3431,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1971"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 2770.0,
+              "score": 50.887178,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             }
           ]
         },
@@ -3305,6 +3470,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2027"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 704.0,
+              "score": 99.958312,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -3368,6 +3544,17 @@
               "sourceSubmissionId": "2083"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 3696.0,
+              "score": 83.264471,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
@@ -3388,6 +3575,12 @@
           "metric": "queries",
           "recordHolders": [
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
@@ -3401,6 +3594,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1659.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
@@ -3480,6 +3684,17 @@
               "sourceSubmissionId": "2027"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1669.0,
+              "score": 99.89567,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
@@ -3496,26 +3711,37 @@
           "testId": 16,
           "scale": "n3100",
           "threshold": 5500.0,
-          "record": 2541.0,
+          "record": 2533.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
               "mode": "agent",
-              "harness": "Codex"
+              "harness": "Claude Code"
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 2533.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 2541.0,
-              "score": 100.0,
+              "score": 99.461462,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2083"
             },
             {
@@ -3524,7 +3750,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 2566.0,
-              "score": 98.317378,
+              "score": 97.787901,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2027"
@@ -3535,7 +3761,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 3109.0,
-              "score": 65.293391,
+              "score": 64.941761,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1971"
@@ -3578,6 +3804,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2083"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1569.0,
+              "score": 99.7968,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -3630,6 +3867,17 @@
               "sourceSubmissionId": "2083"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 4699.0,
+              "score": 38.08164,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
@@ -3650,6 +3898,12 @@
           "metric": "queries",
           "recordHolders": [
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
@@ -3663,6 +3917,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1668.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
@@ -3736,6 +4001,17 @@
               "sourceSubmissionId": "2083"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 4083.0,
+              "score": 77.654676,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
@@ -3751,56 +4027,63 @@
       ]
     },
     "combined": {
-      "competitorCount": 12,
+      "competitorCount": 13,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 98.444628
+          "problemScore": 98.417701
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 99.88992
+          "problemScore": 99.863446
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
-          "problemScore": 90.741576
+          "problemScore": 90.716456
         },
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 84.404286
+          "problemScore": 84.386379
+        },
+        {
+          "model": "Claude Opus 5.5",
+          "modelKey": "claude-opus-5-5-cc",
+          "mode": "agent",
+          "harness": "Claude Code",
+          "problemScore": 87.045337
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "agent",
           "harness": "DeepSeek Harness",
-          "problemScore": 50.87034
+          "problemScore": 50.852759
         },
         {
           "model": "Claude Opus 5.5",
           "modelKey": "claude-opus-5-5",
           "mode": "direct",
           "harness": null,
-          "problemScore": 85.007736
+          "problemScore": 84.989064
         },
         {
           "model": "Kimi K3.1 Pro",
           "modelKey": "kimi-k3.1-pro",
           "mode": "direct",
           "harness": null,
-          "problemScore": 59.459687
+          "problemScore": 59.441944
         },
         {
           "model": "Qwen4 Max",
@@ -3821,7 +4104,7 @@
           "modelKey": "claude-sonnet-5-5",
           "mode": "direct",
           "harness": null,
-          "problemScore": 79.480657
+          "problemScore": 79.459739
         },
         {
           "model": "Qwen3.8-27B",
@@ -3846,6 +4129,12 @@
           "record": 1.0,
           "metric": "queries",
           "recordHolders": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
@@ -3908,6 +4197,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
@@ -4078,6 +4378,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2027"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 263.0,
+              "score": 99.467479,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -4273,6 +4584,17 @@
               "sourceSubmissionId": "2083"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 389.0,
+              "score": 99.843658,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
@@ -4389,6 +4711,17 @@
               "sourceSubmissionId": "2083"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 2345.0,
+              "score": 88.012629,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "Claude Sonnet 5.5",
               "modelKey": "claude-sonnet-5-5",
               "mode": "direct",
@@ -4498,6 +4831,12 @@
           "recordHolders": [
             {
               "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
+              "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
               "harness": null
@@ -4522,6 +4861,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1285.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
@@ -4727,6 +5077,17 @@
               "sourceSubmissionId": "1892"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 3852.0,
+              "score": 86.008141,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "Claude Sonnet 5.5",
               "modelKey": "claude-sonnet-5-5",
               "mode": "direct",
@@ -4814,6 +5175,12 @@
           "recordHolders": [
             {
               "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
+              "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
               "harness": null
@@ -4856,6 +5223,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1667.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
@@ -4998,6 +5376,12 @@
           "metric": "queries",
           "recordHolders": [
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "agent",
@@ -5011,6 +5395,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1087.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
@@ -5194,6 +5589,17 @@
               "sourceSubmissionId": "2350"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 3788.0,
+              "score": 18.181781,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "direct",
@@ -5319,6 +5725,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2027"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1658.0,
+              "score": 99.895969,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -5536,6 +5953,17 @@
               "sourceSubmissionId": "1892"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 2770.0,
+              "score": 50.887178,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
@@ -5628,6 +6056,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2027"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 704.0,
+              "score": 99.916649,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             },
             {
               "model": "Claude Opus 5.5",
@@ -5812,6 +6251,17 @@
               "sourceSubmissionId": "2350"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 3696.0,
+              "score": 83.264471,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "Claude Sonnet 5.5",
               "modelKey": "claude-sonnet-5-5",
               "mode": "direct",
@@ -5899,6 +6349,12 @@
           "recordHolders": [
             {
               "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
+              "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
               "harness": null
@@ -5941,6 +6397,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1659.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
@@ -6137,6 +6604,17 @@
             },
             {
               "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1669.0,
+              "score": 99.89567,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
+              "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
               "harness": null,
@@ -6240,26 +6718,37 @@
           "testId": 16,
           "scale": "n3100",
           "threshold": 5500.0,
-          "record": 2541.0,
+          "record": 2533.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
               "mode": "agent",
-              "harness": "Codex"
+              "harness": "Claude Code"
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 2533.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 2541.0,
-              "score": 100.0,
+              "score": 99.461462,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2083"
             },
             {
@@ -6268,7 +6757,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 2566.0,
-              "score": 98.317378,
+              "score": 97.787901,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2027"
@@ -6279,7 +6768,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 2642.0,
-              "score": 93.289877,
+              "score": 92.787475,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1844"
@@ -6290,7 +6779,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 2892.0,
-              "score": 77.682867,
+              "score": 77.264515,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2407"
@@ -6301,7 +6790,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 3036.0,
-              "score": 69.34122,
+              "score": 68.967791,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2350"
@@ -6312,7 +6801,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 3087.0,
-              "score": 66.50047,
+              "score": 66.142339,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1892"
@@ -6323,7 +6812,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 3098.0,
-              "score": 65.895548,
+              "score": 65.540676,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2216"
@@ -6334,7 +6823,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 3109.0,
-              "score": 65.293391,
+              "score": 64.941761,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1971"
@@ -6454,6 +6943,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2083"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1569.0,
+              "score": 99.7968,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -6583,6 +7083,17 @@
               "sourceSubmissionId": "1844"
             },
             {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 4699.0,
+              "score": 38.08164,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
+            },
+            {
               "model": "Claude Sonnet 5.5",
               "modelKey": "claude-sonnet-5-5",
               "mode": "direct",
@@ -6692,6 +7203,12 @@
           "recordHolders": [
             {
               "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code"
+            },
+            {
+              "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
               "harness": null
@@ -6728,6 +7245,17 @@
             }
           ],
           "results": [
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 1668.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2452"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
@@ -6931,6 +7459,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1844"
+            },
+            {
+              "model": "Claude Opus 5.5",
+              "modelKey": "claude-opus-5-5-cc",
+              "mode": "agent",
+              "harness": "Claude Code",
+              "interactionCount": 4083.0,
+              "score": 77.654676,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2452"
             },
             {
               "model": "Claude Sonnet 5.5",
