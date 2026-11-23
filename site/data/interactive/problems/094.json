@@ -62,7 +62,7 @@
       "validScoringPoints": 11,
       "pointCount": 20,
       "allPointsSuccessful": false,
-      "score": 9.36555,
+      "score": 9.364235,
       "sourceCodeUrl": "./generated/interactive/submissions/1801.cpp",
       "outputTokens": 57151
     },
@@ -76,7 +76,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 98.827715,
+      "score": 98.593697,
       "sourceCodeUrl": "./generated/interactive/submissions/1909.cpp",
       "outputTokens": 4700
     },
@@ -90,7 +90,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 90.228531,
+      "score": 90.108045,
       "sourceCodeUrl": "./generated/interactive/submissions/1862.cpp",
       "outputTokens": 11822
     },
@@ -132,28 +132,49 @@
       "validScoringPoints": 6,
       "pointCount": 20,
       "allPointsSuccessful": false,
-      "score": 15.107869,
+      "score": 15.107634,
       "sourceCodeUrl": "./generated/interactive/submissions/2162.cpp",
       "outputTokens": 94802
+    },
+    {
+      "submissionId": "2264",
+      "model": "Qwen4 Max",
+      "modelKey": "qwen4-max",
+      "mode": "direct",
+      "harness": null,
+      "successfulPoints": 10,
+      "validScoringPoints": 10,
+      "pointCount": 20,
+      "allPointsSuccessful": false,
+      "score": 35.419528,
+      "sourceCodeUrl": "./generated/interactive/submissions/2264.cpp",
+      "outputTokens": 44155
     }
   ],
   "scopes": {
     "direct": {
-      "competitorCount": 6,
+      "competitorCount": 7,
       "competitors": [
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
-          "problemScore": 90.228531
+          "problemScore": 90.108045
         },
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 98.827715
+          "problemScore": 98.593697
+        },
+        {
+          "model": "Qwen4 Max",
+          "modelKey": "qwen4-max",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 35.419528
         },
         {
           "model": "Kimi K3.1 Pro",
@@ -167,14 +188,14 @@
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "direct",
           "harness": null,
-          "problemScore": 9.36555
+          "problemScore": 9.364235
         },
         {
           "model": "Qwen3.8-27B",
           "modelKey": "qwen3.8-27b",
           "mode": "direct",
           "harness": null,
-          "problemScore": 15.107869
+          "problemScore": 15.107634
         },
         {
           "model": "GPT-OSS-120B",
@@ -225,6 +246,12 @@
             {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
               "mode": "direct",
               "harness": null
             }
@@ -295,6 +322,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2162"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
             }
           ]
         },
@@ -334,6 +372,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1909"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 3477.0,
+              "score": 26.659877,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -417,6 +466,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1909"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 17188.0,
+              "score": 1.106879,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
             },
             {
               "model": "Kimi K3.1 Pro",
@@ -544,6 +604,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -551,26 +622,37 @@
           "testId": 5,
           "scale": "m7700",
           "threshold": 61600.0,
-          "record": 15143.0,
+          "record": 14869.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14869.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 15143.0,
-              "score": 100.0,
+              "score": 98.830769,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1909"
             },
             {
@@ -579,7 +661,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 27878.0,
-              "score": 52.68953,
+              "score": 52.073468,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1862"
@@ -590,7 +672,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 57132.0,
-              "score": 0.924962,
+              "score": 0.914147,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1801"
@@ -601,7 +683,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 58651.0,
-              "score": 0.402946,
+              "score": 0.398235,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2162"
@@ -710,6 +792,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -760,6 +853,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2162"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 16666.0,
+              "score": 90.250997,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -876,6 +980,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -959,6 +1074,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -966,26 +1092,37 @@
           "testId": 10,
           "scale": "m9900",
           "threshold": 79200.0,
-          "record": 19471.0,
+          "record": 19118.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 19118.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 19471.0,
-              "score": 100.0,
+              "score": 98.828391,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1909"
             },
             {
@@ -994,7 +1131,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 37030.0,
-              "score": 49.846735,
+              "score": 49.262726,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1862"
@@ -1005,7 +1142,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 75106.0,
-              "score": 0.469813,
+              "score": 0.464309,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1801"
@@ -1125,6 +1262,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -1186,6 +1334,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2226"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 32903.0,
+              "score": 0.109337,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
             },
             {
               "model": "GPT-OSS-120B",
@@ -1291,6 +1450,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -1343,6 +1513,17 @@
               "sourceSubmissionId": "2162"
             },
             {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 16578.0,
+              "score": 90.263463,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "direct",
@@ -1381,26 +1562,37 @@
           "testId": 15,
           "scale": "m10000",
           "threshold": 80000.0,
-          "record": 19667.0,
+          "record": 19311.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 19311.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 19667.0,
-              "score": 100.0,
+              "score": 98.830246,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1909"
             },
             {
@@ -1409,7 +1601,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 36349.0,
-              "score": 52.345404,
+              "score": 51.733091,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1862"
@@ -1420,7 +1612,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 76058.0,
-              "score": 0.426897,
+              "score": 0.421904,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1801"
@@ -1540,6 +1732,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -1616,6 +1819,17 @@
             {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -1706,6 +1920,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -1789,6 +2014,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -1796,26 +2032,37 @@
           "testId": 20,
           "scale": "m10000",
           "threshold": 80000.0,
-          "record": 19667.0,
+          "record": 19311.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 19311.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 19667.0,
-              "score": 100.0,
+              "score": 98.830246,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1909"
             },
             {
@@ -1824,7 +2071,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 36886.0,
-              "score": 51.065406,
+              "score": 50.468067,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1862"
@@ -1835,7 +2082,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 76058.0,
-              "score": 0.426897,
+              "score": 0.421904,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1801"
@@ -2918,35 +3165,35 @@
       ]
     },
     "combined": {
-      "competitorCount": 9,
+      "competitorCount": 10,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 87.035961
+          "problemScore": 86.952254
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 89.425878
+          "problemScore": 89.382909
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
-          "problemScore": 89.139667
+          "problemScore": 89.096894
         },
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 97.68179
+          "problemScore": 97.598715
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
@@ -2963,18 +3210,25 @@
           "problemScore": 6.317686
         },
         {
+          "model": "Qwen4 Max",
+          "modelKey": "qwen4-max",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 35.419528
+        },
+        {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "direct",
           "harness": null,
-          "problemScore": 9.364702
+          "problemScore": 9.364235
         },
         {
           "model": "Qwen3.8-27B",
           "modelKey": "qwen3.8-27b",
           "mode": "direct",
           "harness": null,
-          "problemScore": 15.107718
+          "problemScore": 15.107634
         },
         {
           "model": "GPT-OSS-120B",
@@ -3043,6 +3297,12 @@
             {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
               "mode": "direct",
               "harness": null
             }
@@ -3146,6 +3406,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2162"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
             }
           ]
         },
@@ -3218,6 +3489,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1991"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 3477.0,
+              "score": 26.659877,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -3334,6 +3616,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1991"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 17188.0,
+              "score": 1.106879,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
             },
             {
               "model": "Kimi K3.1 Pro",
@@ -3494,6 +3787,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -3501,26 +3805,37 @@
           "testId": 5,
           "scale": "m7700",
           "threshold": 61600.0,
-          "record": 14967.0,
+          "record": 14869.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "agent",
-              "harness": "Codex"
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null
             }
           ],
           "results": [
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 14869.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 14967.0,
-              "score": 100.0,
+              "score": 99.581018,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2089"
             },
             {
@@ -3529,7 +3844,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 15143.0,
-              "score": 99.246594,
+              "score": 98.830769,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1909"
@@ -3540,7 +3855,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 27878.0,
-              "score": 52.292564,
+              "score": 52.073468,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1862"
@@ -3551,7 +3866,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 28039.0,
-              "score": 51.794432,
+              "score": 51.577423,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2041"
@@ -3562,7 +3877,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 57132.0,
-              "score": 0.917994,
+              "score": 0.914147,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1801"
@@ -3573,7 +3888,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 58651.0,
-              "score": 0.399911,
+              "score": 0.398235,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2162"
@@ -3726,6 +4041,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -3798,6 +4124,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2162"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 16666.0,
+              "score": 90.250997,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -3958,6 +4295,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -4074,6 +4422,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -4081,26 +4440,37 @@
           "testId": 10,
           "scale": "m9900",
           "threshold": 79200.0,
-          "record": 19244.0,
+          "record": 19118.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "agent",
-              "harness": "Codex"
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null
             }
           ],
           "results": [
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 19118.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 19244.0,
-              "score": 100.0,
+              "score": 99.581013,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2089"
             },
             {
@@ -4109,7 +4479,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 19471.0,
-              "score": 99.244211,
+              "score": 98.828391,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1909"
@@ -4120,7 +4490,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 36672.0,
-              "score": 50.31351,
+              "score": 50.102703,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2041"
@@ -4131,7 +4501,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 37030.0,
-              "score": 49.469999,
+              "score": 49.262726,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1862"
@@ -4142,7 +4512,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 75106.0,
-              "score": 0.466262,
+              "score": 0.464309,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1801"
@@ -4306,6 +4676,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -4400,6 +4781,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2226"
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 32903.0,
+              "score": 0.109337,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
             },
             {
               "model": "GPT-OSS-120B",
@@ -4538,6 +4930,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -4612,6 +5015,17 @@
               "sourceSubmissionId": "2162"
             },
             {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 16578.0,
+              "score": 90.263463,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2264"
+            },
+            {
               "model": "DeepSeek V4.1 Flash 1017",
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
@@ -4661,26 +5075,37 @@
           "testId": 15,
           "scale": "m10000",
           "threshold": 80000.0,
-          "record": 19438.0,
+          "record": 19311.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "agent",
-              "harness": "Codex"
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null
             }
           ],
           "results": [
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 19311.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 19438.0,
-              "score": 100.0,
+              "score": 99.581911,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2089"
             },
             {
@@ -4689,7 +5114,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 19667.0,
-              "score": 99.24518,
+              "score": 98.830246,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1909"
@@ -4700,7 +5125,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 36349.0,
-              "score": 51.95029,
+              "score": 51.733091,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1862"
@@ -4711,7 +5136,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 36492.0,
-              "score": 51.610471,
+              "score": 51.394693,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2041"
@@ -4722,7 +5147,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 76058.0,
-              "score": 0.423675,
+              "score": 0.421904,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1801"
@@ -4886,6 +5311,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -4995,6 +5431,17 @@
             {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -5118,6 +5565,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -5234,6 +5692,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -5241,26 +5710,37 @@
           "testId": 20,
           "scale": "m10000",
           "threshold": 80000.0,
-          "record": 19438.0,
+          "record": 19311.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "agent",
-              "harness": "Codex"
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null
             }
           ],
           "results": [
+            {
+              "model": "Qwen4 Max",
+              "modelKey": "qwen4-max",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 19311.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2264"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 19438.0,
-              "score": 100.0,
+              "score": 99.581911,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2089"
             },
             {
@@ -5269,7 +5749,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 19667.0,
-              "score": 99.24518,
+              "score": 98.830246,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1909"
@@ -5280,7 +5760,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 36492.0,
-              "score": 51.610471,
+              "score": 51.394693,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2041"
@@ -5291,7 +5771,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 36886.0,
-              "score": 50.679955,
+              "score": 50.468067,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1862"
@@ -5302,7 +5782,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 76058.0,
-              "score": 0.423675,
+              "score": 0.421904,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1801"
