@@ -89,6 +89,56 @@ def point_from_test(test: ET.Element) -> dict[str, Any] | None:
     }
 
 
+def _integer_field(payload: dict[str, Any], *names: str) -> int | None:
+    """Return the first non-negative integer usage field, if present."""
+    for name in names:
+        value = payload.get(name)
+        if isinstance(value, bool):
+            continue
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            continue
+        if number >= 0:
+            return number
+    return None
+
+
+def usage_from_result(judgement_path: Path, mode: str) -> dict[str, int]:
+    """Read non-sensitive token counters written beside a UOJ judgement.
+
+    Direct submissions intentionally publish only completion/output tokens. Agent
+    submissions may additionally publish prompt, cached-input, and round counts.
+    Missing counters stay absent instead of being guessed.
+    """
+    result_path = judgement_path.with_name("result.json")
+    if not result_path.is_file():
+        return {}
+    try:
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(result, dict):
+        return {}
+    usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
+    payload = {**usage, **result}
+    metrics: dict[str, int] = {}
+    output = _integer_field(payload, "completion_tokens", "output_tokens", "outputTokens")
+    if output is not None:
+        metrics["outputTokens"] = output
+    if mode == "agent":
+        input_tokens = _integer_field(payload, "prompt_tokens", "input_tokens", "inputTokens")
+        cached = _integer_field(payload, "cached_tokens", "cached_input_tokens", "cachedInputTokens")
+        rounds = _integer_field(payload, "rounds", "agent_rounds", "interaction_rounds")
+        if input_tokens is not None:
+            metrics["inputTokens"] = input_tokens
+        if cached is not None:
+            metrics["cachedInputTokens"] = cached
+        if rounds is not None:
+            metrics["rounds"] = rounds
+    return metrics
+
+
 def load_submission(
     judgement_path: Path,
     source: SourceSpec,
@@ -134,6 +184,7 @@ def load_submission(
     }
     if source.mode == "agent":
         submission["harness"] = source.harness
+    submission.update(usage_from_result(judgement_path, source.mode))
     return submission
 
 

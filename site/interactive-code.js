@@ -3,7 +3,7 @@
 const params = new URLSearchParams(window.location.search);
 const submissionId = params.get("submission") || "";
 const problemId = Number(params.get("problem"));
-const release = "20261121-submission-code";
+const release = "20261123-interactive-token-usage";
 const els = {
   back: document.querySelector("#back-link"),
   problemLabel: document.querySelector("#problem-label"),
@@ -12,6 +12,7 @@ const els = {
   model: document.querySelector("#model"),
   harness: document.querySelector("#harness"),
   submissionId: document.querySelector("#submission-id"),
+  usage: document.querySelector("#submission-usage"),
   error: document.querySelector("#error"),
   panel: document.querySelector("#source-panel"),
   status: document.querySelector("#source-status"),
@@ -25,6 +26,29 @@ function fail(message) {
   els.error.textContent = message;
   els.error.hidden = false;
   els.panel.hidden = true;
+}
+
+function renderUsage(submission) {
+  const metrics = [];
+  if (submission.mode === "agent") {
+    if (submission.rounds != null) metrics.push(["Interaction rounds", submission.rounds]);
+    if (submission.inputTokens != null) metrics.push(["Input tokens", submission.inputTokens]);
+    if (submission.cachedInputTokens != null) metrics.push(["Cached input", submission.cachedInputTokens]);
+  }
+  if (submission.outputTokens != null) metrics.push(["Output tokens", submission.outputTokens]);
+  els.usage.replaceChildren();
+  els.usage.hidden = metrics.length === 0;
+  metrics.forEach(([label, value]) => {
+    const group = document.createElement("div");
+    const term = document.createElement("dt");
+    const amount = document.createElement("dd");
+    term.textContent = label;
+    amount.textContent = typeof value === "number" && Number.isFinite(value)
+      ? value.toLocaleString("en-US")
+      : value;
+    group.append(term, amount);
+    els.usage.append(group);
+  });
 }
 
 async function initialize() {
@@ -45,6 +69,7 @@ async function initialize() {
   els.model.textContent = submission.model;
   els.harness.textContent = submission.harness ? `Harness: ${submission.harness}` : "";
   els.submissionId.textContent = `UOJ submission #${submissionId}`;
+  renderUsage(submission);
   document.title = `#${submissionId} · ${detail.problem.title} · AlgoScale`;
 
   const sourceResponse = await fetch(submission.sourceCodeUrl, { cache: "no-store" });

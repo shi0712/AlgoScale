@@ -89,6 +89,13 @@ def submission_source_url(submission_id: str) -> str:
     return f"./generated/interactive/submissions/{submission_id}.cpp"
 
 
+def copy_usage_fields(source: dict[str, Any], target: dict[str, Any]) -> None:
+    """Copy optional, non-sensitive usage counters into published metadata."""
+    for field in ("inputTokens", "cachedInputTokens", "outputTokens", "rounds"):
+        if field in source:
+            target[field] = source[field]
+
+
 def is_success(point: dict[str, Any]) -> bool:
     verdict = str(point.get("verdict") or "").strip().lower()
     return verdict in SUCCESS_VERDICTS and point.get("protocolValid") is True
@@ -529,6 +536,7 @@ def build_problem_details(
                 ],
                 "sourceCodeUrl": submission_source_url(submission_id),
             }
+            copy_usage_fields(submission, published_submission)
             numeric_id = int(submission_id) if submission_id.isdigit() else 0
             quality = (
                 valid_scoring_points,
@@ -579,22 +587,22 @@ def build_submission_archive(details: dict[int, dict[str, Any]]) -> dict[str, An
         updated = detail["updated"]
         title = detail["problem"]["title"]
         for submission in detail["submissions"]:
-            entries.append(
-                {
-                    "problemId": problem_id,
-                    "title": title,
-                    "track": submission["mode"],
-                    "model": submission["model"],
-                    "modelKey": submission["modelKey"],
-                    "harness": submission.get("harness"),
-                    "submissionId": submission["submissionId"],
-                    "score": submission["score"],
-                    "successfulPoints": submission["successfulPoints"],
-                    "validScoringPoints": submission["validScoringPoints"],
-                    "pointCount": submission["pointCount"],
-                    "path": submission["sourceCodeUrl"],
-                }
-            )
+            entry = {
+                "problemId": problem_id,
+                "title": title,
+                "track": submission["mode"],
+                "model": submission["model"],
+                "modelKey": submission["modelKey"],
+                "harness": submission.get("harness"),
+                "submissionId": submission["submissionId"],
+                "score": submission["score"],
+                "successfulPoints": submission["successfulPoints"],
+                "validScoringPoints": submission["validScoringPoints"],
+                "pointCount": submission["pointCount"],
+                "path": submission["sourceCodeUrl"],
+            }
+            copy_usage_fields(submission, entry)
+            entries.append(entry)
     return {
         "schemaVersion": 1,
         "updated": updated,

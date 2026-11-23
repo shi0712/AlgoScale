@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261121-gpt-oss-submission-code";
+const SITE_RELEASE = "20261123-interactive-token-usage";
 const params = new URLSearchParams(window.location.search);
 const problemId = Number(params.get("id"));
 const allowedScopes = new Set(["direct", "agent", "combined"]);
@@ -120,6 +120,12 @@ function renderSubmissionCard(submission) {
     element("span", "", `${formatNumber(submission.successfulPoints)}/${formatNumber(submission.pointCount)} correct points`),
     element("span", "", `${formatNumber(submission.validScoringPoints)}/${formatNumber(submission.pointCount)} scoring points`),
   );
+  if (submission.mode === "agent") {
+    if (submission.rounds != null) meta.append(element("span", "", `${formatNumber(submission.rounds)} rounds`));
+    if (submission.inputTokens != null) meta.append(element("span", "", `${formatNumber(submission.inputTokens)} input tokens`));
+    if (submission.cachedInputTokens != null) meta.append(element("span", "", `${formatNumber(submission.cachedInputTokens)} cached input`));
+  }
+  if (submission.outputTokens != null) meta.append(element("span", "", `${formatNumber(submission.outputTokens)} output tokens`));
   const link = element("a", "submission-code-button", "Open source code ↗");
   link.href = `./interactive-code.html?submission=${encodeURIComponent(submission.submissionId)}&problem=${problemId}`;
   card.append(head, meta, link);

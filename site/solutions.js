@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261121-gpt-oss-submission-archive";
+const SITE_RELEASE = "20261123-interactive-token-usage";
 const VALID_KINDS = new Set(["standard", "interactive"]);
 
 const state = {
@@ -253,6 +253,12 @@ function renderMetrics(entry) {
     metrics.push(["Problem score", Number(entry.score).toLocaleString("en-US", { maximumFractionDigits: 2 })]);
     metrics.push(["Correct points", `${entry.successfulPoints}/${entry.pointCount}`]);
     metrics.push(["Scoring points", `${entry.validScoringPoints}/${entry.pointCount}`]);
+    if (entry.track === "agent") {
+      if (entry.rounds != null) metrics.push(["Interaction rounds", entry.rounds]);
+      if (entry.inputTokens != null) metrics.push(["Input tokens", entry.inputTokens]);
+      if (entry.cachedInputTokens != null) metrics.push(["Cached input", entry.cachedInputTokens]);
+    }
+    if (entry.outputTokens != null) metrics.push(["Output tokens", entry.outputTokens]);
   } else {
     if (entry.track === "agent") {
       metrics.push(["Interaction rounds", entry.rounds]);
