@@ -139,6 +139,56 @@ def usage_from_result(judgement_path: Path, mode: str) -> dict[str, int]:
     return metrics
 
 
+def usage_from_harbor_trial(judgement_path: Path) -> dict[str, int]:
+    """Read Claude Code usage counters from the enclosing Harbor trial."""
+    trial_dir = judgement_path.parent.parent
+    result_path = trial_dir / "result.json"
+    if not result_path.is_file():
+        return {}
+    try:
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    agent = result.get("agent_result")
+    if not isinstance(agent, dict):
+        return {}
+    metrics: dict[str, int] = {}
+    for key, names in {
+        "inputTokens": ("n_input_tokens",),
+        "cachedInputTokens": ("n_cache_tokens",),
+        "outputTokens": ("n_output_tokens",),
+    }.items():
+        value = _integer_field(agent, *names)
+        if value is not None:
+            metrics[key] = value
+
+    log_path = trial_dir / "agent" / "claude-code.txt"
+    message_ids: set[str] = set()
+    anonymous_messages = 0
+    if log_path.is_file():
+        try:
+            with log_path.open(encoding="utf-8", errors="replace") as stream:
+                for line in stream:
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    message = event.get("message")
+                    if not isinstance(message, dict) or message.get("role") != "assistant":
+                        continue
+                    message_id = message.get("id")
+                    if isinstance(message_id, str) and message_id:
+                        message_ids.add(message_id)
+                    else:
+                        anonymous_messages += 1
+        except OSError:
+            pass
+    rounds = len(message_ids) + anonymous_messages
+    if rounds > 0:
+        metrics["rounds"] = rounds
+    return metrics
+
+
 def load_submission(
     judgement_path: Path,
     source: SourceSpec,
@@ -185,6 +235,8 @@ def load_submission(
     if source.mode == "agent":
         submission["harness"] = source.harness
     submission.update(usage_from_result(judgement_path, source.mode))
+    if source.mode == "agent":
+        submission.update(usage_from_harbor_trial(judgement_path))
     return submission
 
 
