@@ -135,6 +135,10 @@ function renderSubmissionCard(submission) {
 function renderSubmissions() {
   const submissions = (detailData.submissions || []).filter((submission) => (
     activeScope === "combined" || submission.mode === activeScope
+  )).sort((a, b) => (
+    Number(b.score || 0) - Number(a.score || 0)
+    || Number(b.successfulPoints || 0) - Number(a.successfulPoints || 0)
+    || String(a.model || "").localeCompare(String(b.model || ""))
   ));
   els.submissionCount.textContent = `${submissions.length} submission${submissions.length === 1 ? "" : "s"}`;
   els.submissionList.replaceChildren(...submissions.map(renderSubmissionCard));

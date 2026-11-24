@@ -327,6 +327,14 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
                 if total_problem_count
                 else Decimal(0)
             )
+            full_score_problems = sum(
+                1 for problem_score in overall_problem_scores if problem_score == Decimal(100)
+            )
+            full_score_rate = (
+                Decimal(100) * Decimal(full_score_problems) / Decimal(total_problem_count)
+                if total_problem_count
+                else Decimal(0)
+            )
             rows.append(
                 {
                     "model": names[competitor],
@@ -334,6 +342,8 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
                     "mode": competitor.mode,
                     "harness": competitor.harness or None,
                     "score": decimal_json(overall_score),
+                    "fullScoreProblems": full_score_problems,
+                    "fullScoreRate": decimal_json(full_score_rate),
                     "records": record_count,
                     "validPoints": valid_count,
                     "totalPoints": total_point_count,

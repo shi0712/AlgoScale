@@ -275,7 +275,7 @@ function renderStandardLeaderboard(data) {
 
 function renderInteractiveLeaderboard(data) {
   const board = data.boards[state.track] || { problemCount: 0, pointCount: 0, rows: [] };
-  const rows = board.rows || [];
+  const rows = [...(board.rows || [])].sort((a, b) => Number(b.score) - Number(a.score));
   const headings = [
     element("th", "leaderboard-rank-heading", "Rank"),
     element("th", "leaderboard-model-heading", "Model"),
@@ -288,6 +288,7 @@ function renderInteractiveLeaderboard(data) {
   }
   headings.push(
     element("th", "interactive-score-heading", "Score"),
+    element("th", "interactive-full-heading", "Full-score rate"),
     element("th", "interactive-records-heading", "Records"),
     element("th", "interactive-valid-heading", "Valid points"),
   );
@@ -310,6 +311,7 @@ function renderInteractiveLeaderboard(data) {
     }
     row.append(
       element("td", "interactive-score", Number(entry.score).toFixed(4)),
+      element("td", "interactive-stat", `${Number(entry.fullScoreRate || 0).toFixed(1)}%`),
       element("td", "interactive-stat", String(entry.records)),
       element("td", "interactive-stat", `${entry.validPoints}/${entry.totalPoints}`),
     );
