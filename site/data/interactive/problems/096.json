@@ -23,7 +23,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 83.116495,
+      "score": 81.662691,
       "sourceCodeUrl": "./generated/interactive/submissions/2448.cpp",
       "inputTokens": 1317450,
       "cachedInputTokens": 1240035,
@@ -40,7 +40,7 @@
       "validScoringPoints": 16,
       "pointCount": 20,
       "allPointsSuccessful": false,
-      "score": 75.061992,
+      "score": 73.664408,
       "sourceCodeUrl": "./generated/interactive/submissions/1985.cpp"
     },
     {
@@ -53,7 +53,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 95.769163,
+      "score": 94.195731,
       "sourceCodeUrl": "./generated/interactive/submissions/2096.cpp"
     },
     {
@@ -66,8 +66,21 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 83.535943,
+      "score": 82.026049,
       "sourceCodeUrl": "./generated/interactive/submissions/2037.cpp"
+    },
+    {
+      "submissionId": "2507",
+      "model": "Kimi K3.1 Pro",
+      "modelKey": "kimi-k3.1-pro",
+      "mode": "agent",
+      "harness": "Kimi Code",
+      "successfulPoints": 13,
+      "validScoringPoints": 13,
+      "pointCount": 20,
+      "allPointsSuccessful": false,
+      "score": 56.375638,
+      "sourceCodeUrl": "./generated/interactive/submissions/2507.cpp"
     },
     {
       "submissionId": "2332",
@@ -2772,35 +2785,42 @@
       ]
     },
     "agent": {
-      "competitorCount": 4,
+      "competitorCount": 5,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 95.769163
+          "problemScore": 94.195731
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 83.535943
+          "problemScore": 82.026049
         },
         {
           "model": "Claude Opus 5.5",
           "modelKey": "claude-opus-5-5-cc",
           "mode": "agent",
           "harness": "Claude Code",
-          "problemScore": 83.116495
+          "problemScore": 81.662691
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "agent",
           "harness": "DeepSeek Harness",
-          "problemScore": 75.061992
+          "problemScore": 73.664408
+        },
+        {
+          "model": "Kimi K3.1 Pro",
+          "modelKey": "kimi-k3.1-pro",
+          "mode": "agent",
+          "harness": "Kimi Code",
+          "problemScore": 56.375638
         }
       ],
       "points": [
@@ -2857,6 +2877,17 @@
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
               "interactionCount": null,
               "score": 0.0,
               "valid": false,
@@ -2941,6 +2972,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2037"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 97.648399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             }
           ]
         },
@@ -3002,6 +3044,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2037"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 98.28145,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             }
           ]
         },
@@ -3009,26 +3062,37 @@
           "testId": 4,
           "scale": "n1000_m10",
           "threshold": 950.0,
-          "record": 47.0,
+          "record": 41.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "Claude Opus 5.5",
-              "modelKey": "claude-opus-5-5-cc",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "agent",
-              "harness": "Claude Code"
+              "harness": "Kimi Code"
             }
           ],
           "results": [
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 41.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2507"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5-cc",
               "mode": "agent",
               "harness": "Claude Code",
               "interactionCount": 47.0,
-              "score": 100.0,
+              "score": 98.684225,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2448"
             },
             {
@@ -3037,7 +3101,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 56.0,
-              "score": 98.016578,
+              "score": 96.7269,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1985"
@@ -3048,7 +3112,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 56.0,
-              "score": 98.016578,
+              "score": 96.7269,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2096"
@@ -3059,7 +3123,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 56.0,
-              "score": 98.016578,
+              "score": 96.7269,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2037"
@@ -3091,6 +3155,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1985"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 442.0,
+              "score": 61.457857,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -3185,6 +3260,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -3264,6 +3350,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2037"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 97.648399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             }
           ]
         },
@@ -3325,6 +3422,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2037"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -3398,6 +3506,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2448"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -3459,6 +3578,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2037"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 515.0,
+              "score": 60.772922,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             }
           ]
         },
@@ -3515,6 +3645,17 @@
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
               "interactionCount": null,
               "score": 0.0,
               "valid": false,
@@ -3599,6 +3740,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2037"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 97.648399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             }
           ]
         },
@@ -3672,6 +3824,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2448"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -3687,6 +3850,12 @@
               "modelKey": "claude-opus-5-5-cc",
               "mode": "agent",
               "harness": "Claude Code"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code"
             }
           ],
           "results": [
@@ -3700,6 +3869,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2448"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 63.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2507"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -3740,26 +3920,37 @@
           "testId": 15,
           "scale": "n1000_m10",
           "threshold": 950.0,
-          "record": 470.0,
+          "record": 393.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "agent",
-              "harness": "Codex"
+              "harness": "Kimi Code"
             }
           ],
           "results": [
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 393.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2507"
+            },
             {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 470.0,
-              "score": 100.0,
+              "score": 74.262931,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2096"
             },
             {
@@ -3768,7 +3959,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 482.0,
-              "score": 95.0625,
+              "score": 70.596199,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2037"
@@ -3779,7 +3970,7 @@
               "mode": "agent",
               "harness": "Claude Code",
               "interactionCount": 494.0,
-              "score": 90.25,
+              "score": 67.022295,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2448"
@@ -3790,7 +3981,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 504.0,
-              "score": 86.335069,
+              "score": 64.114953,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1985"
@@ -3850,6 +4041,17 @@
               "modelKey": "deepseek-v4.1-flash-1017",
               "mode": "agent",
               "harness": "DeepSeek Harness",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
               "interactionCount": null,
               "score": 0.0,
               "valid": false,
@@ -3934,6 +4136,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2037"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 97.648399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             }
           ]
         },
@@ -3995,6 +4208,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2037"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 37.0,
+              "score": 97.422235,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             }
           ]
         },
@@ -4002,26 +4226,37 @@
           "testId": 19,
           "scale": "n1000_m10",
           "threshold": 950.0,
-          "record": 55.0,
+          "record": 34.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "Claude Opus 5.5",
-              "modelKey": "claude-opus-5-5-cc",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "agent",
-              "harness": "Claude Code"
+              "harness": "Kimi Code"
             }
           ],
           "results": [
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 34.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2507"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5-cc",
               "mode": "agent",
               "harness": "Claude Code",
               "interactionCount": 55.0,
-              "score": 100.0,
+              "score": 95.467406,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2448"
             },
             {
@@ -4030,7 +4265,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 64.0,
-              "score": 97.998939,
+              "score": 93.557045,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1985"
@@ -4041,7 +4276,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 64.0,
-              "score": 97.998939,
+              "score": 93.557045,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2096"
@@ -4052,7 +4287,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 64.0,
-              "score": 97.998939,
+              "score": 93.557045,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2037"
@@ -4117,13 +4352,24 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1985"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 706.0,
+              "score": 18.984694,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             }
           ]
         }
       ]
     },
     "combined": {
-      "competitorCount": 13,
+      "competitorCount": 14,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
@@ -4173,6 +4419,13 @@
           "mode": "direct",
           "harness": null,
           "problemScore": 73.141131
+        },
+        {
+          "model": "Kimi K3.1 Pro",
+          "modelKey": "kimi-k3.1-pro",
+          "mode": "agent",
+          "harness": "Kimi Code",
+          "problemScore": 54.96234
         },
         {
           "model": "Kimi K3.1 Pro",
@@ -4366,6 +4619,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen4 Max",
               "modelKey": "qwen4-max",
               "mode": "direct",
@@ -4592,6 +4856,17 @@
               "sourceSubmissionId": "2272"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 97.648399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -4752,6 +5027,17 @@
               "sourceSubmissionId": "2169"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 97.648399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -4800,6 +5086,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2169"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 41.0,
+              "score": 96.361997,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -4949,6 +5246,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1985"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 442.0,
+              "score": 61.457857,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -5232,6 +5540,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen4 Max",
               "modelKey": "qwen4-max",
               "mode": "direct",
@@ -5458,6 +5777,17 @@
               "sourceSubmissionId": "2272"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 97.648399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -5633,6 +5963,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -5799,6 +6140,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -5904,6 +6256,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2272"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 515.0,
+              "score": 60.772922,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             },
             {
               "model": "Kimi K3.1 Pro",
@@ -6103,6 +6466,17 @@
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
               "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
               "interactionCount": null,
               "score": 0.0,
               "valid": false,
@@ -6336,6 +6710,17 @@
               "sourceSubmissionId": "2272"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 97.648399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -6505,6 +6890,17 @@
               "valid": false,
               "isRecord": false,
               "sourceSubmissionId": null
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
             }
           ]
         },
@@ -6588,6 +6984,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2332"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 63.0,
+              "score": 94.179168,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -6693,6 +7100,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2332"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 393.0,
+              "score": 87.930086,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -6976,6 +7394,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen4 Max",
               "modelKey": "qwen4-max",
               "mode": "direct",
@@ -7202,6 +7631,17 @@
               "sourceSubmissionId": "2272"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 31.0,
+              "score": 97.648399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -7380,6 +7820,17 @@
               "sourceSubmissionId": "2272"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 37.0,
+              "score": 96.3775,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -7417,6 +7868,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2224"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 34.0,
+              "score": 97.220874,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -7665,6 +8127,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1985"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 706.0,
+              "score": 16.704404,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2507"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",

@@ -23,7 +23,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 84.039383,
+      "score": 84.038983,
       "sourceCodeUrl": "./generated/interactive/submissions/2421.cpp",
       "inputTokens": 14128654,
       "cachedInputTokens": 13876648,
@@ -40,7 +40,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 72.367813,
+      "score": 72.367412,
       "sourceCodeUrl": "./generated/interactive/submissions/1966.cpp"
     },
     {
@@ -53,7 +53,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 98.875058,
+      "score": 98.874657,
       "sourceCodeUrl": "./generated/interactive/submissions/2072.cpp"
     },
     {
@@ -66,8 +66,21 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 95.117765,
+      "score": 95.117365,
       "sourceCodeUrl": "./generated/interactive/submissions/2015.cpp"
+    },
+    {
+      "submissionId": "2487",
+      "model": "Kimi K3.1 Pro",
+      "modelKey": "kimi-k3.1-pro",
+      "mode": "agent",
+      "harness": "Kimi Code",
+      "successfulPoints": 20,
+      "validScoringPoints": 20,
+      "pointCount": 20,
+      "allPointsSuccessful": true,
+      "score": 53.469987,
+      "sourceCodeUrl": "./generated/interactive/submissions/2487.cpp"
     },
     {
       "submissionId": "2337",
@@ -2618,35 +2631,42 @@
       ]
     },
     "agent": {
-      "competitorCount": 4,
+      "competitorCount": 5,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 98.875058
+          "problemScore": 98.874657
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 95.117765
+          "problemScore": 95.117365
         },
         {
           "model": "Claude Opus 5.5",
           "modelKey": "claude-opus-5-5-cc",
           "mode": "agent",
           "harness": "Claude Code",
-          "problemScore": 84.039383
+          "problemScore": 84.038983
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "agent",
           "harness": "DeepSeek Harness",
-          "problemScore": 72.367813
+          "problemScore": 72.367412
+        },
+        {
+          "model": "Kimi K3.1 Pro",
+          "modelKey": "kimi-k3.1-pro",
+          "mode": "agent",
+          "harness": "Kimi Code",
+          "problemScore": 53.469987
         }
       ],
       "points": [
@@ -2680,6 +2700,12 @@
               "modelKey": "gpt-6.2-sol",
               "mode": "agent",
               "harness": "Codex"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code"
             }
           ],
           "results": [
@@ -2726,6 +2752,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2015"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -2733,32 +2770,37 @@
           "testId": 2,
           "scale": "n7",
           "threshold": 25000.0,
-          "record": 27.0,
+          "record": 26.0,
           "metric": "operations",
           "recordHolders": [
             {
-              "model": "Claude Opus 5.5",
-              "modelKey": "claude-opus-5-5-cc",
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "agent",
-              "harness": "Claude Code"
-            },
-            {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
-              "mode": "agent",
-              "harness": "Codex"
+              "harness": "Kimi Code"
             }
           ],
           "results": [
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 26.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2487"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5-cc",
               "mode": "agent",
               "harness": "Claude Code",
               "interactionCount": 27.0,
-              "score": 100.0,
+              "score": 99.991992,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2421"
             },
             {
@@ -2767,9 +2809,9 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 27.0,
-              "score": 100.0,
+              "score": 99.991992,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2072"
             },
             {
@@ -2778,7 +2820,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 29.0,
-              "score": 99.983983,
+              "score": 99.975976,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
@@ -2789,7 +2831,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 29.0,
-              "score": 99.983983,
+              "score": 99.975976,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2015"
@@ -2854,6 +2896,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 3203.0,
+              "score": 91.443399,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -2915,6 +2968,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 5533.0,
+              "score": 72.906535,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -2976,6 +3040,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 7297.0,
+              "score": 73.146746,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3037,6 +3112,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2421"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 6282.0,
+              "score": 66.219773,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3098,6 +3184,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 14318.0,
+              "score": 23.708882,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3159,6 +3256,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 8574.0,
+              "score": 53.334409,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3220,6 +3328,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 15732.0,
+              "score": 35.518565,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3281,6 +3400,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 11724.0,
+              "score": 41.582076,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3342,6 +3472,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 15748.0,
+              "score": 30.755511,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3403,6 +3544,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2421"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 6289.0,
+              "score": 66.181762,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3464,6 +3616,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 14319.0,
+              "score": 23.71309,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3525,6 +3688,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 8699.0,
+              "score": 51.52218,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3586,6 +3760,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 15757.0,
+              "score": 27.303564,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3647,6 +3832,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 11839.0,
+              "score": 39.585621,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3708,6 +3904,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 15709.0,
+              "score": 39.002657,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3769,6 +3976,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 7961.0,
+              "score": 54.882329,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3830,6 +4048,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 14320.0,
+              "score": 23.70865,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         },
@@ -3891,13 +4120,24 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 7960.0,
+              "score": 54.883999,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             }
           ]
         }
       ]
     },
     "combined": {
-      "competitorCount": 13,
+      "competitorCount": 14,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
@@ -3947,6 +4187,13 @@
           "mode": "direct",
           "harness": null,
           "problemScore": 43.682374
+        },
+        {
+          "model": "Kimi K3.1 Pro",
+          "modelKey": "kimi-k3.1-pro",
+          "mode": "agent",
+          "harness": "Kimi Code",
+          "problemScore": 53.432486
         },
         {
           "model": "Kimi K3.1 Pro",
@@ -4050,6 +4297,12 @@
             {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
               "mode": "direct",
               "harness": null
             },
@@ -4148,6 +4401,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1884"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 1.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2487"
             },
             {
               "model": "Kimi K3.1 Pro",
@@ -4264,6 +4528,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2381"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 26.0,
+              "score": 99.951967,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             },
             {
               "model": "Claude Opus 5.5",
@@ -4459,6 +4734,17 @@
               "sourceSubmissionId": "2291"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 3203.0,
+              "score": 90.741402,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
@@ -4619,6 +4905,17 @@
               "sourceSubmissionId": "2337"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 5533.0,
+              "score": 72.906535,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Qwen4 Max",
               "modelKey": "qwen4-max",
               "mode": "direct",
@@ -4766,6 +5063,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 7297.0,
+              "score": 73.146746,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             },
             {
               "model": "Claude Opus 5.5",
@@ -4939,6 +5247,17 @@
               "sourceSubmissionId": "2291"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 6282.0,
+              "score": 66.219773,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
@@ -5088,6 +5407,17 @@
               "sourceSubmissionId": "1966"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 14318.0,
+              "score": 23.708882,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Claude Sonnet 5.5",
               "modelKey": "claude-sonnet-5-5",
               "mode": "direct",
@@ -5235,6 +5565,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2291"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 8574.0,
+              "score": 53.334409,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -5419,6 +5760,17 @@
               "sourceSubmissionId": "2291"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 15732.0,
+              "score": 35.518565,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
@@ -5579,6 +5931,17 @@
               "sourceSubmissionId": "2337"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 11724.0,
+              "score": 41.582076,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Qwen4 Max",
               "modelKey": "qwen4-max",
               "mode": "direct",
@@ -5726,6 +6089,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 15748.0,
+              "score": 30.755511,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             },
             {
               "model": "Claude Opus 5.5",
@@ -5899,6 +6273,17 @@
               "sourceSubmissionId": "2291"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 6289.0,
+              "score": 66.181762,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
@@ -6048,6 +6433,17 @@
               "sourceSubmissionId": "1966"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 14319.0,
+              "score": 23.71309,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Claude Sonnet 5.5",
               "modelKey": "claude-sonnet-5-5",
               "mode": "direct",
@@ -6195,6 +6591,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 8699.0,
+              "score": 51.52218,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -6379,6 +6786,17 @@
               "sourceSubmissionId": "2291"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 15757.0,
+              "score": 27.303564,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
@@ -6539,6 +6957,17 @@
               "sourceSubmissionId": "2337"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 11839.0,
+              "score": 39.585621,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Qwen4 Max",
               "modelKey": "qwen4-max",
               "mode": "direct",
@@ -6686,6 +7115,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 15709.0,
+              "score": 39.002657,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             },
             {
               "model": "Claude Opus 5.5",
@@ -6859,6 +7299,17 @@
               "sourceSubmissionId": "2291"
             },
             {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 7961.0,
+              "score": 54.882329,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
+            },
+            {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
@@ -7006,6 +7457,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 14320.0,
+              "score": 23.70865,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -7183,6 +7645,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1966"
+            },
+            {
+              "model": "Kimi K3.1 Pro",
+              "modelKey": "kimi-k3.1-pro",
+              "mode": "agent",
+              "harness": "Kimi Code",
+              "interactionCount": 7960.0,
+              "score": 54.883999,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2487"
             },
             {
               "model": "Claude Opus 5.5",
