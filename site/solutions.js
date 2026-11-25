@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261123-interactive-token-usage";
+const SITE_RELEASE = "20261125-interactive-ernie";
 const VALID_KINDS = new Set(["standard", "interactive"]);
 
 const state = {
@@ -126,7 +126,14 @@ function renderProblems() {
   });
   state.filteredProblems = activeProblems()
     .filter((problem) => byProblem.has(problem.id))
-    .map((problem) => ({ ...problem, variants: byProblem.get(problem.id) }));
+    .map((problem) => ({
+      ...problem,
+      variants: byProblem.get(problem.id).sort((a, b) => (
+        (state.kind === "interactive" ? Number(b.score) - Number(a.score) : 0)
+        || a.track.localeCompare(b.track)
+        || a.model.localeCompare(b.model)
+      )),
+    }));
   elements.count.textContent = state.filteredProblems.length;
   elements.empty.hidden = state.filteredProblems.length > 0;
   elements.list.replaceChildren();
@@ -190,8 +197,6 @@ function renderDetail() {
   elements.variantList.replaceChildren();
 
   problem.variants
-    .slice()
-    .sort((a, b) => a.track.localeCompare(b.track) || a.model.localeCompare(b.model))
     .forEach((entry) => {
       const button = document.createElement("button");
       button.type = "button";
@@ -346,10 +351,10 @@ async function initialize() {
     renderProblems();
 
     const requestedProblem = Number(params.get("problem"));
-    const requestedEntry = activeEntries().find((entry) => entry.problemId === requestedProblem
+    const requestedEntry = (requestedTrack || requestedModel) && activeEntries().find((entry) => entry.problemId === requestedProblem
       && (!requestedTrack || entry.track === requestedTrack)
       && (!requestedModel || entry.modelKey === requestedModel));
-    if (requestedEntry && state.filteredProblems.some((problem) => problem.id === requestedProblem)) {
+    if (state.filteredProblems.some((problem) => problem.id === requestedProblem)) {
       selectProblem(requestedProblem, requestedEntry);
     }
   } catch (error) {

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-24",
+  "updated": "2026-11-25",
   "status": "Preliminary",
   "problem": {
     "problemId": 75,
@@ -80,7 +80,11 @@
       "pointCount": 20,
       "allPointsSuccessful": true,
       "score": 73.594185,
-      "sourceCodeUrl": "./generated/interactive/submissions/2464.cpp"
+      "sourceCodeUrl": "./generated/interactive/submissions/2464.cpp",
+      "inputTokens": 570670,
+      "cachedInputTokens": 540032,
+      "outputTokens": 13816,
+      "rounds": 25
     },
     {
       "submissionId": "2311",
@@ -92,7 +96,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 75.619651,
+      "score": 74.985964,
       "sourceCodeUrl": "./generated/interactive/submissions/2311.cpp",
       "outputTokens": 3181
     },
@@ -106,7 +110,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 83.095805,
+      "score": 82.267032,
       "sourceCodeUrl": "./generated/interactive/submissions/2382.cpp",
       "outputTokens": 1627
     },
@@ -120,9 +124,23 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 82.044346,
+      "score": 81.230921,
       "sourceCodeUrl": "./generated/interactive/submissions/1823.cpp",
       "outputTokens": 57071
+    },
+    {
+      "submissionId": "2522",
+      "model": "ERNIE 5.5 Flash Preview",
+      "modelKey": "ernie-5.5-flash-preview",
+      "mode": "direct",
+      "harness": null,
+      "successfulPoints": 18,
+      "validScoringPoints": 18,
+      "pointCount": 20,
+      "allPointsSuccessful": false,
+      "score": 71.476113,
+      "sourceCodeUrl": "./generated/interactive/submissions/2522.cpp",
+      "outputTokens": 40487
     },
     {
       "submissionId": "1891",
@@ -134,7 +152,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 98.851155,
+      "score": 97.983386,
       "sourceCodeUrl": "./generated/interactive/submissions/1891.cpp",
       "outputTokens": 5036
     },
@@ -148,7 +166,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 97.741353,
+      "score": 96.943131,
       "sourceCodeUrl": "./generated/interactive/submissions/1841.cpp",
       "outputTokens": 15484
     },
@@ -162,7 +180,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 83.737964,
+      "score": 82.909191,
       "sourceCodeUrl": "./generated/interactive/submissions/2213.cpp",
       "outputTokens": 20305
     },
@@ -176,7 +194,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 83.287922,
+      "score": 82.497249,
       "sourceCodeUrl": "./generated/interactive/submissions/2154.cpp",
       "outputTokens": 127588
     },
@@ -190,70 +208,77 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 92.961844,
+      "score": 92.133071,
       "sourceCodeUrl": "./generated/interactive/submissions/2293.cpp",
       "outputTokens": 117016
     }
   ],
   "scopes": {
     "direct": {
-      "competitorCount": 9,
+      "competitorCount": 10,
       "competitors": [
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
-          "problemScore": 97.741353
+          "problemScore": 96.943131
         },
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 98.851155
+          "problemScore": 97.983386
         },
         {
           "model": "Claude Opus 5.5",
           "modelKey": "claude-opus-5-5",
           "mode": "direct",
           "harness": null,
-          "problemScore": 75.619651
+          "problemScore": 74.985964
         },
         {
           "model": "Qwen4 Max",
           "modelKey": "qwen4-max",
           "mode": "direct",
           "harness": null,
-          "problemScore": 92.961844
+          "problemScore": 92.133071
         },
         {
           "model": "Kimi K3.1 Pro",
           "modelKey": "kimi-k3.1-pro",
           "mode": "direct",
           "harness": null,
-          "problemScore": 83.737964
+          "problemScore": 82.909191
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "direct",
           "harness": null,
-          "problemScore": 82.044346
+          "problemScore": 81.230921
         },
         {
           "model": "Claude Sonnet 5.5",
           "modelKey": "claude-sonnet-5-5",
           "mode": "direct",
           "harness": null,
-          "problemScore": 83.095805
+          "problemScore": 82.267032
         },
         {
           "model": "Qwen3.8-27B",
           "modelKey": "qwen3.8-27b",
           "mode": "direct",
           "harness": null,
-          "problemScore": 83.287922
+          "problemScore": 82.497249
+        },
+        {
+          "model": "ERNIE 5.5 Flash Preview",
+          "modelKey": "ernie-5.5-flash-preview",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 71.476113
         },
         {
           "model": "GPT-OSS-120B",
@@ -380,6 +405,17 @@
               "sourceSubmissionId": "2154"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 92.16,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -495,6 +531,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1823"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9.0,
+              "score": 95.357191,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Qwen3.8-27B",
@@ -630,6 +677,17 @@
               "sourceSubmissionId": "2154"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 13.0,
+              "score": 95.946371,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -746,6 +804,17 @@
               "sourceSubmissionId": "2311"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 39.0,
+              "score": 89.425803,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -762,26 +831,37 @@
           "testId": 5,
           "scale": "n2000000000",
           "threshold": 300.0,
-          "record": 80.0,
+          "record": 58.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Astra",
-              "modelKey": "gpt-6.2-astra",
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 58.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-6.2 Astra",
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null,
               "interactionCount": 80.0,
-              "score": 100.0,
+              "score": 82.644628,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1891"
             },
             {
@@ -790,7 +870,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 85.0,
-              "score": 95.506198,
+              "score": 78.930742,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2382"
@@ -801,7 +881,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 85.0,
-              "score": 95.506198,
+              "score": 78.930742,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2213"
@@ -812,7 +892,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 85.0,
-              "score": 95.506198,
+              "score": 78.930742,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2293"
@@ -823,7 +903,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 87.0,
-              "score": 93.737603,
+              "score": 77.469094,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1823"
@@ -834,7 +914,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 89.0,
-              "score": 91.985537,
+              "score": 76.021105,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1841"
@@ -845,7 +925,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 90.0,
-              "score": 91.115702,
+              "score": 75.302233,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2154"
@@ -856,7 +936,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 112.0,
-              "score": 73.024793,
+              "score": 60.351069,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2311"
@@ -965,6 +1045,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2154"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 38.0,
+              "score": 90.768926,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Claude Opus 5.5",
@@ -1089,6 +1180,17 @@
               "sourceSubmissionId": "2154"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 36.0,
+              "score": 93.515276,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "direct",
@@ -1192,6 +1294,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1823"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 19.0,
+              "score": 96.53406,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "GPT-6.2 Sol",
@@ -1332,6 +1445,17 @@
               "sourceSubmissionId": "2311"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 102.0,
+              "score": 66.392318,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -1446,6 +1570,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1823"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 58.0,
+              "score": 82.768952,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "GPT-OSS-120B",
@@ -1564,6 +1699,17 @@
               "sourceSubmissionId": "2311"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -1680,6 +1826,17 @@
               "sourceSubmissionId": "1841"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 63.0,
+              "score": 80.591426,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -1728,6 +1885,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1841"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 64.0,
+              "score": 93.550121,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Qwen4 Max",
@@ -1907,6 +2075,17 @@
               "sourceSubmissionId": "2154"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 152.0,
+              "score": 47.385614,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
@@ -1988,6 +2167,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1891"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 110.0,
+              "score": 76.66334,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -2139,6 +2329,17 @@
               "sourceSubmissionId": "2154"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 153.0,
+              "score": 45.889698,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
@@ -2248,6 +2449,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1823"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 26.0,
+              "score": 95.760204,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Qwen3.8-27B",
@@ -2394,6 +2606,17 @@
               "sourceSubmissionId": "2311"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -2497,6 +2720,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2154"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 163.0,
+              "score": 42.157633,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Claude Opus 5.5",
@@ -2613,6 +2847,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1823"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 159.0,
+              "score": 44.655331,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Claude Opus 5.5",
@@ -4153,7 +4398,7 @@
       ]
     },
     "combined": {
-      "competitorCount": 14,
+      "competitorCount": 15,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
@@ -4170,18 +4415,18 @@
           "problemScore": 99.31245
         },
         {
-          "model": "Claude Opus 5.5",
-          "modelKey": "claude-opus-5-5-cc",
-          "mode": "agent",
-          "harness": "Claude Code",
-          "problemScore": 93.020827
-        },
-        {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
           "problemScore": 91.387227
+        },
+        {
+          "model": "Claude Opus 5.5",
+          "modelKey": "claude-opus-5-5-cc",
+          "mode": "agent",
+          "harness": "Claude Code",
+          "problemScore": 93.020827
         },
         {
           "model": "GPT-6.2 Astra",
@@ -4245,6 +4490,13 @@
           "mode": "direct",
           "harness": null,
           "problemScore": 77.669871
+        },
+        {
+          "model": "ERNIE 5.5 Flash Preview",
+          "modelKey": "ernie-5.5-flash-preview",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 67.580158
         },
         {
           "model": "GPT-OSS-120B",
@@ -4438,6 +4690,17 @@
               "sourceSubmissionId": "2154"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 92.16,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -4585,6 +4848,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1823"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9.0,
+              "score": 94.720417,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Kimi K3.1 Pro",
@@ -4792,6 +5066,17 @@
               "sourceSubmissionId": "1963"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 13.0,
+              "score": 95.946371,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -4958,6 +5243,17 @@
               "sourceSubmissionId": "2311"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 39.0,
+              "score": 88.14373,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
               "mode": "agent",
@@ -5017,6 +5313,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2070"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 58.0,
+              "score": 86.633136,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Kimi K3.1 Pro",
@@ -5289,6 +5596,17 @@
               "sourceSubmissionId": "2154"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 38.0,
+              "score": 90.768926,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
               "mode": "agent",
@@ -5466,6 +5784,17 @@
               "sourceSubmissionId": "2154"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 36.0,
+              "score": 93.515276,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "direct",
@@ -5641,6 +5970,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2070"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 19.0,
+              "score": 96.53406,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "GPT-6.2 Sol",
@@ -5823,6 +6163,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2311"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 102.0,
+              "score": 66.392318,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Kimi K3.1 Pro",
@@ -6013,6 +6364,17 @@
               "sourceSubmissionId": "2464"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 58.0,
+              "score": 80.334705,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -6184,6 +6546,17 @@
               "sourceSubmissionId": "2311"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -6344,6 +6717,17 @@
               "sourceSubmissionId": "1841"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 63.0,
+              "score": 77.049383,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
               "mode": "agent",
@@ -6436,6 +6820,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2445"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 64.0,
+              "score": 85.65321,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Kimi K3.1 Pro",
@@ -6675,6 +7070,17 @@
               "sourceSubmissionId": "2154"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 152.0,
+              "score": 46.516172,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
               "mode": "agent",
@@ -6811,6 +7217,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1963"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 110.0,
+              "score": 40.925529,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Kimi K3.1 Pro",
@@ -7028,6 +7445,17 @@
               "sourceSubmissionId": "2464"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 153.0,
+              "score": 45.055357,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
+            },
+            {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5",
               "mode": "direct",
@@ -7175,6 +7603,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1823"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 26.0,
+              "score": 95.07985,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Qwen3.8-27B",
@@ -7381,6 +7820,17 @@
               "sourceSubmissionId": "2311"
             },
             {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
               "mode": "direct",
@@ -7528,6 +7978,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2154"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 163.0,
+              "score": 41.369658,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Claude Opus 5.5",
@@ -7699,6 +8160,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1823"
+            },
+            {
+              "model": "ERNIE 5.5 Flash Preview",
+              "modelKey": "ernie-5.5-flash-preview",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 159.0,
+              "score": 34.805063,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2522"
             },
             {
               "model": "Kimi K3.1 Pro",

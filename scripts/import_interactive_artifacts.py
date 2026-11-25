@@ -140,7 +140,7 @@ def usage_from_result(judgement_path: Path, mode: str) -> dict[str, int]:
 
 
 def usage_from_harbor_trial(judgement_path: Path) -> dict[str, int]:
-    """Read Claude Code usage counters from the enclosing Harbor trial."""
+    """Read agent usage counters from the enclosing Harbor trial."""
     trial_dir = judgement_path.parent.parent
     result_path = trial_dir / "result.json"
     if not result_path.is_file():
@@ -185,6 +185,44 @@ def usage_from_harbor_trial(judgement_path: Path) -> dict[str, int]:
             pass
     rounds = len(message_ids) + anonymous_messages
     if rounds > 0:
+        metrics["rounds"] = rounds
+    return metrics
+
+
+def kimi_usage_from_harbor_trial(judgement_path: Path) -> dict[str, int]:
+    """Aggregate Kimi Code's per-request usage and model steps."""
+    sessions = judgement_path.parent.parent / "agent" / ".kimi-code" / "sessions"
+    metrics: dict[str, int] = {}
+    rounds = 0
+    for wire_path in sessions.glob("**/agents/main/wire.jsonl"):
+        steps: set[tuple[str, int]] = set()
+        with wire_path.open(encoding="utf-8") as stream:
+            for line in stream:
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if event.get("type") == "context.append_loop_event":
+                    loop = event.get("event", {})
+                    if loop.get("type") == "step.begin" and isinstance(loop.get("step"), int):
+                        steps.add((str(loop.get("turnId")), loop["step"]))
+                if event.get("type") != "usage.record" or event.get("usageScope") != "turn":
+                    continue
+                usage = event.get("usage", {})
+                cached = _integer_field(usage, "inputCacheRead")
+                other = _integer_field(usage, "inputOther")
+                creation = _integer_field(usage, "inputCacheCreation")
+                output = _integer_field(usage, "output")
+                if cached is not None:
+                    metrics["cachedInputTokens"] = metrics.get("cachedInputTokens", 0) + cached
+                if any(value is not None for value in (cached, other, creation)):
+                    metrics["inputTokens"] = metrics.get("inputTokens", 0) + sum(
+                        value or 0 for value in (cached, other, creation)
+                    )
+                if output is not None:
+                    metrics["outputTokens"] = metrics.get("outputTokens", 0) + output
+        rounds += len(steps)
+    if rounds:
         metrics["rounds"] = rounds
     return metrics
 
@@ -237,6 +275,8 @@ def load_submission(
     submission.update(usage_from_result(judgement_path, source.mode))
     if source.mode == "agent":
         submission.update(usage_from_harbor_trial(judgement_path))
+        if source.harness == "Kimi Code":
+            submission.update(kimi_usage_from_harbor_trial(judgement_path))
     return submission
 
 
