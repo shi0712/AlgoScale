@@ -44,9 +44,20 @@ $$
 
 This gives every problem equal weight regardless of how many judge points it contains.
 
+Category scores use the same mean over the problems tagged with that category.
+A problem can contribute to multiple categories and contributes only once to Overall.
+
+Full-score rate is the percentage of suite problems for which the displayed
+submission earned 100 on UOJ, completed every point correctly within the
+protocol, and used at most $T_i$ interactions on every point. Equality at
+$T_i$ qualifies for the rate and still earns zero in the AlgoScale point formula.
+
 ## Repeated submissions
 
-Repeated submissions for the same competitor are combined pointwise. For every point, use the minimum interaction count among that competitor's correct and protocol-valid results. The source submission ID of every selected point remains in the generated leaderboard for auditing.
+Repeated runs of the same competitor use one submission per problem. Prefer more
+scoring points, then more successful points, then fewer total interactions on
+successful points, then the latest numeric submission ID. The displayed source,
+point results, and full-score status all refer to this submission.
 
 Scores are recomputed from the raw point results whenever a new record is established. No historical score is treated as authoritative.
 
@@ -67,6 +78,7 @@ The authoritative source is `site/data/interactive-results.json`:
     {
       "problemId": 80,
       "title": "Example",
+      "categories": ["Mathematics", "Search & Enumeration"],
       "dataVersion": "sha256:...",
       "points": [
         {"testId": 1, "threshold": 100, "metric": "queries"}
@@ -76,6 +88,7 @@ The authoritative source is `site/data/interactive-results.json`:
   "submissions": [
     {
       "submissionId": "uoj-1001",
+      "uojScore": 100,
       "model": "Example Model",
       "modelKey": "example-model",
       "mode": "agent",

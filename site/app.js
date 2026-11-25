@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_RELEASE = "20261121-gpt-oss-interactive";
+const SITE_RELEASE = "20261125-interactive-categories";
 
 const DOMAIN_ORDER = [
   "Algorithmic Paradigms",
@@ -274,6 +274,7 @@ function renderStandardLeaderboard(data) {
 
 function renderInteractiveLeaderboard(data) {
   const board = data.boards[state.track] || { problemCount: 0, pointCount: 0, rows: [] };
+  const categories = data.categories || [];
   const rows = [...(board.rows || [])].sort((a, b) => Number(b.score) - Number(a.score));
   const headings = [
     element("th", "leaderboard-rank-heading", "Rank"),
@@ -285,12 +286,11 @@ function renderInteractiveLeaderboard(data) {
   if (state.track === "agent" || state.track === "combined") {
     headings.push(element("th", "leaderboard-harness-heading", "Harness"));
   }
-  headings.push(
-    element("th", "interactive-score-heading", "Score"),
-    element("th", "interactive-full-heading", "Full-score rate"),
-    element("th", "interactive-records-heading", "Records"),
-    element("th", "interactive-valid-heading", "Valid points"),
-  );
+  for (const label of [...categories, "Full-score rate", "Overall"]) {
+    const heading = element("th", label === "Overall" ? "domain-heading overall-heading" : "domain-heading");
+    heading.append(element("span", "domain-heading-name", label));
+    headings.push(heading);
+  }
   const table = els.leaderboardHead.closest("table");
   table.dataset.track = state.track;
   table.dataset.kind = "interactive";
@@ -308,12 +308,20 @@ function renderInteractiveLeaderboard(data) {
     if (state.track === "agent" || state.track === "combined") {
       row.append(element("td", "leaderboard-harness", entry.harness || "—"));
     }
-    row.append(
-      element("td", "interactive-score", Number(entry.score).toFixed(4)),
-      element("td", "interactive-stat", `${Number(entry.fullScoreRate || 0).toFixed(1)}%`),
-      element("td", "interactive-stat", String(entry.records)),
-      element("td", "interactive-stat", `${entry.validPoints}/${entry.totalPoints}`),
-    );
+    const scores = categories.map((category) => Number(entry.categoryScores[category]).toFixed(2));
+    const fullScoreRate = `${Number(entry.fullScoreRate || 0).toFixed(1)}%`;
+    const overallScore = Number(entry.score).toFixed(2);
+    for (const [index, value] of [...scores, fullScoreRate, overallScore].entries()) {
+      const overall = index === scores.length + 1;
+      const cell = element("td", overall ? "domain-score overall-score" : "domain-score");
+      cell.append(element("strong", "domain-pass-rate", value));
+      if (overall) {
+        cell.title = `Score: ${Number(entry.score).toFixed(4)}. Records: ${entry.records}. Valid points: ${entry.validPoints}/${entry.totalPoints}.`;
+      } else if (index === scores.length) {
+        cell.title = `${entry.fullScoreProblems}/${board.problemCount} problems with UOJ score 100 and every point at or below its zero-score line.`;
+      }
+      row.append(cell);
+    }
     els.leaderboardBody.append(row);
   });
 

@@ -126,6 +126,7 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
 
     point_config: dict[PointKey, dict[str, Any]] = {}
     problem_points: dict[int, list[PointKey]] = defaultdict(list)
+    category_problems: dict[str, list[int]] = defaultdict(list)
     problem_versions: dict[int, str] = {}
     problem_titles: dict[int, str] = {}
 
@@ -136,6 +137,11 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
         data_version = require_text(problem.get("dataVersion"), "problem.dataVersion")
         problem_versions[problem_id] = data_version
         problem_titles[problem_id] = require_text(problem.get("title"), "problem.title")
+        categories = problem.get("categories", [])
+        if not isinstance(categories, list):
+            raise DataError(f"problem #{problem_id}.categories must be an array")
+        for category in dict.fromkeys(require_text(name, "category") for name in categories):
+            category_problems[category].append(problem_id)
         points = problem.get("points")
         if not isinstance(points, list) or not points:
             raise DataError(f"problem #{problem_id} must define at least one point")
@@ -166,6 +172,7 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
             tuple[int, int, Decimal, int],
             str,
             dict[PointKey, Decimal],
+            bool,
         ],
     ] = {}
     seen_submission_ids: set[str] = set()
@@ -224,18 +231,31 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
         candidate_key = (competitor, problem_id)
         current = selected.get(candidate_key)
         if current is None or quality > current[0]:
+            uoj_score = submission.get("uojScore")
+            full_score = (
+                uoj_score is not None
+                and nonnegative_decimal(uoj_score, "submission.uojScore") == 100
+                and len(successful_results) == len(problem_points[problem_id])
+                and all(
+                    count <= point_config[key]["threshold"]
+                    for key, count in successful_results.items()
+                )
+            )
             selected[candidate_key] = (
                 quality,
                 submission_id,
                 successful_results,
+                full_score,
             )
 
     # A leaderboard row represents one concrete program per problem. Repeated runs
     # may replace that program as a whole, but their per-point results are never
     # combined into a synthetic submission.
-    for (competitor, _problem_id), (_quality, submission_id, results) in selected.items():
+    full_score_counts: dict[CompetitorKey, int] = defaultdict(int)
+    for (competitor, _problem_id), (_quality, submission_id, results, full_score) in selected.items():
         for point_key, interaction_count in results.items():
             best[competitor][point_key] = (interaction_count, submission_id)
+        full_score_counts[competitor] += int(full_score)
 
     all_competitors = sorted(names)
     scopes = {
@@ -247,6 +267,7 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
     boards: dict[str, Any] = {}
     total_problem_count = len(problem_points)
     total_point_count = len(point_config)
+    categories = sorted(category_problems, key=str.casefold)
 
     for board_name, competitors in scopes.items():
         records: dict[PointKey, Decimal] = {}
@@ -263,7 +284,7 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
         rows: list[dict[str, Any]] = []
         for competitor in competitors:
             per_problem: list[dict[str, Any]] = []
-            overall_problem_scores: list[Decimal] = []
+            problem_scores: dict[int, Decimal] = {}
             record_count = 0
             valid_count = 0
 
@@ -312,7 +333,7 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
                     )
 
                 problem_score = sum(point_scores, Decimal(0)) / Decimal(len(point_scores))
-                overall_problem_scores.append(problem_score)
+                problem_scores[problem_id] = problem_score
                 per_problem.append(
                     {
                         "problemId": problem_id,
@@ -323,13 +344,11 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
                 )
 
             overall_score = (
-                sum(overall_problem_scores, Decimal(0)) / Decimal(total_problem_count)
+                sum(problem_scores.values(), Decimal(0)) / Decimal(total_problem_count)
                 if total_problem_count
                 else Decimal(0)
             )
-            full_score_problems = sum(
-                1 for problem_score in overall_problem_scores if problem_score == Decimal(100)
-            )
+            full_score_problems = full_score_counts[competitor]
             full_score_rate = (
                 Decimal(100) * Decimal(full_score_problems) / Decimal(total_problem_count)
                 if total_problem_count
@@ -342,6 +361,13 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
                     "mode": competitor.mode,
                     "harness": competitor.harness or None,
                     "score": decimal_json(overall_score),
+                    "categoryScores": {
+                        category: decimal_json(
+                            sum((problem_scores[pid] for pid in category_problems[category]), Decimal(0))
+                            / Decimal(len(category_problems[category]))
+                        )
+                        for category in categories
+                    },
                     "fullScoreProblems": full_score_problems,
                     "fullScoreRate": decimal_json(full_score_rate),
                     "records": record_count,
@@ -363,6 +389,7 @@ def build(raw: dict[str, Any]) -> dict[str, Any]:
         "schemaVersion": 1,
         "updated": require_text(raw.get("updated"), "updated"),
         "status": require_text(raw.get("status") or "Preliminary", "status"),
+        "categories": categories,
         "boards": boards,
     }
 
@@ -383,6 +410,7 @@ def compact_leaderboard(result: dict[str, Any]) -> dict[str, Any]:
         "schemaVersion": result["schemaVersion"],
         "updated": result["updated"],
         "status": result["status"],
+        "categories": result["categories"],
         "boards": boards,
     }
 

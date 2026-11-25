@@ -234,12 +234,13 @@ def load_submission(
     accepted_only: bool,
 ) -> dict[str, Any] | None:
     judgement = json.loads(judgement_path.read_text(encoding="utf-8"))
+    result = judgement.get("result", {})
+    overall_score = result.get("score")
     if accepted_only:
         try:
-            overall_score = float(judgement.get("result", {}).get("score"))
+            if float(overall_score) != 100.0:
+                return None
         except (TypeError, ValueError):
-            return None
-        if overall_score != 100.0:
             return None
     submission_id = str(judgement["id"])
     problem_id = int(judgement["problem_id"])
@@ -247,7 +248,7 @@ def load_submission(
         raise ImportError(
             f"{judgement_path}: problem #{problem_id} is not in interactive-results.json"
         )
-    details = judgement.get("result", {}).get("details") or ""
+    details = result.get("details") or ""
     if METRIC_PREFIX not in details:
         return None
     try:
@@ -263,6 +264,7 @@ def load_submission(
         raise ImportError(f"{judgement_path}: no test results")
     submission: dict[str, Any] = {
         "submissionId": submission_id,
+        "uojScore": overall_score,
         "problemId": problem_id,
         "dataVersion": problem_versions[problem_id],
         "modelKey": source.model_key,

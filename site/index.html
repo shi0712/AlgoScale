@@ -26,7 +26,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
     />
-    <link rel="stylesheet" href="./styles.css?v=20261121-point-results" />
+    <link rel="stylesheet" href="./styles.css?v=20261125-interactive-categories" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -216,8 +216,9 @@
             </div>
             <p>
               Every point is scored from 0 to 100. Points are averaged within each problem,
-              then problem scores are averaged across the suite. Repeated runs of the same
-              model, mode, and harness are combined pointwise by their best valid result.
+              then problem scores are averaged across each category and the full suite.
+              Full-score rate counts problems where the displayed submission earned 100 on UOJ
+              and all point counts were at or below their zero-score lines.
               Standard solutions validate the judge and do not set records.
             </p>
           </div>
@@ -327,6 +328,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" defer></script>
-    <script src="./app.js?v=20261125-standard-domains" defer></script>
+    <script src="./app.js?v=20261125-interactive-categories" defer></script>
   </body>
 </html>

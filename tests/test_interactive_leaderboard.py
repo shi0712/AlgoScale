@@ -24,6 +24,7 @@ def fixture():
             {
                 "problemId": 80,
                 "title": "Interactive Fixture",
+                "categories": ["Mathematics", "Search & Enumeration"],
                 "dataVersion": "v1",
                 "points": [
                     {"testId": 1, "threshold": 100, "metric": "queries"},
@@ -56,6 +57,7 @@ def fixture():
             },
             {
                 "submissionId": "d2",
+                "uojScore": 100,
                 "model": "Model A",
                 "modelKey": "model-a",
                 "mode": "direct",
@@ -78,6 +80,7 @@ def fixture():
             },
             {
                 "submissionId": "a1",
+                "uojScore": 100,
                 "model": "Model B",
                 "modelKey": "model-b",
                 "mode": "agent",
@@ -128,8 +131,48 @@ class InteractiveLeaderboardTest(unittest.TestCase):
         # Point 1: 100 * ((100 - 30) / (100 - 20))^2 = 76.5625.
         # Point 2 remains a Direct record, so the problem mean is 88.28125.
         self.assertEqual(direct["score"], 88.28125)
+        self.assertEqual(direct["fullScoreRate"], 100.0)
+        self.assertEqual(agent["fullScoreRate"], 100.0)
         self.assertEqual(agent["rank"], 2)
         self.assertEqual(direct["rank"], 1)
+
+    def test_full_score_requires_a_uoj_100_and_all_points_within_the_limit(self):
+        for uoj_score, points in (
+            (99, [(50, True), (50, True)]),
+            (None, [(50, True), (50, True)]),
+            (100, [(50, True), (51, True)]),
+            (100, [(50, True), (50, False)]),
+            (100, [(50, True)]),
+        ):
+            with self.subTest(uoj_score=uoj_score, points=points):
+                data = fixture()
+                submission = data["submissions"][2]
+                submission["uojScore"] = uoj_score
+                submission["points"] = [
+                    {
+                        "testId": index,
+                        "verdict": "Accepted",
+                        "protocolValid": valid,
+                        "interactionCount": count,
+                    }
+                    for index, (count, valid) in enumerate(points, start=1)
+                ]
+                row = build(data)["boards"]["agent"]["rows"][0]
+                self.assertEqual(row["fullScoreRate"], 0.0)
+
+    def test_category_scores_average_only_tagged_problems_in_each_scope(self):
+        data = fixture()
+        data["problems"].append({
+            **data["problems"][0],
+            "problemId": 81,
+            "categories": ["Search & Enumeration"],
+        })
+        result = compact_leaderboard(build(data))
+        self.assertEqual(result["categories"], ["Mathematics", "Search & Enumeration"])
+        row = result["boards"]["agent"]["rows"][0]
+        self.assertEqual(row["categoryScores"], {"Mathematics": 50.0, "Search & Enumeration": 25.0})
+        self.assertEqual(row["score"], 25.0)
+        self.assertEqual(row["fullScoreRate"], 50.0)
 
     def test_equal_scores_share_competition_rank(self):
         data = fixture()
@@ -166,6 +209,7 @@ class InteractiveLeaderboardTest(unittest.TestCase):
             },
         ]
         result = build(data)
+        self.assertEqual(result["boards"]["direct"]["rows"][0]["fullScoreRate"], 0.0)
         points = result["boards"]["direct"]["rows"][0]["problemScores"][0]["points"]
         # r1 is selected as the better whole program; r2 must not fill its failed point.
         self.assertEqual(points[0]["sourceSubmissionId"], "r1")
