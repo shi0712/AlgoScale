@@ -9,7 +9,6 @@ const DOMAIN_ORDER = [
   "Dynamic Programming",
   "Graph Theory",
   "Mathematics",
-  "Search & Enumeration",
 ];
 
 const state = {
