@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-25",
+  "updated": "2026-11-27",
   "status": "Preliminary",
   "problem": {
     "problemId": 79,
@@ -96,7 +96,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 59.602707,
+      "score": 58.772447,
       "sourceCodeUrl": "./generated/interactive/submissions/2321.cpp",
       "outputTokens": 8398
     },
@@ -110,7 +110,7 @@
       "validScoringPoints": 7,
       "pointCount": 20,
       "allPointsSuccessful": false,
-      "score": 29.197295,
+      "score": 28.427359,
       "sourceCodeUrl": "./generated/interactive/submissions/2388.cpp",
       "outputTokens": 1721
     },
@@ -124,7 +124,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 58.192214,
+      "score": 57.580166,
       "sourceCodeUrl": "./generated/interactive/submissions/1820.cpp",
       "outputTokens": 91835
     },
@@ -152,7 +152,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 69.852045,
+      "score": 67.987505,
       "sourceCodeUrl": "./generated/interactive/submissions/1900.cpp",
       "outputTokens": 6800
     },
@@ -166,7 +166,7 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 82.314739,
+      "score": 79.91234,
       "sourceCodeUrl": "./generated/interactive/submissions/1851.cpp",
       "outputTokens": 21632
     },
@@ -194,35 +194,49 @@
       "validScoringPoints": 20,
       "pointCount": 20,
       "allPointsSuccessful": true,
-      "score": 80.609371,
+      "score": 79.95699,
       "sourceCodeUrl": "./generated/interactive/submissions/2227.cpp",
       "outputTokens": 71597
+    },
+    {
+      "submissionId": "2805",
+      "model": "MiniMax-M3.1-Flash",
+      "modelKey": "minimax-m3.1-flash",
+      "mode": "direct",
+      "harness": null,
+      "successfulPoints": 9,
+      "validScoringPoints": 9,
+      "pointCount": 20,
+      "allPointsSuccessful": false,
+      "score": 37.745949,
+      "sourceCodeUrl": "./generated/interactive/submissions/2805.cpp",
+      "outputTokens": 87242
     }
   ],
   "scopes": {
     "direct": {
-      "competitorCount": 10,
+      "competitorCount": 11,
       "competitors": [
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
-          "problemScore": 82.314739
+          "problemScore": 79.91234
         },
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 69.852045
+          "problemScore": 67.987505
         },
         {
           "model": "Claude Opus 5.5",
           "modelKey": "claude-opus-5-5",
           "mode": "direct",
           "harness": null,
-          "problemScore": 59.602707
+          "problemScore": 58.772447
         },
         {
           "model": "Qwen4 Max",
@@ -236,21 +250,28 @@
           "modelKey": "kimi-k3.1-pro",
           "mode": "direct",
           "harness": null,
-          "problemScore": 80.609371
+          "problemScore": 79.95699
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "direct",
           "harness": null,
-          "problemScore": 58.192214
+          "problemScore": 57.580166
         },
         {
           "model": "Claude Sonnet 5.5",
           "modelKey": "claude-sonnet-5-5",
           "mode": "direct",
           "harness": null,
-          "problemScore": 29.197295
+          "problemScore": 28.427359
+        },
+        {
+          "model": "MiniMax-M3.1-Flash",
+          "modelKey": "minimax-m3.1-flash",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 37.745949
         },
         {
           "model": "Qwen3.8-27B",
@@ -327,6 +348,12 @@
             {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null
             }
@@ -421,6 +448,17 @@
               "sourceSubmissionId": "2227"
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2805"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -456,6 +494,12 @@
               "modelKey": "gpt-6.2-astra",
               "mode": "direct",
               "harness": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null
             }
           ],
           "results": [
@@ -469,6 +513,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1900"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -613,6 +668,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "2227"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 99.974967,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -775,6 +841,17 @@
               "sourceSubmissionId": "1820"
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 491.0,
+              "score": 93.106876,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
+            },
+            {
               "model": "Claude Sonnet 5.5",
               "modelKey": "claude-sonnet-5-5",
               "mode": "direct",
@@ -935,6 +1012,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -1010,6 +1098,12 @@
             {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null
             }
@@ -1104,6 +1198,17 @@
               "sourceSubmissionId": "2227"
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2805"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -1196,6 +1301,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1820"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 5885.0,
+              "score": 10.072813,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -1358,6 +1474,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -1476,6 +1603,17 @@
             {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -1618,6 +1756,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -1742,6 +1891,17 @@
             {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -1884,6 +2044,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -2008,6 +2179,17 @@
             {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -2150,6 +2332,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -2274,6 +2467,17 @@
             {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -2416,6 +2620,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -2443,26 +2658,37 @@
           "testId": 17,
           "scale": "n500_m124263",
           "threshold": 8000.0,
-          "record": 2623.0,
+          "record": 540.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "GPT-6.2 Sol",
-              "modelKey": "gpt-6.2-sol",
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null
             }
           ],
           "results": [
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 540.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2805"
+            },
+            {
               "model": "GPT-6.2 Sol",
               "modelKey": "gpt-6.2-sol",
               "mode": "direct",
               "harness": null,
               "interactionCount": 2623.0,
-              "score": 100.0,
+              "score": 51.952018,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "1851"
             },
             {
@@ -2471,7 +2697,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 3263.0,
-              "score": 77.611611,
+              "score": 40.320798,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1900"
@@ -2482,7 +2708,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 4839.0,
-              "score": 34.559617,
+              "score": 17.954418,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2321"
@@ -2493,7 +2719,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 4956.0,
-              "score": 32.048612,
+              "score": 16.6499,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2388"
@@ -2504,7 +2730,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 5198.0,
-              "score": 27.155399,
+              "score": 14.107778,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2227"
@@ -2515,7 +2741,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 5286.0,
-              "score": 25.476491,
+              "score": 13.235551,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1820"
@@ -2670,6 +2896,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -2751,6 +2988,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2227"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 1875.0,
+              "score": 75.138915,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -2845,6 +3093,17 @@
               "valid": true,
               "isRecord": true,
               "sourceSubmissionId": "1820"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 998.0,
+              "score": 76.625411,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "GPT-6.2 Sol",
@@ -4480,70 +4739,70 @@
       ]
     },
     "combined": {
-      "competitorCount": 15,
+      "competitorCount": 16,
       "competitors": [
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 96.770186
+          "problemScore": 96.717965
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "agent",
           "harness": "Codex",
-          "problemScore": 87.028126
+          "problemScore": 86.949051
         },
         {
           "model": "GPT-6.2 Sol",
           "modelKey": "gpt-6.2-sol",
           "mode": "direct",
           "harness": null,
-          "problemScore": 77.626017
+          "problemScore": 77.58301
         },
         {
           "model": "Claude Opus 5.5",
           "modelKey": "claude-opus-5-5-cc",
           "mode": "agent",
           "harness": "Claude Code",
-          "problemScore": 88.497613
+          "problemScore": 88.416178
         },
         {
           "model": "GPT-6.2 Astra",
           "modelKey": "gpt-6.2-astra",
           "mode": "direct",
           "harness": null,
-          "problemScore": 66.163404
+          "problemScore": 66.130025
         },
         {
           "model": "DeepSeek V4.1 Flash 1017",
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "agent",
           "harness": "DeepSeek Harness",
-          "problemScore": 69.398075
+          "problemScore": 69.329514
         },
         {
           "model": "Claude Opus 5.5",
           "modelKey": "claude-opus-5-5",
           "mode": "direct",
           "harness": null,
-          "problemScore": 57.761955
+          "problemScore": 57.747092
         },
         {
           "model": "Kimi K3.1 Pro",
           "modelKey": "kimi-k3.1-pro",
           "mode": "agent",
           "harness": "Kimi Code",
-          "problemScore": 29.008482
+          "problemScore": 28.999407
         },
         {
           "model": "Kimi K3.1 Pro",
           "modelKey": "kimi-k3.1-pro",
           "mode": "direct",
           "harness": null,
-          "problemScore": 78.432998
+          "problemScore": 78.421319
         },
         {
           "model": "Qwen4 Max",
@@ -4557,14 +4816,21 @@
           "modelKey": "deepseek-v4.1-flash-1017",
           "mode": "direct",
           "harness": null,
-          "problemScore": 56.535962
+          "problemScore": 56.525005
         },
         {
           "model": "Claude Sonnet 5.5",
           "modelKey": "claude-sonnet-5-5",
           "mode": "direct",
           "harness": null,
-          "problemScore": 28.215874
+          "problemScore": 28.202091
+        },
+        {
+          "model": "MiniMax-M3.1-Flash",
+          "modelKey": "minimax-m3.1-flash",
+          "mode": "direct",
+          "harness": null,
+          "problemScore": 37.448534
         },
         {
           "model": "Qwen3.8-27B",
@@ -4671,6 +4937,12 @@
             {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null
             }
@@ -4820,6 +5092,17 @@
               "sourceSubmissionId": "2227"
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2805"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -4901,6 +5184,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1900"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 9.0,
+              "score": 99.899962,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -5094,6 +5388,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2227"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 12.0,
+              "score": 99.8,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "GPT-6.2 Astra",
@@ -5333,6 +5638,17 @@
               "sourceSubmissionId": "2499"
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 491.0,
+              "score": 92.582667,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
+            },
+            {
               "model": "Claude Sonnet 5.5",
               "modelKey": "claude-sonnet-5-5",
               "mode": "direct",
@@ -5548,6 +5864,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -5653,6 +5980,12 @@
             {
               "model": "Kimi K3.1 Pro",
               "modelKey": "kimi-k3.1-pro",
+              "mode": "direct",
+              "harness": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null
             }
@@ -5802,6 +6135,17 @@
               "sourceSubmissionId": "2227"
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 0.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2805"
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -5938,6 +6282,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1820"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 5885.0,
+              "score": 9.392835,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "Claude Sonnet 5.5",
@@ -6166,6 +6521,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -6341,6 +6707,17 @@
               "modelKey": "kimi-k3.1-pro",
               "mode": "agent",
               "harness": "Kimi Code",
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
               "interactionCount": null,
               "score": 0.0,
               "valid": false,
@@ -6533,6 +6910,17 @@
             {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -6736,6 +7124,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -6930,6 +7329,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -7115,6 +7525,17 @@
             {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -7318,6 +7739,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -7503,6 +7935,17 @@
             {
               "model": "GPT-OSS-120B",
               "modelKey": "gpt-oss-120b",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
               "mode": "direct",
               "harness": null,
               "interactionCount": null,
@@ -7706,6 +8149,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -7733,26 +8187,37 @@
           "testId": 17,
           "scale": "n500_m124263",
           "threshold": 8000.0,
-          "record": 601.0,
+          "record": 540.0,
           "metric": "queries",
           "recordHolders": [
             {
-              "model": "Claude Opus 5.5",
-              "modelKey": "claude-opus-5-5-cc",
-              "mode": "agent",
-              "harness": "Claude Code"
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null
             }
           ],
           "results": [
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 540.0,
+              "score": 100.0,
+              "valid": true,
+              "isRecord": true,
+              "sourceSubmissionId": "2805"
+            },
             {
               "model": "Claude Opus 5.5",
               "modelKey": "claude-opus-5-5-cc",
               "mode": "agent",
               "harness": "Claude Code",
               "interactionCount": 601.0,
-              "score": 100.0,
+              "score": 98.371298,
               "valid": true,
-              "isRecord": true,
+              "isRecord": false,
               "sourceSubmissionId": "2438"
             },
             {
@@ -7761,7 +8226,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 709.0,
-              "score": 97.101993,
+              "score": 95.52049,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2028"
@@ -7772,7 +8237,7 @@
               "mode": "agent",
               "harness": "DeepSeek Harness",
               "interactionCount": 1211.0,
-              "score": 84.19098,
+              "score": 82.819759,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1967"
@@ -7783,7 +8248,7 @@
               "mode": "agent",
               "harness": "Codex",
               "interactionCount": 2075.0,
-              "score": 64.125484,
+              "score": 63.08107,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2079"
@@ -7794,7 +8259,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 2623.0,
-              "score": 52.812171,
+              "score": 51.952018,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1851"
@@ -7805,7 +8270,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 3263.0,
-              "score": 40.988376,
+              "score": 40.320798,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1900"
@@ -7816,7 +8281,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 4839.0,
-              "score": 18.251684,
+              "score": 17.954418,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2321"
@@ -7827,7 +8292,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 4956.0,
-              "score": 16.925568,
+              "score": 16.6499,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2388"
@@ -7838,7 +8303,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 5198.0,
-              "score": 14.341356,
+              "score": 14.107778,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2227"
@@ -7849,7 +8314,7 @@
               "mode": "direct",
               "harness": null,
               "interactionCount": 5286.0,
-              "score": 13.454688,
+              "score": 13.235551,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "1820"
@@ -7860,7 +8325,7 @@
               "mode": "agent",
               "harness": "Kimi Code",
               "interactionCount": 5530.0,
-              "score": 11.144173,
+              "score": 10.962668,
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2499"
@@ -8070,6 +8535,17 @@
               "sourceSubmissionId": null
             },
             {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": null,
+              "score": 0.0,
+              "valid": false,
+              "isRecord": false,
+              "sourceSubmissionId": null
+            },
+            {
               "model": "Qwen3.8-27B",
               "modelKey": "qwen3.8-27b",
               "mode": "direct",
@@ -8195,6 +8671,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2227"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 1875.0,
+              "score": 70.669798,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "DeepSeek V4.1 Flash 1017",
@@ -8333,6 +8820,17 @@
               "valid": true,
               "isRecord": false,
               "sourceSubmissionId": "2438"
+            },
+            {
+              "model": "MiniMax-M3.1-Flash",
+              "modelKey": "minimax-m3.1-flash",
+              "mode": "direct",
+              "harness": null,
+              "interactionCount": 998.0,
+              "score": 76.625411,
+              "valid": true,
+              "isRecord": false,
+              "sourceSubmissionId": "2805"
             },
             {
               "model": "GPT-6.2 Sol",
